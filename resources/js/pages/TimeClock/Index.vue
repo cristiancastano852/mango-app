@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { LogIn, LogOut, Pause, Play, Coffee } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,10 +18,13 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+const { t, locale } = useI18n();
+
+const dateLocale = computed(() => locale.value === 'es' ? 'es-CO' : 'en-US');
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: { url: '/dashboard', method: 'get' } },
-    { title: 'Time Clock', href: { url: '/time-clock', method: 'get' } },
+    { title: t('common.dashboard'), href: { url: '/dashboard', method: 'get' } },
+    { title: t('time_clock.breadcrumb'), href: { url: '/time-clock', method: 'get' } },
 ];
 
 // Live timer
@@ -70,10 +74,10 @@ const activeBreak = computed(() =>
 
 const statusLabel = computed(() => {
     switch (status.value) {
-        case 'idle': return 'Sin fichar';
-        case 'working': return 'Trabajando';
-        case 'on-break': return activeBreak.value?.break_type?.name ?? 'En pausa';
-        case 'done': return 'Jornada completada';
+        case 'idle': return t('time_clock.status.idle');
+        case 'working': return t('time_clock.status.working');
+        case 'on-break': return activeBreak.value?.break_type?.name ?? t('time_clock.status.on_break');
+        case 'done': return t('time_clock.status.done');
         default: return '';
     }
 });
@@ -96,7 +100,7 @@ function formatHours(hours: number): string {
 
 function formatTime(datetime: string | null): string {
     if (!datetime) return '—';
-    return new Date(datetime).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    return new Date(datetime).toLocaleTimeString(dateLocale.value, { hour: '2-digit', minute: '2-digit' });
 }
 
 // Actions
@@ -110,7 +114,7 @@ function clockIn() {
 }
 
 function clockOut() {
-    if (!confirm('¿Confirmar check-out?')) return;
+    if (!confirm(t('time_clock.confirm_checkout'))) return;
     loading.value = true;
     router.post('/time-clock/clock-out', {}, {
         onFinish: () => (loading.value = false),
@@ -133,13 +137,13 @@ function endBreak() {
 </script>
 
 <template>
-    <Head title="Time Clock" />
+    <Head :title="t('time_clock.head_title')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4 md:p-6">
             <!-- No employee profile -->
             <div v-if="!employee" class="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
-                <p class="text-muted-foreground">Tu cuenta no tiene un perfil de empleado asociado.</p>
+                <p class="text-muted-foreground">{{ t('time_clock.no_employee') }}</p>
             </div>
 
             <template v-else>
@@ -172,8 +176,8 @@ function endBreak() {
 
                         <!-- Clock in/out times -->
                         <div v-if="todayEntry?.clock_in" class="text-muted-foreground flex gap-6 text-sm">
-                            <span>Entrada: {{ formatTime(todayEntry.clock_in) }}</span>
-                            <span v-if="todayEntry.clock_out">Salida: {{ formatTime(todayEntry.clock_out) }}</span>
+                            <span>{{ t('time_clock.clock_in_label') }} {{ formatTime(todayEntry.clock_in) }}</span>
+                            <span v-if="todayEntry.clock_out">{{ t('time_clock.clock_out_label') }} {{ formatTime(todayEntry.clock_out) }}</span>
                         </div>
 
                         <!-- Main action -->
@@ -186,7 +190,7 @@ function endBreak() {
                                 @click="clockIn"
                             >
                                 <LogIn class="size-5" />
-                                Check In
+                                {{ t('time_clock.check_in') }}
                             </Button>
 
                             <Button
@@ -197,7 +201,7 @@ function endBreak() {
                                 @click="endBreak"
                             >
                                 <Play class="size-5" />
-                                Reanudar trabajo
+                                {{ t('time_clock.resume_work') }}
                             </Button>
 
                             <Button
@@ -209,7 +213,7 @@ function endBreak() {
                                 @click="clockOut"
                             >
                                 <LogOut class="size-5" />
-                                Check Out
+                                {{ t('time_clock.check_out') }}
                             </Button>
                         </div>
                     </CardContent>
@@ -220,7 +224,7 @@ function endBreak() {
                     <CardHeader>
                         <CardTitle class="flex items-center gap-2 text-base">
                             <Coffee class="size-4" />
-                            Iniciar pausa
+                            {{ t('time_clock.start_break') }}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -247,12 +251,12 @@ function endBreak() {
                             <span class="text-2xl">{{ activeBreak.break_type?.icon }}</span>
                             <div>
                                 <p class="font-medium">{{ activeBreak.break_type?.name }}</p>
-                                <p class="text-muted-foreground text-sm">Desde {{ formatTime(activeBreak.started_at) }}</p>
+                                <p class="text-muted-foreground text-sm">{{ t('time_clock.since') }} {{ formatTime(activeBreak.started_at) }}</p>
                             </div>
                         </div>
                         <Button :disabled="loading" @click="endBreak">
                             <Play class="mr-2 size-4" />
-                            Terminar
+                            {{ t('time_clock.end_break') }}
                         </Button>
                     </CardContent>
                 </Card>
@@ -260,7 +264,7 @@ function endBreak() {
                 <!-- Today's breaks -->
                 <Card v-if="todayEntry && todayEntry.breaks && todayEntry.breaks.length > 0">
                     <CardHeader>
-                        <CardTitle class="text-base">Pausas de hoy</CardTitle>
+                        <CardTitle class="text-base">{{ t('time_clock.today_breaks') }}</CardTitle>
                     </CardHeader>
                     <CardContent class="grid gap-2">
                         <div
@@ -273,9 +277,9 @@ function endBreak() {
                                 <span class="font-medium">{{ b.break_type?.name }}</span>
                             </div>
                             <div class="text-muted-foreground flex items-center gap-3">
-                                <span>{{ formatTime(b.started_at) }} — {{ b.ended_at ? formatTime(b.ended_at) : 'activa' }}</span>
+                                <span>{{ formatTime(b.started_at) }} — {{ b.ended_at ? formatTime(b.ended_at) : t('time_clock.active') }}</span>
                                 <Badge v-if="b.duration_minutes" variant="outline" class="text-xs">
-                                    {{ b.duration_minutes }} min
+                                    {{ b.duration_minutes }} {{ t('common.min') }}
                                 </Badge>
                             </div>
                         </div>
@@ -285,21 +289,21 @@ function endBreak() {
                 <!-- Summary (when day is done) -->
                 <Card v-if="status === 'done' && todayEntry">
                     <CardHeader>
-                        <CardTitle class="text-base">Resumen del día</CardTitle>
+                        <CardTitle class="text-base">{{ t('time_clock.day_summary') }}</CardTitle>
                     </CardHeader>
                     <CardContent class="grid gap-3 text-sm">
                         <div class="flex justify-between">
-                            <span class="text-muted-foreground">Horas brutas</span>
+                            <span class="text-muted-foreground">{{ t('time_clock.gross_hours') }}</span>
                             <span class="font-medium">{{ Number(todayEntry.gross_hours).toFixed(1) }}h</span>
                         </div>
                         <Separator />
                         <div class="flex justify-between">
-                            <span class="text-muted-foreground">Tiempo en pausas (no pagadas)</span>
+                            <span class="text-muted-foreground">{{ t('time_clock.break_time_unpaid') }}</span>
                             <span class="font-medium">{{ Number(todayEntry.break_hours).toFixed(1) }}h</span>
                         </div>
                         <Separator />
                         <div class="flex justify-between text-base font-semibold">
-                            <span>Horas netas</span>
+                            <span>{{ t('time_clock.net_hours') }}</span>
                             <span>{{ Number(todayEntry.net_hours).toFixed(1) }}h</span>
                         </div>
                     </CardContent>
@@ -308,7 +312,7 @@ function endBreak() {
                 <!-- Recent history -->
                 <Card v-if="recentEntries.length > 0">
                     <CardHeader>
-                        <CardTitle class="text-base">Últimos 7 días</CardTitle>
+                        <CardTitle class="text-base">{{ t('time_clock.last_7_days') }}</CardTitle>
                     </CardHeader>
                     <CardContent class="grid gap-2">
                         <div
@@ -317,7 +321,7 @@ function endBreak() {
                             class="flex items-center justify-between rounded-md border p-3 text-sm"
                         >
                             <span class="font-medium">
-                                {{ new Date(entry.date + 'T12:00:00').toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' }) }}
+                                {{ new Date(entry.date + 'T12:00:00').toLocaleDateString(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' }) }}
                             </span>
                             <div class="flex items-center gap-4">
                                 <span class="text-muted-foreground">

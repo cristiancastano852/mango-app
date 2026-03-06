@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
+import { useI18n } from 'vue-i18n';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import EmployeeForm from './partials/EmployeeForm.vue';
@@ -16,11 +17,12 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: { url: '/dashboard', method: 'get' } },
-    { title: 'Employees', href: employeesIndex() },
-    { title: 'Editar', href: { url: `/employees/${props.employee.id}/edit`, method: 'get' } },
+    { title: t('common.dashboard'), href: { url: '/dashboard', method: 'get' } },
+    { title: t('employees.breadcrumb'), href: employeesIndex() },
+    { title: t('employees.edit_page.breadcrumb'), href: { url: `/employees/${props.employee.id}/edit`, method: 'get' } },
 ];
 
 const form = useForm({
@@ -44,14 +46,14 @@ function submit() {
 </script>
 
 <template>
-    <Head :title="`Editar - ${employee.user.name}`" />
+    <Head :title="t('employees.edit_page.head_title', { name: employee.user.name })" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto w-full max-w-3xl p-4 md:p-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Editar Empleado</CardTitle>
-                    <CardDescription>Modifica los datos de {{ employee.user.name }}.</CardDescription>
+                    <CardTitle>{{ t('employees.edit_page.title') }}</CardTitle>
+                    <CardDescription>{{ t('employees.edit_page.description', { name: employee.user.name }) }}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <EmployeeForm

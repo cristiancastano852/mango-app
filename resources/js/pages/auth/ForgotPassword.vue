@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import { useI18n } from 'vue-i18n';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
@@ -13,14 +14,16 @@ import { email } from '@/routes/password';
 defineProps<{
     status?: string;
 }>();
+
+const { t } = useI18n();
 </script>
 
 <template>
     <AuthLayout
-        title="Forgot password"
-        description="Enter your email to receive a password reset link"
+        :title="t('auth.forgot_password.title')"
+        :description="t('auth.forgot_password.description')"
     >
-        <Head title="Forgot password" />
+        <Head :title="t('auth.forgot_password.head_title')" />
 
         <div
             v-if="status"
@@ -32,7 +35,7 @@ defineProps<{
         <div class="space-y-6">
             <Form v-bind="email.form()" v-slot="{ errors, processing }">
                 <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
+                    <Label for="email">{{ t('auth.forgot_password.email_label') }}</Label>
                     <Input
                         id="email"
                         type="email"
@@ -51,14 +54,14 @@ defineProps<{
                         data-test="email-password-reset-link-button"
                     >
                         <Spinner v-if="processing" />
-                        Email password reset link
+                        {{ t('auth.forgot_password.submit') }}
                     </Button>
                 </div>
             </Form>
 
             <div class="space-x-1 text-center text-sm text-muted-foreground">
-                <span>Or, return to</span>
-                <TextLink :href="login()">log in</TextLink>
+                <span>{{ t('auth.forgot_password.or_return_to') }}</span>
+                <TextLink :href="login()">{{ t('auth.forgot_password.log_in') }}</TextLink>
             </div>
         </div>
     </AuthLayout>

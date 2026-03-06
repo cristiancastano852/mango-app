@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
+import { useI18n } from 'vue-i18n';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import EmployeeForm from './partials/EmployeeForm.vue';
@@ -15,11 +16,12 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: { url: '/dashboard', method: 'get' } },
-    { title: 'Employees', href: employeesIndex() },
-    { title: 'Nuevo', href: { url: '/employees/create', method: 'get' } },
+    { title: t('common.dashboard'), href: { url: '/dashboard', method: 'get' } },
+    { title: t('employees.breadcrumb'), href: employeesIndex() },
+    { title: t('employees.create.breadcrumb'), href: { url: '/employees/create', method: 'get' } },
 ];
 
 const form = useForm({
@@ -42,14 +44,14 @@ function submit() {
 </script>
 
 <template>
-    <Head title="Nuevo Empleado" />
+    <Head :title="t('employees.create.head_title')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto w-full max-w-3xl p-4 md:p-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Nuevo Empleado</CardTitle>
-                    <CardDescription>Ingresa los datos del nuevo empleado.</CardDescription>
+                    <CardTitle>{{ t('employees.create.title') }}</CardTitle>
+                    <CardDescription>{{ t('employees.create.description') }}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <EmployeeForm

@@ -51,7 +51,7 @@ class TimeClockController extends Controller
         $employee = $request->user()->employee;
         $action->execute($employee);
 
-        return back()->with('success', 'Check-in registrado.');
+        return back()->with('success', __('messages.clock_in'));
     }
 
     public function clockOut(Request $request, ClockOut $action): RedirectResponse
@@ -63,7 +63,7 @@ class TimeClockController extends Controller
 
         $action->execute($entry);
 
-        return back()->with('success', 'Check-out registrado.');
+        return back()->with('success', __('messages.clock_out'));
     }
 
     public function startBreak(Request $request, StartBreak $action): RedirectResponse
@@ -77,7 +77,7 @@ class TimeClockController extends Controller
 
         $action->execute($entry, $request->input('break_type_id'));
 
-        return back()->with('success', 'Pausa iniciada.');
+        return back()->with('success', __('messages.break_started'));
     }
 
     public function endBreak(Request $request, EndBreak $action): RedirectResponse
@@ -90,6 +90,6 @@ class TimeClockController extends Controller
         $activeBreak = $entry->breaks()->whereNull('ended_at')->firstOrFail();
         $action->execute($activeBreak);
 
-        return back()->with('success', 'Pausa finalizada.');
+        return back()->with('success', __('messages.break_ended'));
     }
 }

@@ -2,6 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Eye } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,10 +35,11 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: { url: '/dashboard', method: 'get' } },
-    { title: 'Employees', href: employeesIndex() },
+    { title: t('common.dashboard'), href: { url: '/dashboard', method: 'get' } },
+    { title: t('employees.breadcrumb'), href: employeesIndex() },
 ];
 
 const search = ref(props.filters.search ?? '');
@@ -74,29 +76,29 @@ function onStatusChange(value: string) {
 }
 
 function deleteEmployee(employee: Employee) {
-    if (confirm(`¿Eliminar a ${employee.user.name}?`)) {
+    if (confirm(t('employees.confirm_delete', { name: employee.user.name }))) {
         router.delete(`/employees/${employee.id}`);
     }
 }
 </script>
 
 <template>
-    <Head title="Empleados" />
+    <Head :title="t('employees.head_title')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-4 md:p-6">
             <!-- Header -->
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 class="text-2xl font-bold tracking-tight">Empleados</h1>
+                    <h1 class="text-2xl font-bold tracking-tight">{{ t('employees.title') }}</h1>
                     <p class="text-muted-foreground text-sm">
-                        {{ employees.total }} empleados registrados
+                        {{ t('employees.registered_count', { count: employees.total }) }}
                     </p>
                 </div>
                 <Button as-child>
                     <Link href="/employees/create">
                         <Plus class="mr-2 size-4" />
-                        Nuevo Empleado
+                        {{ t('employees.new_employee') }}
                     </Link>
                 </Button>
             </div>
@@ -107,16 +109,16 @@ function deleteEmployee(employee: Employee) {
                     <Search class="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
                     <Input
                         v-model="search"
-                        placeholder="Buscar por nombre o email..."
+                        :placeholder="t('employees.search_placeholder')"
                         class="pl-9"
                     />
                 </div>
                 <Select :model-value="department || 'all'" @update:model-value="onDepartmentChange">
                     <SelectTrigger class="w-full sm:w-[180px]">
-                        <SelectValue placeholder="Departamento" />
+                        <SelectValue :placeholder="t('employees.department')" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="all">{{ t('common.all') }}</SelectItem>
                         <SelectItem
                             v-for="dept in departments"
                             :key="dept.id"
@@ -128,12 +130,12 @@ function deleteEmployee(employee: Employee) {
                 </Select>
                 <Select :model-value="status || 'all'" @update:model-value="onStatusChange">
                     <SelectTrigger class="w-full sm:w-[140px]">
-                        <SelectValue placeholder="Estado" />
+                        <SelectValue :placeholder="t('employees.status')" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="active">Activos</SelectItem>
-                        <SelectItem value="inactive">Inactivos</SelectItem>
+                        <SelectItem value="all">{{ t('common.all') }}</SelectItem>
+                        <SelectItem value="active">{{ t('common.active') }}</SelectItem>
+                        <SelectItem value="inactive">{{ t('common.inactive') }}</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -156,7 +158,7 @@ function deleteEmployee(employee: Employee) {
                             <div class="flex items-center gap-2">
                                 <p class="truncate font-medium">{{ employee.user.name }}</p>
                                 <Badge v-if="!employee.user.is_active" variant="secondary" class="text-xs">
-                                    Inactivo
+                                    {{ t('common.inactive_badge') }}
                                 </Badge>
                             </div>
                             <p class="text-muted-foreground truncate text-sm">{{ employee.user.email }}</p>
@@ -191,13 +193,13 @@ function deleteEmployee(employee: Employee) {
                                 <DropdownMenuItem as-child>
                                     <Link :href="`/employees/${employee.id}`" class="flex items-center">
                                         <Eye class="mr-2 size-4" />
-                                        Ver
+                                        {{ t('employees.view') }}
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem as-child>
                                     <Link :href="`/employees/${employee.id}/edit`" class="flex items-center">
                                         <Pencil class="mr-2 size-4" />
-                                        Editar
+                                        {{ t('employees.edit') }}
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
@@ -205,7 +207,7 @@ function deleteEmployee(employee: Employee) {
                                     @click="deleteEmployee(employee)"
                                 >
                                     <Trash2 class="mr-2 size-4" />
-                                    Eliminar
+                                    {{ t('employees.delete') }}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -217,9 +219,9 @@ function deleteEmployee(employee: Employee) {
                     v-if="employees.data.length === 0"
                     class="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center"
                 >
-                    <p class="text-muted-foreground text-sm">No se encontraron empleados</p>
+                    <p class="text-muted-foreground text-sm">{{ t('employees.not_found') }}</p>
                     <Button as-child variant="link" class="mt-2">
-                        <Link href="/employees/create">Crear primer empleado</Link>
+                        <Link href="/employees/create">{{ t('employees.create_first') }}</Link>
                     </Button>
                 </div>
             </div>
