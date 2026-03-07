@@ -17,7 +17,7 @@ createInertiaApp({
         ),
     setup({ el, App, props, plugin }) {
         const locale = (props.initialPage.props.locale as string) || 'es';
-        (i18n.global.locale as unknown as { value: string }).value = locale;
+        i18n.global.locale.value = locale;
 
         createApp({ render: () => h(App, props) })
             .use(plugin)
