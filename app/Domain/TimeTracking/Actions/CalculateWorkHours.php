@@ -38,7 +38,6 @@ class CalculateWorkHours
             ->where('company_id', $entry->company_id)
             ->firstOrFail();
 
-
         // Zona horaria de la empresa. Por defecto Colombia si no está configurada.
         // Es crítico convertir a zona horaria local para determinar correctamente
         // si un minuto es nocturno (21:00-06:00) o si cae en domingo/festivo.
@@ -97,49 +96,41 @@ class CalculateWorkHours
         ];
 
         // Minutos netos acumulados en la semana incluyendo los previos al turno actual.
-        // Este contador sube con cada minuto del loop y determina cuándo se activa el overtime.
+        // Este contador sube con cada segmento del loop y determina cuándo se activa el overtime.
         $accumulatedNetMinutes = $priorNetMinutes;
 
-        // Puntero de tiempo que avanza minuto a minuto desde clock_in hasta clock_out.
-        $current = $clockIn->copy();
+        // Construir los puntos de corte donde puede cambiar la clasificación del segmento.
+        $breakpoints = $this->buildBreakpoints($clockIn, $clockOut, $priorNetMinutes, $weeklyLimitMinutes, $netRatio);
 
-        // --- Loop principal: clasificar cada minuto del turno ---
-        while ($current < $clockOut) {
+        // --- Loop principal: clasificar cada segmento entre breakpoints consecutivos ---
+        // Entre dos breakpoints, los tres flags (isNight, isSundayOrHoliday, isOvertime)
+        // son constantes, por lo que el segmento completo va al mismo bucket.
+        for ($i = 0; $i < count($breakpoints) - 1; $i++) {
+            $segStart = $breakpoints[$i];
+            $segEnd = $breakpoints[$i + 1];
 
-            // ¿El minuto actual es nocturno?
-            // Franja nocturna en Colombia: 21:00 a 06:00 del día siguiente.
-            $isNight = $current->hour >= 21 || $current->hour < 6;
+            // Minutos brutos del segmento (puede ser fraccionario).
+            $segGrossMinutes = $segStart->diffInSeconds($segEnd) / 60.0;
 
-            // ¿Es domingo o festivo?
-            // dayOfWeek === 0 en Carbon es domingo. Los festivos se comparan por fecha string.
-            $isSundayOrHoliday = $current->dayOfWeek === Carbon::SUNDAY
-                || in_array($current->toDateString(), $holidayDates);
+            // Contribución neta del segmento completo.
+            $netContrib = $segGrossMinutes * $netRatio;
 
-            // ¿Ya se superó el límite semanal de horas ordinarias?
-            // Si los minutos netos acumulados llegan al límite, todo lo que sigue es extra.
+            // Clasificar usando el inicio del segmento (todos los minutos del segmento
+            // comparten la misma clasificación por construcción de los breakpoints).
+            $isNight = $segStart->hour >= 21 || $segStart->hour < 6;
+            $isSundayOrHoliday = $segStart->dayOfWeek === Carbon::SUNDAY
+                || in_array($segStart->toDateString(), $holidayDates);
             $isOvertime = $accumulatedNetMinutes >= $weeklyLimitMinutes;
 
-            // Contribución neta de este minuto (fracción del minuto bruto que es tiempo real).
-            $netContrib = 1.0 * $netRatio;
+            // Prioridad: overtime > dominical/festivo > nocturno > regular.
+            match (true) {
+                $isOvertime => $buckets['overtime'] += $netContrib,
+                $isSundayOrHoliday => $buckets['sunday_holiday'] += $netContrib,
+                $isNight => $buckets['night'] += $netContrib,
+                default => $buckets['regular'] += $netContrib,
+            };
 
-            // Prioridad de clasificación: overtime > dominical/festivo > nocturno > regular.
-            // El overtime tiene prioridad absoluta: si ya se superó la semana, no importa
-            // si es de noche o domingo, todo va a overtime.
-            if ($isOvertime) {
-                $buckets['overtime'] += $netContrib;
-            } elseif ($isSundayOrHoliday) {
-                $buckets['sunday_holiday'] += $netContrib;
-            } elseif ($isNight) {
-                $buckets['night'] += $netContrib;
-            } else {
-                $buckets['regular'] += $netContrib;
-            }
-
-            // Actualizar el acumulado semanal con la contribución de este minuto.
             $accumulatedNetMinutes += $netContrib;
-
-            // Avanzar al siguiente minuto.
-            $current->addMinute();
         }
 
         // Convertir los buckets de minutos a horas (÷ 60), redondear a 2 decimales
@@ -154,6 +145,62 @@ class CalculateWorkHours
 
         // Retornar el entry recargado desde BD con los valores actualizados.
         return $entry->fresh();
+    }
+
+    /**
+     * Construye los puntos de corte donde la clasificación puede cambiar dentro del turno.
+     *
+     * Los breakpoints son:
+     *   - clock_in y clock_out (siempre incluidos)
+     *   - 06:00 y 21:00 de cada día kalendario dentro del turno (límites nocturno/diurno)
+     *   - 00:00 del día siguiente a cada día dentro del turno (cambio de día para domingo/festivo)
+     *   - El momento exacto en que los minutos netos acumulados alcanzan el límite semanal
+     *
+     * @return Carbon[]
+     */
+    private function buildBreakpoints(
+        Carbon $clockIn,
+        Carbon $clockOut,
+        float $priorNetMinutes,
+        float $weeklyLimitMinutes,
+        float $netRatio,
+    ): array {
+        $breakpoints = [$clockIn->copy(), $clockOut->copy()];
+
+        // Iterar por cada día calendario cubierto por el turno.
+        $day = $clockIn->copy()->startOfDay();
+        while ($day <= $clockOut) {
+            foreach (['06:00', '21:00'] as $time) {
+                [$h, $m] = explode(':', $time);
+                $candidate = $day->copy()->setTime((int) $h, (int) $m);
+                if ($candidate > $clockIn && $candidate < $clockOut) {
+                    $breakpoints[] = $candidate;
+                }
+            }
+
+            // Medianoche del día siguiente: cambio de día para detección de domingo/festivo.
+            $midnight = $day->copy()->addDay()->startOfDay();
+            if ($midnight > $clockIn && $midnight < $clockOut) {
+                $breakpoints[] = $midnight;
+            }
+
+            $day->addDay();
+        }
+
+        // Breakpoint de overtime: momento exacto en que se agota el cupo ordinario semanal.
+        $remainingToOvertime = $weeklyLimitMinutes - $priorNetMinutes;
+        if ($remainingToOvertime > 0 && $netRatio > 0) {
+            $grossSecondsToOvertime = ($remainingToOvertime / $netRatio) * 60;
+            $overtimeBp = $clockIn->copy()->addSeconds((int) round($grossSecondsToOvertime));
+            if ($overtimeBp > $clockIn && $overtimeBp < $clockOut) {
+                $breakpoints[] = $overtimeBp;
+            }
+        }
+
+        // Ordenar cronológicamente y eliminar duplicados exactos.
+        usort($breakpoints, fn (Carbon $a, Carbon $b) => $a <=> $b);
+
+        return array_values(array_unique($breakpoints));
     }
 
     /**
