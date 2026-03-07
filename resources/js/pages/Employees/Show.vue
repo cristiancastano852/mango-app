@@ -131,7 +131,7 @@ function deleteEmployee() {
                         <Separator />
                         <div class="flex justify-between">
                             <span class="text-muted-foreground">{{ t('employees.show.hourly_rate') }}</span>
-                            <span>{{ employee.hourly_rate ? `$${Number(employee.hourly_rate).toLocaleString('es-CO')}` : '—' }}</span>
+                            <span>{{ employee.hourly_rate ? `$${Number(employee.hourly_rate).toLocaleString(locale)}` : '—' }}</span>
                         </div>
                     </CardContent>
                 </Card>
