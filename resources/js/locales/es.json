@@ -1,58 +1,58 @@
-{
-    "common": {
-        "dashboard": "Dashboard",
-        "save": "Guardar",
-        "saving": "Guardando...",
-        "saved": "Guardado.",
-        "cancel": "Cancelar",
-        "delete": "Eliminar",
-        "edit": "Editar",
-        "view": "Ver",
-        "search": "Buscar",
-        "all": "Todos",
-        "active": "Activos",
-        "inactive": "Inactivos",
-        "inactive_badge": "Inactivo",
-        "confirm": "Confirmar",
-        "continue": "Continuar",
-        "back": "Volver",
-        "or": "o",
-        "warning": "Advertencia",
-        "settings": "Configuracion",
-        "log_out": "Cerrar sesion",
-        "password": "Contrasena",
-        "email": "Email",
-        "email_address": "Correo electronico",
-        "name": "Nombre",
-        "select": "Seleccionar...",
-        "min": "min"
-    },
-    "nav": {
-        "dashboard": "Dashboard",
-        "employees": "Empleados",
-        "time_clock": "Fichaje",
-        "reports": "Reportes",
-        "locations": "Sedes",
-        "settings": "Configuracion",
-        "billing": "Facturacion",
-        "platform": "Plataforma"
-    },
-    "settings_layout": {
-        "title": "Configuracion",
-        "description": "Administra tu perfil y configuracion de cuenta",
-        "profile": "Perfil",
-        "password": "Contrasena",
-        "two_factor_auth": "Auth. dos factores",
-        "appearance": "Apariencia"
-    },
-    "appearance": {
-        "light": "Claro",
+        {
+            "common": {
+                "dashboard": "Dashboard",
+                "save": "Guardar",
+                "saving": "Guardando...",
+                "saved": "Guardado.",
+                "cancel": "Cancelar",
+                "delete": "Eliminar",
+                "edit": "Editar",
+                "view": "Ver",
+                "search": "Buscar",
+                "all": "Todos",
+                "active": "Activos",
+                "inactive": "Inactivos",
+                "inactive_badge": "Inactivo",
+                "confirm": "Confirmar",
+                "continue": "Continuar",
+                "back": "Volver",
+                "or": "o",
+                "warning": "Advertencia",
+                "settings": "Configuración",
+                "log_out": "Cerrar sesión",
+                "password": "Contraseña",
+                "email": "Email",
+                "email_address": "Correo electrónico",
+                "name": "Nombre",
+                "select": "Seleccionar...",
+                "min": "min"
+            },
+            "nav": {
+                "dashboard": "Dashboard",
+                "employees": "Empleados",
+                "time_clock": "Fichaje",
+                "reports": "Reportes",
+                "locations": "Sedes",
+                "settings": "Configuración",
+                "billing": "Facturación",
+                "platform": "Plataforma"
+            },
+            "settings_layout": {
+                "title": "Configuración",
+                "description": "Administra tu perfil y configuración de cuenta",
+                "profile": "Perfil",
+                "password": "Contraseña",
+                "two_factor_auth": "Auth. dos factores",
+                "appearance": "Apariencia"
+            },
+            "appearance": {
+                "light": "Claro",
         "dark": "Oscuro",
-        "system": "Sistema",
-        "title": "Configuracion de apariencia",
-        "description": "Actualiza la apariencia de tu cuenta"
-    },
-    "auth": {
+                "system": "Sistema",
+                "title": "Configuración de apariencia",
+                "description": "Actualiza la apariencia de tu cuenta"
+            },
+            "auth": {
         "login": {
             "title": "Inicia sesion en tu cuenta",
             "description": "Ingresa tu correo y contrasena para iniciar sesion",
