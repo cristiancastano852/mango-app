@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Domain\Company\Models\Company;
-use App\Domain\Company\Models\SurchargeRule;
 use App\Domain\Employee\Models\Employee;
 use App\Domain\Organization\Models\Department;
 use App\Domain\Organization\Models\Location;
@@ -48,9 +47,6 @@ class DemoSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
         $adminUser->assignRole('admin');
-
-        // Surcharge rules (legislación colombiana por defecto)
-        SurchargeRule::create(['company_id' => $company->id]);
 
         // Location
         $location = Location::create([

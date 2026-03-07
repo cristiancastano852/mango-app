@@ -7,6 +7,10 @@ use Illuminate\Validation\ValidationException;
 
 class ClockOut
 {
+    public function __construct(
+        private readonly CalculateWorkHours $calculateWorkHours
+    ) {}
+
     public function execute(TimeEntry $timeEntry): TimeEntry
     {
         if ($timeEntry->clock_out) {
@@ -44,6 +48,8 @@ class ClockOut
             'break_hours' => $breakHours,
             'net_hours' => $netHours,
         ]);
+
+        $this->calculateWorkHours->execute($timeEntry->fresh());
 
         return $timeEntry->fresh(['breaks.breakType']);
     }

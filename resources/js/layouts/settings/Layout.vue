@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
@@ -7,12 +8,20 @@ import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
+import { index as holidaysIndex } from '@/routes/holidays';
 import { edit as editProfile } from '@/routes/profile';
+import { edit as editSurchargeRules } from '@/routes/surcharge-rules';
 import { show } from '@/routes/two-factor';
 import { edit as editPassword } from '@/routes/user-password';
 import type { NavItem } from '@/types';
 
 const { t } = useI18n();
+const page = usePage();
+
+const isAdmin = computed(() => {
+    const roles: string[] = (page.props.auth as { user: { roles: string[] } }).user.roles ?? [];
+    return roles.includes('admin') || roles.includes('super-admin');
+});
 
 const sidebarNavItems: NavItem[] = [
     {
@@ -30,6 +39,17 @@ const sidebarNavItems: NavItem[] = [
     {
         title: t('settings_layout.appearance'),
         href: editAppearance(),
+    },
+];
+
+const adminNavItems: NavItem[] = [
+    {
+        title: 'Recargos',
+        href: editSurchargeRules(),
+    },
+    {
+        title: 'Festivos',
+        href: holidaysIndex(),
     },
 ];
 
@@ -64,6 +84,25 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                             {{ item.title }}
                         </Link>
                     </Button>
+
+                    <template v-if="isAdmin">
+                        <Separator class="my-2" />
+                        <Button
+                            v-for="item in adminNavItems"
+                            :key="toUrl(item.href)"
+                            variant="ghost"
+                            :class="[
+                                'w-full justify-start',
+                                { 'bg-muted': isCurrentOrParentUrl(item.href) },
+                            ]"
+                            as-child
+                        >
+                            <Link :href="item.href">
+                                <component :is="item.icon" class="h-4 w-4" />
+                                {{ item.title }}
+                            </Link>
+                        </Button>
+                    </template>
                 </nav>
             </aside>
 
