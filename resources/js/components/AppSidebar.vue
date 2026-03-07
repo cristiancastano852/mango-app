@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { Clock, FileText, LayoutGrid, MapPin, Settings, CreditCard, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -18,6 +19,7 @@ import { dashboard } from '@/routes';
 import { index as employeesIndex } from '@/routes/employees';
 import type { NavItem } from '@/types';
 
+const { t } = useI18n();
 const page = usePage();
 const userRoles = computed(() => (page.props.auth as { user: { roles: string[] } })?.user?.roles ?? []);
 const isAdmin = computed(() => userRoles.value.includes('admin') || userRoles.value.includes('super-admin'));
@@ -25,7 +27,7 @@ const isAdmin = computed(() => userRoles.value.includes('admin') || userRoles.va
 const mainNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
         {
-            title: 'Dashboard',
+            title: t('nav.dashboard'),
             href: dashboard(),
             icon: LayoutGrid,
         },
@@ -33,14 +35,14 @@ const mainNavItems = computed<NavItem[]>(() => {
 
     if (isAdmin.value) {
         items.push({
-            title: 'Employees',
+            title: t('nav.employees'),
             href: employeesIndex(),
             icon: Users,
         });
     }
 
     items.push({
-        title: 'Time Clock',
+        title: t('nav.time_clock'),
         href: { url: '/time-clock', method: 'get' },
         icon: Clock,
     });
@@ -48,12 +50,12 @@ const mainNavItems = computed<NavItem[]>(() => {
     if (isAdmin.value) {
         items.push(
             {
-                title: 'Reports',
+                title: t('nav.reports'),
                 href: { url: '/reports', method: 'get' },
                 icon: FileText,
             },
             {
-                title: 'Locations',
+                title: t('nav.locations'),
                 href: { url: '/locations', method: 'get' },
                 icon: MapPin,
             },
@@ -63,18 +65,18 @@ const mainNavItems = computed<NavItem[]>(() => {
     return items;
 });
 
-const footerNavItems: NavItem[] = [
+const footerNavItems = computed<NavItem[]>(() => [
     {
-        title: 'Settings',
+        title: t('nav.settings'),
         href: { url: '/settings/profile', method: 'get' },
         icon: Settings,
     },
     {
-        title: 'Billing',
+        title: t('nav.billing'),
         href: { url: '/billing', method: 'get' },
         icon: CreditCard,
     },
-];
+]);
 </script>
 
 <template>

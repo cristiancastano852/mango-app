@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Pencil, Trash2, ArrowLeft } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,15 +15,16 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: { url: '/dashboard', method: 'get' } },
-    { title: 'Employees', href: employeesIndex() },
+    { title: t('common.dashboard'), href: { url: '/dashboard', method: 'get' } },
+    { title: t('employees.breadcrumb'), href: employeesIndex() },
     { title: props.employee.user.name, href: { url: `/employees/${props.employee.id}`, method: 'get' } },
 ];
 
 function deleteEmployee() {
-    if (confirm(`¿Eliminar a ${props.employee.user.name}?`)) {
+    if (confirm(t('employees.confirm_delete', { name: props.employee.user.name }))) {
         router.delete(`/employees/${props.employee.id}`);
     }
 }
@@ -49,19 +51,19 @@ function deleteEmployee() {
                             <h1 class="text-xl font-bold">{{ employee.user.name }}</h1>
                             <p class="text-muted-foreground text-sm">{{ employee.user.email }}</p>
                         </div>
-                        <Badge v-if="!employee.user.is_active" variant="secondary">Inactivo</Badge>
+                        <Badge v-if="!employee.user.is_active" variant="secondary">{{ t('common.inactive_badge') }}</Badge>
                     </div>
                 </div>
                 <div class="flex gap-2">
                     <Button variant="outline" size="sm" as-child>
                         <Link :href="`/employees/${employee.id}/edit`">
                             <Pencil class="mr-2 size-4" />
-                            Editar
+                            {{ t('common.edit') }}
                         </Link>
                     </Button>
                     <Button variant="destructive" size="sm" @click="deleteEmployee">
                         <Trash2 class="mr-2 size-4" />
-                        Eliminar
+                        {{ t('common.delete') }}
                     </Button>
                 </div>
             </div>
@@ -70,21 +72,21 @@ function deleteEmployee() {
             <div class="grid gap-6 md:grid-cols-2">
                 <Card>
                     <CardHeader>
-                        <CardTitle class="text-base">Información Personal</CardTitle>
+                        <CardTitle class="text-base">{{ t('employees.show.personal_info') }}</CardTitle>
                     </CardHeader>
                     <CardContent class="grid gap-3 text-sm">
                         <div class="flex justify-between">
-                            <span class="text-muted-foreground">Teléfono</span>
+                            <span class="text-muted-foreground">{{ t('employees.show.phone') }}</span>
                             <span>{{ employee.user.phone ?? '—' }}</span>
                         </div>
                         <Separator />
                         <div class="flex justify-between">
-                            <span class="text-muted-foreground">Código</span>
+                            <span class="text-muted-foreground">{{ t('employees.show.code') }}</span>
                             <Badge variant="outline" class="font-mono">{{ employee.employee_code ?? '—' }}</Badge>
                         </div>
                         <Separator />
                         <div class="flex justify-between">
-                            <span class="text-muted-foreground">Fecha contratación</span>
+                            <span class="text-muted-foreground">{{ t('employees.show.hire_date') }}</span>
                             <span>{{ employee.hire_date ?? '—' }}</span>
                         </div>
                     </CardContent>
@@ -92,26 +94,26 @@ function deleteEmployee() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle class="text-base">Organización</CardTitle>
+                        <CardTitle class="text-base">{{ t('employees.show.organization') }}</CardTitle>
                     </CardHeader>
                     <CardContent class="grid gap-3 text-sm">
                         <div class="flex justify-between">
-                            <span class="text-muted-foreground">Departamento</span>
+                            <span class="text-muted-foreground">{{ t('employees.show.department') }}</span>
                             <span>{{ employee.department?.name ?? '—' }}</span>
                         </div>
                         <Separator />
                         <div class="flex justify-between">
-                            <span class="text-muted-foreground">Cargo</span>
+                            <span class="text-muted-foreground">{{ t('employees.show.position') }}</span>
                             <span>{{ employee.position?.name ?? '—' }}</span>
                         </div>
                         <Separator />
                         <div class="flex justify-between">
-                            <span class="text-muted-foreground">Horario</span>
+                            <span class="text-muted-foreground">{{ t('employees.show.schedule') }}</span>
                             <span>{{ employee.schedule?.name ?? '—' }}</span>
                         </div>
                         <Separator />
                         <div class="flex justify-between">
-                            <span class="text-muted-foreground">Sede</span>
+                            <span class="text-muted-foreground">{{ t('employees.show.location') }}</span>
                             <span>{{ employee.location?.name ?? '—' }}</span>
                         </div>
                     </CardContent>
@@ -119,17 +121,17 @@ function deleteEmployee() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle class="text-base">Salario</CardTitle>
+                        <CardTitle class="text-base">{{ t('employees.show.salary') }}</CardTitle>
                     </CardHeader>
                     <CardContent class="grid gap-3 text-sm">
                         <div class="flex justify-between">
-                            <span class="text-muted-foreground">Tipo</span>
-                            <span>{{ employee.salary_type === 'hourly' ? 'Por hora' : 'Mensual' }}</span>
+                            <span class="text-muted-foreground">{{ t('employees.show.salary_type') }}</span>
+                            <span>{{ employee.salary_type === 'hourly' ? t('employees.show.salary_hourly') : t('employees.show.salary_monthly') }}</span>
                         </div>
                         <Separator />
                         <div class="flex justify-between">
-                            <span class="text-muted-foreground">Valor hora</span>
-                            <span>{{ employee.hourly_rate ? `$${Number(employee.hourly_rate).toLocaleString('es-CO')}` : '—' }}</span>
+                            <span class="text-muted-foreground">{{ t('employees.show.hourly_rate') }}</span>
+                            <span>{{ employee.hourly_rate ? `$${Number(employee.hourly_rate).toLocaleString(locale)}` : '—' }}</span>
                         </div>
                     </CardContent>
                 </Card>

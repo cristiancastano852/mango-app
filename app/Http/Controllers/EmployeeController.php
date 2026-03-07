@@ -55,7 +55,7 @@ class EmployeeController extends Controller
     {
         $action->execute($request->validated(), $request->user()->company_id);
 
-        return redirect()->route('employees.index')->with('success', 'Empleado creado exitosamente.');
+        return redirect()->route('employees.index')->with('success', __('messages.employee_created'));
     }
 
     public function show(Employee $employee): Response
@@ -84,13 +84,13 @@ class EmployeeController extends Controller
     {
         $action->execute($employee, $request->validated());
 
-        return redirect()->route('employees.index')->with('success', 'Empleado actualizado exitosamente.');
+        return redirect()->route('employees.index')->with('success', __('messages.employee_updated'));
     }
 
     public function destroy(Employee $employee, DeleteEmployee $action): RedirectResponse
     {
         $action->execute($employee);
 
-        return redirect()->route('employees.index')->with('success', 'Empleado eliminado exitosamente.');
+        return redirect()->route('employees.index')->with('success', __('messages.employee_deleted'));
     }
 }

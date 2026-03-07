@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { useI18n } from 'vue-i18n';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -11,21 +12,23 @@ import { show } from '@/routes/two-factor';
 import { edit as editPassword } from '@/routes/user-password';
 import type { NavItem } from '@/types';
 
+const { t } = useI18n();
+
 const sidebarNavItems: NavItem[] = [
     {
-        title: 'Profile',
+        title: t('settings_layout.profile'),
         href: editProfile(),
     },
     {
-        title: 'Password',
+        title: t('settings_layout.password'),
         href: editPassword(),
     },
     {
-        title: 'Two-factor auth',
+        title: t('settings_layout.two_factor_auth'),
         href: show(),
     },
     {
-        title: 'Appearance',
+        title: t('settings_layout.appearance'),
         href: editAppearance(),
     },
 ];
@@ -36,8 +39,8 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
 <template>
     <div class="px-4 py-6">
         <Heading
-            title="Settings"
-            description="Manage your profile and account settings"
+            :title="t('settings_layout.title')"
+            :description="t('settings_layout.description')"
         />
 
         <div class="flex flex-col lg:flex-row lg:space-x-12">
