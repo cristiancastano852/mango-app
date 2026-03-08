@@ -3,17 +3,17 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Eye } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import AppLayout from '@/layouts/AppLayout.vue';
+import { index as employeesIndex } from '@/actions/App/Http/Controllers/EmployeeController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
@@ -21,8 +21,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, Department, Employee, PaginatedData } from '@/types';
-import { index as employeesIndex } from '@/actions/App/Http/Controllers/EmployeeController';
 
 type Props = {
     employees: PaginatedData<Employee>;
