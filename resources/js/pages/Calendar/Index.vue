@@ -3,7 +3,6 @@ import { Head, router } from '@inertiajs/vue3';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -12,6 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import { index as calendarIndex } from '@/routes/calendar';
 import type { BreadcrumbItem } from '@/types';

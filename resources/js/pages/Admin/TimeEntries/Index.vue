@@ -3,7 +3,10 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { Pencil } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import AppLayout from '@/layouts/AppLayout.vue';
+import {
+    edit as editEntry,
+    index as timeEntriesIndex,
+} from '@/actions/App/Http/Controllers/Admin/TimeEntryController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,11 +18,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
-import {
-    edit as editEntry,
-    index as timeEntriesIndex,
-} from '@/actions/App/Http/Controllers/Admin/TimeEntryController';
 import type { BreadcrumbItem, PaginatedData } from '@/types';
 
 type EntryRow = {

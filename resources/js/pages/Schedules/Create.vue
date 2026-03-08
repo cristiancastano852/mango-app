@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import ScheduleForm from './partials/ScheduleForm.vue';
-import { dashboard } from '@/routes';
 import { index as schedulesIndex, store as storeSchedule } from '@/actions/App/Http/Controllers/SchedulesController';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
+import ScheduleForm from './partials/ScheduleForm.vue';
 
 const { t } = useI18n();
 
