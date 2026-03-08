@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Settings\HolidayController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\Settings\SurchargeRuleController;
 use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,4 +27,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('settings/two-factor', [TwoFactorAuthenticationController::class, 'show'])
         ->name('two-factor.show');
+});
+
+Route::middleware(['auth', 'verified', 'role:admin|super-admin'])->group(function () {
+    Route::get('settings/surcharge-rules', [SurchargeRuleController::class, 'edit'])
+        ->name('surcharge-rules.edit');
+    Route::put('settings/surcharge-rules', [SurchargeRuleController::class, 'update'])
+        ->name('surcharge-rules.update');
+
+    Route::resource('settings/holidays', HolidayController::class)
+        ->names('holidays')
+        ->only(['index', 'store', 'update', 'destroy']);
 });
