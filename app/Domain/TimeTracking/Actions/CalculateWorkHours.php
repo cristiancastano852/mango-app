@@ -49,6 +49,10 @@ class CalculateWorkHours
 
         // Obtener el lunes de la semana en que ocurrió el clock_in.
         // Sirve como límite inferior para sumar horas previas de la semana.
+        // LIMITACIÓN CONOCIDA: si un turno cruza el límite de semana (p.ej. domingo
+        // 23:00 → lunes 01:00), todos los minutos del turno se contabilizan contra
+        // la semana del clock_in (la semana anterior). Esto es intencional: el turno
+        // se considera parte de la jornada que comenzó ese domingo.
         $weekStart = $clockIn->copy()->startOfWeek(Carbon::MONDAY);
 
         // Sumar todos los net_hours (horas netas = brutas - descansos) de los otros

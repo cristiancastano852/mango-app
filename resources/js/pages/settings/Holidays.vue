@@ -29,16 +29,13 @@ const breadcrumbItems: BreadcrumbItem[] = [
 ];
 
 const editingId = ref<number | null>(null);
-const editingHoliday = ref<Partial<Holiday>>({});
 
 function startEdit(holiday: Holiday) {
     editingId.value = holiday.id;
-    editingHoliday.value = { ...holiday };
 }
 
 function cancelEdit() {
     editingId.value = null;
-    editingHoliday.value = {};
 }
 
 function deleteHoliday(holiday: Holiday) {

@@ -65,19 +65,28 @@ class HolidayControllerTest extends TestCase
 
     public function test_admin_can_create_holiday(): void
     {
+        $initialCount = Holiday::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->count();
+
         $response = $this->actingAs($this->adminUser)->post(route('holidays.store'), [
-            'name' => 'Día de la Independencia',
-            'date' => '2026-07-20',
-            'is_recurring' => true,
+            'name' => 'Festivo de Prueba',
+            'date' => '2026-09-15',
+            'is_recurring' => false,
         ]);
 
         $response->assertRedirect(route('holidays.index'));
 
         $this->assertDatabaseHas('holidays', [
             'company_id' => $this->company->id,
-            'name' => 'Día de la Independencia',
-            'is_recurring' => true,
+            'name' => 'Festivo de Prueba',
+            'is_recurring' => false,
         ]);
+
+        $this->assertSame(
+            $initialCount + 1,
+            Holiday::withoutGlobalScopes()->where('company_id', $this->company->id)->count()
+        );
     }
 
     public function test_employee_cannot_create_holiday(): void

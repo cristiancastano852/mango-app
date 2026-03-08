@@ -9,7 +9,9 @@ class ColombianHolidaysSeeder extends Seeder
 {
     public function seedForCompany(int $companyId): void
     {
-        $year = now()->year;
+        // Las fechas móviles están calculadas para 2026 (Semana Santa, Emiliani, etc.).
+        // Para otros años se deben recalcular manualmente y actualizar este seeder.
+        $year = 2026;
 
         $fixed = [
             ['name' => 'Año Nuevo', 'date' => '01-01'],
