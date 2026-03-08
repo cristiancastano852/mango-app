@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { LogIn, LogOut, Pause, Play, Coffee } from 'lucide-vue-next';
+import { LogIn, LogOut, Play, Coffee } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import AppLayout from '@/layouts/AppLayout.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, BreakType, Employee, TimeEntry } from '@/types';
 
 type Props = {

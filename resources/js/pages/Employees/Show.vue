@@ -2,12 +2,12 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Pencil, Trash2, ArrowLeft } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
-import AppLayout from '@/layouts/AppLayout.vue';
+import { index as employeesIndex } from '@/actions/App/Http/Controllers/EmployeeController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { index as employeesIndex } from '@/actions/App/Http/Controllers/EmployeeController';
+import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, Employee } from '@/types';
 
 type Props = {

@@ -2,11 +2,11 @@
 import { Head } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import EmployeeForm from './partials/EmployeeForm.vue';
 import { index as employeesIndex } from '@/actions/App/Http/Controllers/EmployeeController';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, Department, Position, Schedule, Location } from '@/types';
+import EmployeeForm from './partials/EmployeeForm.vue';
 
 type Props = {
     departments: Department[];
@@ -15,7 +15,7 @@ type Props = {
     locations: Location[];
 };
 
-const props = defineProps<Props>();
+defineProps<Props>();
 const { t } = useI18n();
 
 const breadcrumbs: BreadcrumbItem[] = [

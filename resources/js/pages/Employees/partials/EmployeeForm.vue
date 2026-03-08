@@ -1,10 +1,11 @@
 <script setup lang="ts">
+/* eslint-disable vue/no-mutating-props */
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import InputError from '@/components/InputError.vue';
 import {
     Select,
     SelectContent,

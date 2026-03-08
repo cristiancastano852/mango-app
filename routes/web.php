@@ -8,11 +8,21 @@ Route::inertia('/', 'Welcome', [
 ])->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    Route::get('dashboard', \App\Http\Controllers\DashboardController::class)->name('dashboard');
 
     // Admin-only routes
     Route::middleware('role:admin|super-admin')->group(function () {
         Route::resource('employees', \App\Http\Controllers\EmployeeController::class);
+        Route::resource('schedules', \App\Http\Controllers\SchedulesController::class);
+        Route::get('calendar', [\App\Http\Controllers\CalendarController::class, 'index'])->name('calendar.index');
+
+        // Admin time entries management
+        Route::get('admin/time-entries', [\App\Http\Controllers\Admin\TimeEntryController::class, 'index'])->name('admin.time-entries.index');
+        Route::get('admin/time-entries/{timeEntry}/edit', [\App\Http\Controllers\Admin\TimeEntryController::class, 'edit'])->name('admin.time-entries.edit');
+        Route::put('admin/time-entries/{timeEntry}', [\App\Http\Controllers\Admin\TimeEntryController::class, 'update'])->name('admin.time-entries.update');
+
+        // Manual check-in
+        Route::post('admin/manual-check-in', [\App\Http\Controllers\Admin\ManualCheckInController::class, 'store'])->name('admin.manual-check-in');
     });
 
     // Time Clock (all authenticated employees)

@@ -1,52 +1,55 @@
-        {
-            "common": {
-                "dashboard": "Dashboard",
-                "save": "Guardar",
-                "saving": "Guardando...",
-                "saved": "Guardado.",
-                "cancel": "Cancelar",
-                "delete": "Eliminar",
-                "edit": "Editar",
-                "view": "Ver",
-                "search": "Buscar",
-                "all": "Todos",
-                "active": "Activos",
-                "inactive": "Inactivos",
-                "inactive_badge": "Inactivo",
-                "confirm": "Confirmar",
-                "continue": "Continuar",
-                "back": "Volver",
-                "or": "o",
-                "warning": "Advertencia",
-                "settings": "Configuración",
-                "log_out": "Cerrar sesión",
-                "password": "Contraseña",
-                "email": "Email",
-                "email_address": "Correo electrónico",
-                "name": "Nombre",
-                "select": "Seleccionar...",
-                "min": "min"
-            },
-            "nav": {
-                "dashboard": "Dashboard",
-                "employees": "Empleados",
-                "time_clock": "Fichaje",
-                "reports": "Reportes",
-                "locations": "Sedes",
-                "settings": "Configuración",
-                "billing": "Facturación",
-                "platform": "Plataforma"
-            },
-            "settings_layout": {
-                "title": "Configuración",
-                "description": "Administra tu perfil y configuración de cuenta",
-                "profile": "Perfil",
-                "password": "Contraseña",
-                "two_factor_auth": "Auth. dos factores",
-                "appearance": "Apariencia"
-            },
-            "appearance": {
-                "light": "Claro",
+{
+    "common": {
+        "dashboard": "Dashboard",
+        "save": "Guardar",
+        "saving": "Guardando...",
+        "saved": "Guardado.",
+        "cancel": "Cancelar",
+        "delete": "Eliminar",
+        "edit": "Editar",
+        "view": "Ver",
+        "search": "Buscar",
+        "all": "Todos",
+        "active": "Activos",
+        "inactive": "Inactivos",
+        "inactive_badge": "Inactivo",
+        "confirm": "Confirmar",
+        "continue": "Continuar",
+        "back": "Volver",
+        "or": "o",
+        "warning": "Advertencia",
+        "settings": "Configuracion",
+        "log_out": "Cerrar sesion",
+        "password": "Contrasena",
+        "email": "Email",
+        "email_address": "Correo electronico",
+        "name": "Nombre",
+        "select": "Seleccionar...",
+        "min": "min"
+    },
+    "nav": {
+        "dashboard": "Dashboard",
+        "employees": "Empleados",
+        "time_clock": "Fichaje",
+        "reports": "Reportes",
+        "locations": "Sedes",
+        "settings": "Configuracion",
+        "billing": "Facturacion",
+        "platform": "Plataforma",
+        "schedules": "Turnos",
+        "calendar": "Calendario",
+        "time_entries": "Registros"
+    },
+    "settings_layout": {
+        "title": "Configuracion",
+        "description": "Administra tu perfil y configuracion de cuenta",
+        "profile": "Perfil",
+        "password": "Contrasena",
+        "two_factor_auth": "Auth. dos factores",
+        "appearance": "Apariencia"
+    },
+    "appearance": {
+        "light": "Claro",
         "dark": "Oscuro",
                 "system": "Sistema",
                 "title": "Configuración de apariencia",
@@ -265,5 +268,115 @@
         "net_hours": "Horas netas",
         "last_7_days": "Ultimos 7 dias",
         "confirm_checkout": "Confirmar check-out?"
+    },
+    "dashboard": {
+        "title": "Panel",
+        "head_title": "Panel",
+        "live": "En vivo",
+        "updated": "Actualizado hace {seconds}s",
+        "kpi": {
+            "present": "Presentes Hoy",
+            "on_break": "En Descanso",
+            "absent": "Ausentes",
+            "net_hours": "Horas Netas Hoy",
+            "vs_yesterday": "vs ayer",
+            "avg_per_employee": "prom por empleado"
+        },
+        "employee_status": "Estado de Empleados",
+        "late_arrivals": "Llegadas Tarde",
+        "late_arrivals_empty": "Sin llegadas tarde",
+        "minutes_late": "{min} min tarde",
+        "manual_checkin": "Check-in Manual",
+        "select_employee": "Seleccionar empleado...",
+        "checkin_btn": "Registrar",
+        "status": {
+            "working": "Trabajando",
+            "on_break": "En Descanso",
+            "absent": "Ausente",
+            "done": "Finalizado"
+        },
+        "no_employees": "No se encontraron empleados"
+    },
+    "schedules": {
+        "breadcrumb": "Turnos",
+        "head_title": "Turnos",
+        "title": "Turnos",
+        "new_schedule": "Nuevo Turno",
+        "employees_assigned": "{count} empleados",
+        "no_schedules": "No hay turnos registrados",
+        "create_first": "Crear primer turno",
+        "days": {
+            "0": "Dom",
+            "1": "Lun",
+            "2": "Mar",
+            "3": "Mié",
+            "4": "Jue",
+            "5": "Vie",
+            "6": "Sáb"
+        },
+        "confirm_delete": "¿Eliminar turno \"{name}\"?",
+        "create": {
+            "breadcrumb": "Nuevo",
+            "head_title": "Nuevo Turno",
+            "title": "Nuevo Turno",
+            "description": "Define el horario y días de trabajo para este turno."
+        },
+        "edit": {
+            "breadcrumb": "Editar",
+            "head_title": "Editar Turno",
+            "title": "Editar Turno",
+            "description": "Actualiza la configuración de este turno."
+        },
+        "form": {
+            "name": "Nombre del turno",
+            "start_time": "Hora de entrada",
+            "end_time": "Hora de salida",
+            "break_duration": "Duración del descanso (minutos)",
+            "days_of_week": "Días laborales",
+            "cancel": "Cancelar",
+            "save": "Guardar",
+            "saving": "Guardando..."
+        },
+        "employees_section": "Empleados Asignados"
+    },
+    "calendar": {
+        "breadcrumb": "Calendario",
+        "head_title": "Calendario",
+        "title": "Calendario Mensual",
+        "filter_employee": "Filtrar por empleado",
+        "all_employees": "Todos los empleados",
+        "hours": "{h}h",
+        "no_entries": "Sin registros",
+        "days": {
+            "sun": "Dom",
+            "mon": "Lun",
+            "tue": "Mar",
+            "wed": "Mié",
+            "thu": "Jue",
+            "fri": "Vie",
+            "sat": "Sáb"
+        }
+    },
+    "time_entries": {
+        "breadcrumb": "Registros",
+        "head_title": "Registros de Tiempo",
+        "title": "Registros de Tiempo",
+        "filter_employee": "Filtrar por empleado",
+        "filter_date": "Fecha",
+        "edit": {
+            "breadcrumb": "Editar Registro",
+            "head_title": "Editar Registro de Tiempo",
+            "title": "Editar Registro de Tiempo",
+            "description": "Ajusta los tiempos de entrada/salida. Esta acción quedará registrada.",
+            "clock_in": "Hora de Entrada",
+            "clock_out": "Hora de Salida",
+            "edit_reason": "Motivo de la edición",
+            "reason_placeholder": "Explica por qué se está modificando este registro...",
+            "employee": "Empleado",
+            "original_date": "Fecha",
+            "save": "Guardar Cambios",
+            "saving": "Guardando...",
+            "cancel": "Cancelar"
+        }
     }
 }
