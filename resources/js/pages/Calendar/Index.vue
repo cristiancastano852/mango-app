@@ -97,7 +97,15 @@ function onEmployeeChange(value: string) {
     }, { preserveState: true });
 }
 
-const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const dayHeaders = computed(() => [
+    t('calendar.days.sun'),
+    t('calendar.days.mon'),
+    t('calendar.days.tue'),
+    t('calendar.days.wed'),
+    t('calendar.days.thu'),
+    t('calendar.days.fri'),
+    t('calendar.days.sat'),
+]);
 </script>
 
 <template>

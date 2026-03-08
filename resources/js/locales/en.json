@@ -305,6 +305,7 @@
         "employees_assigned": "{count} employees",
         "no_schedules": "No schedules found",
         "create_first": "Create first schedule",
+        "break_label": "break",
         "days": {
             "0": "Sun",
             "1": "Mon",
@@ -363,6 +364,7 @@
         "title": "Time Entries",
         "filter_employee": "Filter by employee",
         "filter_date": "Date",
+        "no_entries": "No time entries found",
         "edit": {
             "breadcrumb": "Edit Entry",
             "head_title": "Edit Time Entry",

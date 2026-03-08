@@ -156,7 +156,7 @@ function statusVariant(status: string) {
                             v-if="entries.data.length === 0"
                             class="text-muted-foreground p-8 text-center text-sm"
                         >
-                            {{ t('common.search') }}…
+                            {{ t('time_entries.no_entries') }}
                         </div>
                     </div>
                 </CardContent>

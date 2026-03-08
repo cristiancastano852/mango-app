@@ -76,7 +76,7 @@ function deleteSchedule(schedule: ScheduleWithCount) {
                             <p class="font-medium">{{ schedule.name }}</p>
                             <p class="text-muted-foreground text-sm">
                                 {{ schedule.start_time }} – {{ schedule.end_time }}
-                                &middot; {{ schedule.break_duration }}{{ t('common.min') }} break
+                                &middot; {{ schedule.break_duration }}{{ t('common.min') }} {{ t('schedules.break_label') }}
                             </p>
                         </div>
 

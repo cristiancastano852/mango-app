@@ -79,7 +79,7 @@ class DashboardController extends Controller
 
         $employees = Employee::with([
             'user',
-            'timeEntries' => fn ($q) => $q->whereDate('date', $today)->limit(1),
+            'timeEntries' => fn ($q) => $q->whereDate('date', $today),
             'breaks' => fn ($q) => $q->whereNull('ended_at')
                 ->whereHas('timeEntry', fn ($q2) => $q2->whereDate('date', $today)),
         ])->get();
