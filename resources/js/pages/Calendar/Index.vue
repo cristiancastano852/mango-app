@@ -3,7 +3,6 @@ import { Head, router } from '@inertiajs/vue3';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import AppLayout from '@/layouts/AppLayout.vue';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -12,6 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import { index as calendarIndex } from '@/routes/calendar';
 import type { BreadcrumbItem } from '@/types';
@@ -97,7 +97,15 @@ function onEmployeeChange(value: string) {
     }, { preserveState: true });
 }
 
-const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const dayHeaders = computed(() => [
+    t('calendar.days.sun'),
+    t('calendar.days.mon'),
+    t('calendar.days.tue'),
+    t('calendar.days.wed'),
+    t('calendar.days.thu'),
+    t('calendar.days.fri'),
+    t('calendar.days.sat'),
+]);
 </script>
 
 <template>

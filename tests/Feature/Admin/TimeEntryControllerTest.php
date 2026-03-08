@@ -116,11 +116,13 @@ class TimeEntryControllerTest extends TestCase
         $this->assertDatabaseHas('time_entries', [
             'id' => $entry->id,
             'edited_by' => $this->adminUser->id,
+            'status' => 'edited',
         ]);
 
         $entry->refresh();
         $this->assertNotNull($entry->edit_reason);
         $this->assertEquals($this->adminUser->id, $entry->edited_by);
+        $this->assertEquals('edited', $entry->status);
     }
 
     public function test_update_requires_edit_reason(): void

@@ -61,10 +61,11 @@ class TimeEntryController extends Controller
             'net_hours' => $grossHours - (float) $timeEntry->break_hours,
             'edit_reason' => $validated['edit_reason'],
             'edited_by' => $request->user()->id,
-            'status' => 'edited',
         ]);
 
         $calculator->execute($timeEntry->fresh());
+
+        $timeEntry->update(['status' => 'edited']);
 
         return redirect()->route('admin.time-entries.index')
             ->with('success', __('messages.time_entry_updated'));

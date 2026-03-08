@@ -1,11 +1,12 @@
 <script setup lang="ts">
+/* eslint-disable vue/no-mutating-props */
 import type { InertiaForm } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
+import { index as schedulesIndex } from '@/actions/App/Http/Controllers/SchedulesController';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { index as schedulesIndex } from '@/actions/App/Http/Controllers/SchedulesController';
 
 type ScheduleFormData = {
     name: string;

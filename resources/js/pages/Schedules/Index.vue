@@ -2,17 +2,17 @@
 import { Head, router } from '@inertiajs/vue3';
 import { Clock, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { dashboard } from '@/routes';
 import {
     create as schedulesCreate,
     destroy as destroySchedule,
     edit as editSchedule,
     index as schedulesIndex,
 } from '@/actions/App/Http/Controllers/SchedulesController';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { dashboard } from '@/routes';
 import type { BreadcrumbItem, Schedule } from '@/types';
 
 type ScheduleWithCount = Schedule & { employees_count: number };
@@ -76,7 +76,7 @@ function deleteSchedule(schedule: ScheduleWithCount) {
                             <p class="font-medium">{{ schedule.name }}</p>
                             <p class="text-muted-foreground text-sm">
                                 {{ schedule.start_time }} – {{ schedule.end_time }}
-                                &middot; {{ schedule.break_duration }}{{ t('common.min') }} break
+                                &middot; {{ schedule.break_duration }}{{ t('common.min') }} {{ t('schedules.break_label') }}
                             </p>
                         </div>
 

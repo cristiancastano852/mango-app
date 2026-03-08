@@ -305,6 +305,7 @@
         "employees_assigned": "{count} empleados",
         "no_schedules": "No hay turnos registrados",
         "create_first": "Crear primer turno",
+        "break_label": "descanso",
         "days": {
             "0": "Dom",
             "1": "Lun",
@@ -363,6 +364,7 @@
         "title": "Registros de Tiempo",
         "filter_employee": "Filtrar por empleado",
         "filter_date": "Fecha",
+        "no_entries": "No se encontraron registros de tiempo",
         "edit": {
             "breadcrumb": "Editar Registro",
             "head_title": "Editar Registro de Tiempo",

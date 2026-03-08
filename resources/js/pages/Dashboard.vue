@@ -3,7 +3,8 @@ import { Head, router, useForm } from '@inertiajs/vue3';
 import { AlertTriangle, Clock, Coffee, UserCheck, Users } from 'lucide-vue-next';
 import { onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import AppLayout from '@/layouts/AppLayout.vue';
+import { store as manualCheckIn } from '@/actions/App/Http/Controllers/Admin/ManualCheckInController';
+import { edit as editTimeEntry } from '@/actions/App/Http/Controllers/Admin/TimeEntryController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,9 +22,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
-import { store as manualCheckIn } from '@/actions/App/Http/Controllers/Admin/ManualCheckInController';
-import { edit as editTimeEntry } from '@/actions/App/Http/Controllers/Admin/TimeEntryController';
 import type { BreadcrumbItem } from '@/types';
 
 type Kpis = {
@@ -64,7 +64,7 @@ type Props = {
     employees?: SimpleEmployee[];
 };
 
-const props = defineProps<Props>();
+defineProps<Props>();
 const { t } = useI18n();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -103,15 +103,6 @@ function submitCheckIn() {
     });
 }
 
-function statusVariant(status: EmployeeStatus['status']) {
-    const map: Record<EmployeeStatus['status'], string> = {
-        working: 'default',
-        on_break: 'secondary',
-        absent: 'destructive',
-        done: 'outline',
-    };
-    return map[status];
-}
 
 function statusColor(status: EmployeeStatus['status']) {
     const map: Record<EmployeeStatus['status'], string> = {

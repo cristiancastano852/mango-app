@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { CalendarDays, Clock, FileText, LayoutGrid, MapPin, Settings, CreditCard, Sliders, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { index as schedulesIndex } from '@/actions/App/Http/Controllers/SchedulesController';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -16,9 +17,8 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { index as employeesIndex } from '@/routes/employees';
 import { index as calendarIndex } from '@/routes/calendar';
-import { index as schedulesIndex } from '@/actions/App/Http/Controllers/SchedulesController';
+import { index as employeesIndex } from '@/routes/employees';
 import type { NavItem } from '@/types';
 
 const { t } = useI18n();
