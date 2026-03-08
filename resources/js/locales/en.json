@@ -35,7 +35,10 @@
         "locations": "Locations",
         "settings": "Settings",
         "billing": "Billing",
-        "platform": "Platform"
+        "platform": "Platform",
+        "schedules": "Schedules",
+        "calendar": "Calendar",
+        "time_entries": "Time Entries"
     },
     "settings_layout": {
         "title": "Settings",
@@ -265,5 +268,115 @@
         "net_hours": "Net hours",
         "last_7_days": "Last 7 days",
         "confirm_checkout": "Confirm check-out?"
+    },
+    "dashboard": {
+        "title": "Dashboard",
+        "head_title": "Dashboard",
+        "live": "Live",
+        "updated": "Updated {seconds}s ago",
+        "kpi": {
+            "present": "Present Today",
+            "on_break": "On Break",
+            "absent": "Absent",
+            "net_hours": "Net Hours Today",
+            "vs_yesterday": "vs yesterday",
+            "avg_per_employee": "avg per employee"
+        },
+        "employee_status": "Employee Status",
+        "late_arrivals": "Late Arrivals",
+        "late_arrivals_empty": "No late arrivals",
+        "minutes_late": "{min} min late",
+        "manual_checkin": "Manual Check-in",
+        "select_employee": "Select an employee...",
+        "checkin_btn": "Check In",
+        "status": {
+            "working": "Working",
+            "on_break": "On Break",
+            "absent": "Absent",
+            "done": "Done"
+        },
+        "no_employees": "No employees found"
+    },
+    "schedules": {
+        "breadcrumb": "Schedules",
+        "head_title": "Schedules",
+        "title": "Schedules",
+        "new_schedule": "New Schedule",
+        "employees_assigned": "{count} employees",
+        "no_schedules": "No schedules found",
+        "create_first": "Create first schedule",
+        "days": {
+            "0": "Sun",
+            "1": "Mon",
+            "2": "Tue",
+            "3": "Wed",
+            "4": "Thu",
+            "5": "Fri",
+            "6": "Sat"
+        },
+        "confirm_delete": "Delete schedule \"{name}\"?",
+        "create": {
+            "breadcrumb": "New",
+            "head_title": "New Schedule",
+            "title": "New Schedule",
+            "description": "Define working hours and days for this schedule."
+        },
+        "edit": {
+            "breadcrumb": "Edit",
+            "head_title": "Edit Schedule",
+            "title": "Edit Schedule",
+            "description": "Update this schedule's configuration."
+        },
+        "form": {
+            "name": "Schedule name",
+            "start_time": "Start time",
+            "end_time": "End time",
+            "break_duration": "Break duration (minutes)",
+            "days_of_week": "Working days",
+            "cancel": "Cancel",
+            "save": "Save",
+            "saving": "Saving..."
+        },
+        "employees_section": "Assigned Employees"
+    },
+    "calendar": {
+        "breadcrumb": "Calendar",
+        "head_title": "Calendar",
+        "title": "Monthly Calendar",
+        "filter_employee": "Filter by employee",
+        "all_employees": "All employees",
+        "hours": "{h}h",
+        "no_entries": "No entries",
+        "days": {
+            "sun": "Sun",
+            "mon": "Mon",
+            "tue": "Tue",
+            "wed": "Wed",
+            "thu": "Thu",
+            "fri": "Fri",
+            "sat": "Sat"
+        }
+    },
+    "time_entries": {
+        "breadcrumb": "Time Entries",
+        "head_title": "Time Entries",
+        "title": "Time Entries",
+        "filter_employee": "Filter by employee",
+        "filter_date": "Date",
+        "edit": {
+            "breadcrumb": "Edit Entry",
+            "head_title": "Edit Time Entry",
+            "title": "Edit Time Entry",
+            "description": "Adjust clock-in/out times. This action will be logged.",
+            "clock_in": "Clock In",
+            "clock_out": "Clock Out",
+            "edit_reason": "Reason for edit",
+            "reason_placeholder": "Explain why this entry is being modified...",
+            "employee": "Employee",
+            "original_date": "Date",
+            "save": "Save Changes",
+            "saving": "Saving...",
+            "cancel": "Cancel"
+        }
     }
 }

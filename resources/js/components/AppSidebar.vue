@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { Clock, FileText, LayoutGrid, MapPin, Settings, CreditCard, Users } from 'lucide-vue-next';
+import { CalendarDays, Clock, FileText, LayoutGrid, MapPin, Settings, CreditCard, Sliders, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AppLogo from '@/components/AppLogo.vue';
@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { index as employeesIndex } from '@/routes/employees';
+import { index as calendarIndex } from '@/routes/calendar';
+import { index as schedulesIndex } from '@/actions/App/Http/Controllers/SchedulesController';
 import type { NavItem } from '@/types';
 
 const { t } = useI18n();
@@ -49,6 +51,16 @@ const mainNavItems = computed<NavItem[]>(() => {
 
     if (isAdmin.value) {
         items.push(
+            {
+                title: t('nav.schedules'),
+                href: schedulesIndex(),
+                icon: Sliders,
+            },
+            {
+                title: t('nav.calendar'),
+                href: calendarIndex(),
+                icon: CalendarDays,
+            },
             {
                 title: t('nav.reports'),
                 href: { url: '/reports', method: 'get' },
