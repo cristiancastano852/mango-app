@@ -24,6 +24,7 @@ class ManualCheckInControllerTest extends TestCase
     {
         parent::setUp();
 
+        Role::create(['name' => 'super-admin']);
         Role::create(['name' => 'admin']);
         Role::create(['name' => 'employee']);
 
@@ -105,6 +106,24 @@ class ManualCheckInControllerTest extends TestCase
             ->post(route('admin.manual-check-in'), []);
 
         $response->assertSessionHasErrors('employee_id');
+    }
+
+    public function test_super_admin_can_check_in_employee_from_any_company(): void
+    {
+        $superAdmin = User::factory()->create(['company_id' => null]);
+        $superAdmin->assignRole('super-admin');
+
+        $response = $this->actingAs($superAdmin)
+            ->post(route('admin.manual-check-in'), [
+                'employee_id' => $this->employee->id,
+            ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('time_entries', [
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+        ]);
     }
 
     public function test_cannot_check_in_employee_already_clocked_in(): void

@@ -13,10 +13,14 @@ class ManualCheckInController extends Controller
 {
     public function store(Request $request, AdminClockIn $action): RedirectResponse
     {
+        $companyId = $request->user()->company_id;
+
         $request->validate([
             'employee_id' => [
                 'required',
-                Rule::exists('employees', 'id')->where('company_id', $request->user()->company_id),
+                $companyId
+                    ? Rule::exists('employees', 'id')->where('company_id', $companyId)
+                    : Rule::exists('employees', 'id'),
             ],
         ]);
 
