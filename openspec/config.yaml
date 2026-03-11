@@ -2,41 +2,39 @@ schema: spec-driven
 
 context: |
   Mango App — Multi-tenant HR & Time Tracking SaaS para empresas colombianas.
+  Stack: Laravel 12, Inertia.js v2, Vue 3, Tailwind CSS v4, PHPUnit 13.
 
-  Jerarquía de documentación:
-  1. CLAUDE.md — reglas de framework (PHP, Laravel, Vue, Inertia, Tailwind, testing)
-  2. ai-specs/specs/ — contexto de dominio y patrones específicos del proyecto:
-     - ai-specs/specs/base-standards.mdc — multi-tenancy, roles colombianos, testing crítico
-     - ai-specs/specs/backend-standards.mdc — dominios, actions, orden de implementación
-     - ai-specs/specs/frontend-standards.mdc — componentes UI, Wayfinder, i18n del proyecto
-     - ai-specs/specs/documentation-standards.mdc — cuándo actualizar specs
-     - ai-specs/specs/data-model.md — schema completo de BD
-     - ai-specs/specs/domain-model.md — mapa de dominios y responsabilidades
+  ANTES DE GENERAR CUALQUIER ARTEFACTO, leer obligatoriamente estos archivos:
+  - ai-specs/specs/base-standards.mdc — multi-tenancy, roles, reglas de testing críticas
+  - ai-specs/specs/data-model.md — schema completo de BD (tablas, columnas, relaciones)
+  - ai-specs/specs/domain-model.md — mapa de dominios y responsabilidades
 
-  Agentes:
-  - ai-specs/.agents/backend-developer.md — planificador backend (lee CLAUDE.md + specs)
-  - ai-specs/.agents/frontend-developer.md — planificador frontend (lee CLAUDE.md + specs)
+  Para cambios backend, leer además:
+  - ai-specs/specs/backend-standards.mdc — orden de implementación, patrones Laravel del proyecto
+
+  Para cambios frontend, leer además:
+  - ai-specs/specs/frontend-standards.mdc — componentes UI, Wayfinder, i18n del proyecto
 
 rules:
-  _global:
-    - Leer CLAUDE.md y ai-specs/specs/base-standards.mdc antes de crear cualquier artefacto
-    - Para backend: leer ai-specs/specs/backend-standards.mdc y adoptar ai-specs/.agents/backend-developer.md
-    - Para frontend: leer ai-specs/specs/frontend-standards.mdc y adoptar ai-specs/.agents/frontend-developer.md
-    - Consultar data-model.md y domain-model.md para consistencia de datos y dominios
-    - Los specs NO deben duplicar reglas de CLAUDE.md
-
   proposal:
     - Identificar el dominio afectado (Company/Employee/Organization/TimeTracking/Shared)
     - Incluir sección Non-goals
     - Señalar implicaciones multi-tenant (¿toca datos con company_id?)
-    - Señalar implicaciones de roles (¿qué roles tienen acceso?)
-    - Señalar si requiere migración
+    - Señalar implicaciones de roles (¿qué roles tienen acceso? super-admin/admin/employee)
+    - Señalar si requiere migración de BD
 
-  spec:
-    - Secciones: Overview, Data Model, Business Rules, Routes, Domain Actions, Frontend, Authorization, Error Handling, Non-goals
+  specs:
+    - Incluir secciones Business Rules y Authorization
+    - Especificar comportamiento por rol (super-admin/admin/employee)
+    - Documentar reglas de validación cross-company
+
+  design:
+    - Seguir arquitectura de dominios (app/Domain/{Company,Employee,Organization,TimeTracking,Shared}/)
+    - Controllers delgados — lógica en Actions del dominio correcto
+    - Incluir Form Request con reglas y mensajes de error
 
   tasks:
     - Máximo 2 horas por tarea
-    - Backend: migración → modelo → factory → action → form request → controller → ruta → wayfinder → tests → pint
-    - Frontend: Vue page → Wayfinder → Tailwind → i18n → AppSidebar si aplica → build
-    - Cada tarea termina con: tests pasando (backend) o build exitoso (frontend)
+    - Backend seguir orden exacto — migración → modelo → factory → action → form request → controller → ruta → wayfinder:generate → npm run build → tests → pint
+    - Frontend seguir orden exacto — revisar components/ui/ → Vue page → Wayfinder → Tailwind → i18n → AppSidebar si aplica → npm run build
+    - Cada tarea termina con tests pasando (backend) o build exitoso (frontend)
