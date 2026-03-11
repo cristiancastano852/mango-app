@@ -87,7 +87,7 @@ const props = defineProps<{
     employees: Array<{ id: number; name: string }>;
 }>();
 
-const { t, n } = useI18n();
+const { t } = useI18n();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: t('reports.breadcrumb'), href: '/reports' },

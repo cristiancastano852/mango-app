@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { BarChart3, FileText, Users } from 'lucide-vue-next';
+import { FileText, Users } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import DateRangeFilter from './partials/DateRangeFilter.vue';
 
-const props = defineProps<{
+defineProps<{
     employees: Array<{ id: number; name: string }>;
     departments: Array<{ id: number; name: string }>;
 }>();
