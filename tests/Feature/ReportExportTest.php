@@ -199,9 +199,9 @@ class ReportExportTest extends TestCase
 
     // --- Super-admin access ---
 
-    public function test_super_admin_can_export(): void
+    public function test_super_admin_can_export_employee_report(): void
     {
-        $superAdmin = User::factory()->create(['company_id' => $this->company->id]);
+        $superAdmin = User::factory()->create(['company_id' => null]);
         $superAdmin->assignRole('super-admin');
 
         $response = $this->actingAs($superAdmin)->get(route('reports.employee.pdf', [
@@ -211,6 +211,38 @@ class ReportExportTest extends TestCase
 
         $response->assertOk();
         $response->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_super_admin_cannot_export_company_report(): void
+    {
+        $superAdmin = User::factory()->create(['company_id' => null]);
+        $superAdmin->assignRole('super-admin');
+
+        $response = $this->actingAs($superAdmin)->get(route('reports.company.excel', [
+            'date_range' => 'month',
+        ]));
+
+        $response->assertForbidden();
+    }
+
+    public function test_admin_cannot_export_employee_report_from_another_company(): void
+    {
+        $otherCompany = Company::create(['name' => 'Other Co', 'slug' => 'other-co']);
+
+        $otherUser = User::factory()->create(['company_id' => $otherCompany->id]);
+        $otherUser->assignRole('employee');
+        $otherEmployee = Employee::create([
+            'user_id' => $otherUser->id,
+            'company_id' => $otherCompany->id,
+            'hourly_rate' => 20000,
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->get(route('reports.employee.excel', [
+            'date_range' => 'month',
+            'employee_id' => $otherEmployee->id,
+        ]));
+
+        $response->assertSessionHasErrors('employee_id');
     }
 
     // --- Excel filename includes employee name ---

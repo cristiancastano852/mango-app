@@ -21,13 +21,12 @@ class GenerateEmployeeReport
      * No se itera en PHP sobre registros individuales para sumar.
      *
      * @return array{
-     *     employee: array,
-     *     totals: array,
-     *     breaks_by_type: array,
+     *     employee: array{id: int, name: string, department: ?string, position: ?string, hourly_rate: float},
+     *     totals: array{days_worked: int, gross_hours: float, break_hours: float, net_hours: float, regular_hours: float, overtime_hours: float, night_hours: float, sunday_holiday_hours: float},
+     *     breaks_by_type: array<int, array{name: string, is_paid: bool, icon: string, color: string, total_minutes: float, count: int}>,
      *     daily_breakdown: array,
      *     cost_summary: array,
-     *     days_worked: int,
-     *     period: array
+     *     period: array{start: string, end: string}
      * }
      */
     public function execute(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): array

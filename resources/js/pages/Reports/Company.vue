@@ -94,7 +94,7 @@ function applyFilter() {
         start_date: dateFilter.value.start_date,
         end_date: dateFilter.value.end_date,
         department_id: selectedDepartment.value || undefined,
-    }, { preserveState: true });
+    });
 }
 
 function exportQueryParams(): string {

@@ -33,6 +33,12 @@ function selectPreset(preset: DateRange) {
     selectedRange.value = preset;
     if (preset !== 'custom') {
         emit('update:modelValue', { date_range: preset });
+    } else {
+        emit('update:modelValue', {
+            date_range: 'custom',
+            start_date: customStart.value,
+            end_date: customEnd.value,
+        });
     }
 }
 

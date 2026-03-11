@@ -108,7 +108,7 @@ function applyFilter() {
         start_date: dateFilter.value.start_date,
         end_date: dateFilter.value.end_date,
         employee_id: selectedEmployee.value,
-    }, { preserveState: true });
+    });
 }
 
 function exportQueryParams(): string {

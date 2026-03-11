@@ -216,12 +216,74 @@ class ReportControllerTest extends TestCase
 
     public function test_super_admin_can_view_reports(): void
     {
-        $superAdmin = User::factory()->create(['company_id' => $this->company->id]);
+        $superAdmin = User::factory()->create(['company_id' => null]);
         $superAdmin->assignRole('super-admin');
 
         $response = $this->actingAs($superAdmin)->get(route('reports.index'));
 
         $response->assertOk();
+    }
+
+    public function test_super_admin_can_view_employee_report(): void
+    {
+        $superAdmin = User::factory()->create(['company_id' => null]);
+        $superAdmin->assignRole('super-admin');
+
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->toDateString(),
+            'clock_in' => now()->setTime(8, 0),
+            'clock_out' => now()->setTime(17, 0),
+            'gross_hours' => 9.0,
+            'break_hours' => 1.0,
+            'net_hours' => 8.0,
+            'regular_hours' => 8.0,
+            'overtime_hours' => 0,
+            'night_hours' => 0,
+            'sunday_holiday_hours' => 0,
+            'status' => 'calculated',
+        ]);
+
+        $response = $this->actingAs($superAdmin)->get(route('reports.employee', [
+            'date_range' => 'month',
+            'employee_id' => $this->employee->id,
+        ]));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page->component('Reports/Employee'));
+    }
+
+    public function test_super_admin_cannot_view_company_report(): void
+    {
+        $superAdmin = User::factory()->create(['company_id' => null]);
+        $superAdmin->assignRole('super-admin');
+
+        $response = $this->actingAs($superAdmin)->get(route('reports.company', [
+            'date_range' => 'month',
+        ]));
+
+        $response->assertForbidden();
+    }
+
+    public function test_admin_cannot_view_employee_report_from_another_company(): void
+    {
+        $otherCompany = Company::create(['name' => 'Other Co', 'slug' => 'other-co']);
+
+        $otherUser = User::factory()->create(['company_id' => $otherCompany->id]);
+        $otherUser->assignRole('employee');
+        $otherEmployee = Employee::create([
+            'user_id' => $otherUser->id,
+            'company_id' => $otherCompany->id,
+            'hourly_rate' => 20000,
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->get(route('reports.employee', [
+            'date_range' => 'month',
+            'employee_id' => $otherEmployee->id,
+        ]));
+
+        $response->assertSessionHasErrors('employee_id');
     }
 
     public function test_day_preset_returns_today_only(): void

@@ -48,16 +48,18 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
         $totals = $this->report['totals'];
         $costs = $this->report['cost_summary'];
 
+        $surcharges = collect($costs['details'])->keyBy('type');
+
         $rows = [
             ['Días trabajados', $totals['days_worked'], '', ''],
             ['Horas brutas', $totals['gross_hours'], '', ''],
             ['Horas en pausas', $totals['break_hours'], '', ''],
             ['Horas netas', $totals['net_hours'], '', ''],
             [],
-            ['Horas ordinarias', $totals['regular_hours'], '0%', $costs['regular']],
-            ['Horas nocturnas', $totals['night_hours'], '35%', $costs['night']],
-            ['Horas extras', $totals['overtime_hours'], '25%', $costs['overtime']],
-            ['Horas dom/festivas', $totals['sunday_holiday_hours'], '75%', $costs['sunday_holiday']],
+            ['Horas ordinarias', $totals['regular_hours'], ($surcharges['regular']['surcharge'] ?? 0).'%', $costs['regular']],
+            ['Horas nocturnas', $totals['night_hours'], ($surcharges['night']['surcharge'] ?? 35).'%', $costs['night']],
+            ['Horas extras', $totals['overtime_hours'], ($surcharges['overtime']['surcharge'] ?? 25).'%', $costs['overtime']],
+            ['Horas dom/festivas', $totals['sunday_holiday_hours'], ($surcharges['sunday_holiday']['surcharge'] ?? 75).'%', $costs['sunday_holiday']],
             [],
             ['TOTAL', $totals['net_hours'], '', $costs['total']],
         ];

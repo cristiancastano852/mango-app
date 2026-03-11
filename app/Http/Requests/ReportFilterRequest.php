@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 
 class ReportFilterRequest extends FormRequest
 {
@@ -23,10 +25,26 @@ class ReportFilterRequest extends FormRequest
             'start_date' => ['required_if:date_range,custom', 'nullable', 'date'],
             'end_date' => ['required_if:date_range,custom', 'nullable', 'date', 'after_or_equal:start_date'],
             'employee_id' => $isEmployeeReport
-                ? ['required', 'integer', 'exists:employees,id']
-                : ['nullable', 'integer', 'exists:employees,id'],
-            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+                ? ['required', 'integer', $this->employeeExistsRule()]
+                : ['nullable', 'integer', $this->employeeExistsRule()],
+            'department_id' => ['nullable', 'integer', $this->departmentExistsRule()],
         ];
+    }
+
+    private function employeeExistsRule(): Exists
+    {
+        $companyId = $this->user()?->company_id;
+        $rule = Rule::exists('employees', 'id');
+
+        return $companyId ? $rule->where('company_id', $companyId) : $rule;
+    }
+
+    private function departmentExistsRule(): Exists
+    {
+        $companyId = $this->user()?->company_id;
+        $rule = Rule::exists('departments', 'id');
+
+        return $companyId ? $rule->where('company_id', $companyId) : $rule;
     }
 
     /**

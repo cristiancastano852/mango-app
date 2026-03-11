@@ -423,8 +423,8 @@
         "charts": {
             "hours_breakdown": "Desglose de Horas",
             "daily_trend": "Tendencia Diaria",
-            "break_distribution": "Distribucion de Pausas",
-            "cost_distribution": "Distribucion de Costos",
+            "break_distribution": "Distribución de Pausas",
+            "cost_distribution": "Distribución de Costos",
             "attendance_trend": "Asistencia Diaria"
         },
         "no_data": "No hay datos para el rango seleccionado",
@@ -432,7 +432,7 @@
         "table": {
             "employee": "Empleado",
             "department": "Departamento",
-            "days": "Dias",
+            "days": "Días",
             "net_hours": "Horas netas",
             "cost": "Costo"
         }

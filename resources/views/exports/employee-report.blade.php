@@ -80,6 +80,9 @@
         </table>
 
         {{-- Desglose de horas --}}
+        @php
+            $surcharges = collect($report['cost_summary']['details'])->keyBy('type');
+        @endphp
         <div class="section">
             <div class="section-title">Desglose de Horas</div>
             <table class="data">
@@ -95,25 +98,25 @@
                     <tr>
                         <td>Ordinarias</td>
                         <td class="text-right">{{ $report['totals']['regular_hours'] }}</td>
-                        <td class="text-right">0%</td>
+                        <td class="text-right">{{ $surcharges['regular']['surcharge'] ?? 0 }}%</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['regular'], 0, ',', '.') }}</td>
                     </tr>
                     <tr>
                         <td>Nocturnas</td>
                         <td class="text-right">{{ $report['totals']['night_hours'] }}</td>
-                        <td class="text-right">35%</td>
+                        <td class="text-right">{{ $surcharges['night']['surcharge'] ?? 35 }}%</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['night'], 0, ',', '.') }}</td>
                     </tr>
                     <tr>
                         <td>Extras</td>
                         <td class="text-right">{{ $report['totals']['overtime_hours'] }}</td>
-                        <td class="text-right">25%</td>
+                        <td class="text-right">{{ $surcharges['overtime']['surcharge'] ?? 25 }}%</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['overtime'], 0, ',', '.') }}</td>
                     </tr>
                     <tr>
                         <td>Dom/Festivas</td>
                         <td class="text-right">{{ $report['totals']['sunday_holiday_hours'] }}</td>
-                        <td class="text-right">75%</td>
+                        <td class="text-right">{{ $surcharges['sunday_holiday']['surcharge'] ?? 75 }}%</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['sunday_holiday'], 0, ',', '.') }}</td>
                     </tr>
                     <tr class="total-row">

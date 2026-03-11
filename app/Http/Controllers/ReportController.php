@@ -11,6 +11,7 @@ use App\Exports\EmployeeReportExport;
 use App\Http\Requests\ReportFilterRequest;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -49,7 +50,7 @@ class ReportController extends Controller
         $validated = $request->validated();
         [$startDate, $endDate] = $this->resolveDateRange($validated);
 
-        $report = $this->buildEmployeeReport($request);
+        $report = $this->buildEmployeeReport($request, $startDate, $endDate);
 
         return Inertia::render('Reports/Employee', [
             'report' => $report,
@@ -74,7 +75,7 @@ class ReportController extends Controller
         $validated = $request->validated();
         [$startDate, $endDate] = $this->resolveDateRange($validated);
 
-        $report = $this->buildCompanyReport($request);
+        $report = $this->buildCompanyReport($request, $startDate, $endDate);
 
         return Inertia::render('Reports/Company', [
             'report' => $report,
@@ -96,7 +97,9 @@ class ReportController extends Controller
      */
     public function exportEmployeeExcel(ReportFilterRequest $request): BinaryFileResponse
     {
-        $report = $this->buildEmployeeReport($request);
+        $validated = $request->validated();
+        [$startDate, $endDate] = $this->resolveDateRange($validated);
+        $report = $this->buildEmployeeReport($request, $startDate, $endDate);
         $name = 'reporte-'.str($report['employee']['name'])->slug().'.xlsx';
 
         return Excel::download(new EmployeeReportExport($report), $name);
@@ -107,7 +110,9 @@ class ReportController extends Controller
      */
     public function exportEmployeePdf(ReportFilterRequest $request): \Illuminate\Http\Response
     {
-        $report = $this->buildEmployeeReport($request);
+        $validated = $request->validated();
+        [$startDate, $endDate] = $this->resolveDateRange($validated);
+        $report = $this->buildEmployeeReport($request, $startDate, $endDate);
         $name = 'reporte-'.str($report['employee']['name'])->slug().'.pdf';
 
         return Pdf::loadView('exports.employee-report', compact('report'))
@@ -120,7 +125,9 @@ class ReportController extends Controller
      */
     public function exportCompanyExcel(ReportFilterRequest $request): BinaryFileResponse
     {
-        $report = $this->buildCompanyReport($request);
+        $validated = $request->validated();
+        [$startDate, $endDate] = $this->resolveDateRange($validated);
+        $report = $this->buildCompanyReport($request, $startDate, $endDate);
 
         return Excel::download(new CompanyReportExport($report), 'reporte-empresa.xlsx');
     }
@@ -130,7 +137,9 @@ class ReportController extends Controller
      */
     public function exportCompanyPdf(ReportFilterRequest $request): \Illuminate\Http\Response
     {
-        $report = $this->buildCompanyReport($request);
+        $validated = $request->validated();
+        [$startDate, $endDate] = $this->resolveDateRange($validated);
+        $report = $this->buildCompanyReport($request, $startDate, $endDate);
 
         return Pdf::loadView('exports.company-report', compact('report'))
             ->setPaper('letter', 'landscape')
@@ -140,10 +149,9 @@ class ReportController extends Controller
     /**
      * Genera los datos del reporte de empleado (reutilizado por vista y exports).
      */
-    private function buildEmployeeReport(ReportFilterRequest $request): array
+    private function buildEmployeeReport(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate): array
     {
         $validated = $request->validated();
-        [$startDate, $endDate] = $this->resolveDateRange($validated);
 
         return $this->employeeReport->execute(
             (int) $validated['employee_id'],
@@ -154,14 +162,18 @@ class ReportController extends Controller
 
     /**
      * Genera los datos del reporte de empresa (reutilizado por vista y exports).
+     * Super-admin no tiene company_id; no puede acceder al reporte de empresa.
      */
-    private function buildCompanyReport(ReportFilterRequest $request): array
+    private function buildCompanyReport(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate): array
     {
+        $companyId = $request->user()->company_id;
+
+        abort_if($companyId === null, 403);
+
         $validated = $request->validated();
-        [$startDate, $endDate] = $this->resolveDateRange($validated);
 
         return $this->companyReport->execute(
-            $request->user()->company_id,
+            $companyId,
             $startDate,
             $endDate,
             isset($validated['department_id']) ? (int) $validated['department_id'] : null,
@@ -176,13 +188,15 @@ class ReportController extends Controller
      */
     private function resolveDateRange(array $validated): array
     {
+        $now = now();
+
         return match ($validated['date_range']) {
-            'day' => [now()->startOfDay(), now()->endOfDay()],
-            'week' => [now()->startOfWeek(Carbon::MONDAY), now()->endOfWeek(Carbon::SUNDAY)],
-            'biweekly' => now()->day <= 15
-                ? [now()->startOfMonth(), now()->startOfMonth()->addDays(14)->endOfDay()]
-                : [now()->startOfMonth()->addDays(15), now()->endOfMonth()],
-            'month' => [now()->startOfMonth(), now()->endOfMonth()],
+            'day' => [$now->startOfDay(), $now->endOfDay()],
+            'week' => [$now->startOfWeek(Carbon::MONDAY), $now->endOfWeek(Carbon::SUNDAY)],
+            'biweekly' => $now->day <= 15
+                ? [$now->startOfMonth(), $now->startOfMonth()->addDays(14)->endOfDay()]
+                : [$now->startOfMonth()->addDays(15), $now->endOfMonth()],
+            'month' => [$now->startOfMonth(), $now->endOfMonth()],
             'custom' => [
                 Carbon::parse($validated['start_date'])->startOfDay(),
                 Carbon::parse($validated['end_date'])->endOfDay(),
