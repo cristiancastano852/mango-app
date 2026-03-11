@@ -25,11 +25,13 @@ class SurchargeRuleController extends Controller
 
     public function update(UpdateSurchargeRuleRequest $request): RedirectResponse
     {
+        $companyId = $request->input('company_id', $request->user()->company_id);
+
         $rule = SurchargeRule::withoutGlobalScopes()
-            ->where('company_id', $request->user()->company_id)
+            ->where('company_id', $companyId)
             ->firstOrFail();
 
-        $rule->update($request->validated());
+        $rule->update(collect($request->validated())->except('company_id')->toArray());
 
         return to_route('surcharge-rules.edit');
     }

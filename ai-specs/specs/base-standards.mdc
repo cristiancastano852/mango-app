@@ -26,7 +26,7 @@ Leer CLAUDE.md para reglas de framework (PHP, Laravel, testing, Inertia, Tailwin
 
 ## Reglas colombianas (TimeTracking)
 - Timezone: `America/Bogota`
-- Recargo nocturno: 21:00–06:00
+- Recargo nocturno: configurable por empresa (default 21:00–06:00)
 - Recargo dominical/festivo: detección por minuto usando tabla `holidays`
 - Overtime: límite semanal de `SurchargeRule.max_weekly_hours` (default 42h, semana ISO lun-dom)
 - `CalculateWorkHours`: clasificación minuto a minuto en regular/night/sunday_holiday/overtime

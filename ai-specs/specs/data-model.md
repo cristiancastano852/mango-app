@@ -66,6 +66,7 @@
 - overtime_night (decimal 5,2 default 75), sunday_holiday (decimal 5,2 default 75)
 - overtime_day_sunday (decimal 5,2 default 100), overtime_night_sunday (decimal 5,2 default 150)
 - night_sunday (decimal 5,2 default 110), max_weekly_hours (int default 42)
+- night_start_time (time, default '21:00'), night_end_time (time, default '06:00')
 - timestamps
 
 ## holidays

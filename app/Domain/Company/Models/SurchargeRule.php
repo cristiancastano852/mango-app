@@ -20,6 +20,8 @@ class SurchargeRule extends Model
         'overtime_night_sunday',
         'night_sunday',
         'max_weekly_hours',
+        'night_start_time',
+        'night_end_time',
     ];
 
     protected function casts(): array
