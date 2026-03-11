@@ -358,6 +358,85 @@
             "sat": "Sat"
         }
     },
+    "reports": {
+        "breadcrumb": "Reports",
+        "head_title": "Reports",
+        "title": "Reports",
+        "description": "View individual and company-wide reports.",
+        "employee_report": "Employee Report",
+        "company_report": "Company Report",
+        "employee_report_desc": "Detailed hours, breaks and costs per employee.",
+        "company_report_desc": "Summary of hours, attendance and costs for the whole company.",
+        "date_range": "Date range",
+        "presets": {
+            "day": "Today",
+            "week": "Week",
+            "biweekly": "Biweekly",
+            "month": "Month",
+            "custom": "Custom"
+        },
+        "start_date": "Start date",
+        "end_date": "End date",
+        "filter": "Filter",
+        "export_excel": "Excel",
+        "export_pdf": "PDF",
+        "select_employee": "Select employee",
+        "all_departments": "All departments",
+        "generate": "Generate report",
+        "kpi": {
+            "days_worked": "Days worked",
+            "gross_hours": "Gross hours",
+            "break_hours": "Break hours",
+            "net_hours": "Net hours",
+            "avg_per_day": "Daily average",
+            "total_cost": "Total cost",
+            "total_employees": "Employees",
+            "regular_hours": "Regular hours",
+            "night_hours": "Night hours",
+            "overtime_hours": "Overtime hours",
+            "sunday_holiday_hours": "Sunday/Holiday hours"
+        },
+        "hours": {
+            "title": "Hours Breakdown",
+            "regular": "Regular",
+            "night": "Night",
+            "overtime": "Overtime",
+            "sunday_holiday": "Sun/Holiday"
+        },
+        "breaks": {
+            "title": "Breaks Breakdown",
+            "type": "Type",
+            "total_minutes": "Total minutes",
+            "count": "Count",
+            "paid": "Paid",
+            "unpaid": "Unpaid"
+        },
+        "costs": {
+            "title": "Cost Summary",
+            "hour_type": "Hour type",
+            "hours": "Hours",
+            "rate": "Rate/hour",
+            "surcharge": "Surcharge %",
+            "subtotal": "Subtotal",
+            "total": "Total"
+        },
+        "charts": {
+            "hours_breakdown": "Hours Breakdown",
+            "daily_trend": "Daily Trend",
+            "break_distribution": "Break Distribution",
+            "cost_distribution": "Cost Distribution",
+            "attendance_trend": "Daily Attendance"
+        },
+        "no_data": "No data for the selected range",
+        "employee_ranking": "Employee Ranking",
+        "table": {
+            "employee": "Employee",
+            "department": "Department",
+            "days": "Days",
+            "net_hours": "Net hours",
+            "cost": "Cost"
+        }
+    },
     "time_entries": {
         "breadcrumb": "Time Entries",
         "head_title": "Time Entries",

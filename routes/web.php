@@ -23,6 +23,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Manual check-in
         Route::post('admin/manual-check-in', [\App\Http\Controllers\Admin\ManualCheckInController::class, 'store'])->name('admin.manual-check-in');
+
+        // Reports
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ReportController::class, 'index'])->name('index');
+            Route::get('/employee', [\App\Http\Controllers\ReportController::class, 'employee'])->name('employee');
+            Route::get('/company', [\App\Http\Controllers\ReportController::class, 'company'])->name('company');
+            Route::get('/employee/excel', [\App\Http\Controllers\ReportController::class, 'exportEmployeeExcel'])->name('employee.excel');
+            Route::get('/employee/pdf', [\App\Http\Controllers\ReportController::class, 'exportEmployeePdf'])->name('employee.pdf');
+            Route::get('/company/excel', [\App\Http\Controllers\ReportController::class, 'exportCompanyExcel'])->name('company.excel');
+            Route::get('/company/pdf', [\App\Http\Controllers\ReportController::class, 'exportCompanyPdf'])->name('company.pdf');
+        });
     });
 
     // Time Clock (all authenticated employees)

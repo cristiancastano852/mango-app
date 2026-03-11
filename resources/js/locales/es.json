@@ -358,6 +358,85 @@
             "sat": "Sáb"
         }
     },
+    "reports": {
+        "breadcrumb": "Reportes",
+        "head_title": "Reportes",
+        "title": "Reportes",
+        "description": "Consulta reportes individuales y generales de tu empresa.",
+        "employee_report": "Reporte Individual",
+        "company_report": "Reporte General",
+        "employee_report_desc": "Detalle de horas, pausas y costos por empleado.",
+        "company_report_desc": "Resumen de horas, asistencia y costos de toda la empresa.",
+        "date_range": "Rango de fechas",
+        "presets": {
+            "day": "Hoy",
+            "week": "Semana",
+            "biweekly": "Quincena",
+            "month": "Mes",
+            "custom": "Personalizado"
+        },
+        "start_date": "Fecha inicio",
+        "end_date": "Fecha fin",
+        "filter": "Filtrar",
+        "export_excel": "Excel",
+        "export_pdf": "PDF",
+        "select_employee": "Seleccionar empleado",
+        "all_departments": "Todos los departamentos",
+        "generate": "Generar reporte",
+        "kpi": {
+            "days_worked": "Dias trabajados",
+            "gross_hours": "Horas brutas",
+            "break_hours": "Horas en pausas",
+            "net_hours": "Horas netas",
+            "avg_per_day": "Promedio diario",
+            "total_cost": "Costo total",
+            "total_employees": "Empleados",
+            "regular_hours": "Horas ordinarias",
+            "night_hours": "Horas nocturnas",
+            "overtime_hours": "Horas extras",
+            "sunday_holiday_hours": "Horas dom/festivo"
+        },
+        "hours": {
+            "title": "Desglose de Horas",
+            "regular": "Ordinarias",
+            "night": "Nocturnas",
+            "overtime": "Extras",
+            "sunday_holiday": "Dom/Festivas"
+        },
+        "breaks": {
+            "title": "Desglose de Pausas",
+            "type": "Tipo",
+            "total_minutes": "Minutos totales",
+            "count": "Cantidad",
+            "paid": "Pagada",
+            "unpaid": "No pagada"
+        },
+        "costs": {
+            "title": "Resumen de Costos",
+            "hour_type": "Tipo de hora",
+            "hours": "Horas",
+            "rate": "Tarifa/hora",
+            "surcharge": "Recargo %",
+            "subtotal": "Subtotal",
+            "total": "Total"
+        },
+        "charts": {
+            "hours_breakdown": "Desglose de Horas",
+            "daily_trend": "Tendencia Diaria",
+            "break_distribution": "Distribucion de Pausas",
+            "cost_distribution": "Distribucion de Costos",
+            "attendance_trend": "Asistencia Diaria"
+        },
+        "no_data": "No hay datos para el rango seleccionado",
+        "employee_ranking": "Ranking de Empleados",
+        "table": {
+            "employee": "Empleado",
+            "department": "Departamento",
+            "days": "Dias",
+            "net_hours": "Horas netas",
+            "cost": "Costo"
+        }
+    },
     "time_entries": {
         "breadcrumb": "Registros",
         "head_title": "Registros de Tiempo",

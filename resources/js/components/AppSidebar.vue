@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { CalendarDays, Clock, FileText, LayoutGrid, MapPin, Settings, CreditCard, Sliders, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { index as reportsIndex } from '@/actions/App/Http/Controllers/ReportController';
 import { index as schedulesIndex } from '@/actions/App/Http/Controllers/SchedulesController';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -63,7 +64,7 @@ const mainNavItems = computed<NavItem[]>(() => {
             },
             {
                 title: t('nav.reports'),
-                href: { url: '/reports', method: 'get' },
+                href: reportsIndex(),
                 icon: FileText,
             },
             {
