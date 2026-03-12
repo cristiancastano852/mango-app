@@ -1,0 +1,40 @@
+---
+description: Patrones de implementación backend de mango-app. Lee CLAUDE.md primero para reglas de framework.
+---
+
+## Arquitectura de dominios
+app/Domain/{Company,Employee,Organization,TimeTracking,Shared}/
+  Actions/   ← toda la lógica de negocio (una responsabilidad por clase)
+  Models/    ← modelos Eloquent
+  Observers/ ← cuando aplica
+
+app/Http/Controllers/ ← delgados: Form Request + delegar a Action
+
+## Orden de implementación (seguir siempre este orden)
+1. Migración (si hay cambio de schema) → actualizar ai-specs/specs/data-model.md
+2. Modelo + Relaciones con return types + Casts
+3. Factory + Seeder
+4. Domain Action(s) en el dominio correcto
+5. Form Request (reglas + mensajes de error)
+6. Controller method (delgado)
+7. Ruta (web.php o settings.php)
+8. `php artisan wayfinder:generate`
+9. `npm run build`
+10. PHPUnit feature test (todos los roles + failure paths + cross-company si aplica)
+11. `vendor/bin/pint --dirty --format agent`
+12. `php artisan test --compact --filter=TestClassName`
+
+## Identificar dominio correcto
+- Company → configuración empresa, holidays, surcharge rules
+- Employee → gestión de empleados
+- TimeTracking → clock in/out, breaks, horas trabajadas, reportes
+- Organization → departments, locations, positions, schedules
+- Shared → utilidades transversales (traits, scopes)
+
+## Errores de respuesta en Inertia
+- Validación → 422 + errores de sesión → assertSessionHasErrors en tests
+- No autorizado → 403
+- Cross-company → assertSessionHasErrors (no 404)
+
+## Cuándo actualizar domain-model.md
+Al agregar nuevas Actions, Models u Observers → actualizar ai-specs/specs/domain-model.md en el mismo commit

@@ -1,0 +1,36 @@
+---
+description: Patrones de implementación frontend de mango-app. Lee CLAUDE.md primero para reglas de framework.
+---
+
+## Estructura de páginas
+resources/js/pages/{Domain}/     ← organizar por dominio o feature
+  Index.vue, Create.vue, Edit.vue, Show.vue
+  partials/FormComponent.vue
+
+## Componentes UI disponibles
+resources/js/components/ui/      ← shadcn-vue (revisar SIEMPRE antes de crear uno nuevo)
+Disponibles: alert, avatar, badge, breadcrumb, button, card, checkbox, collapsible,
+dialog, dropdown-menu, input, input-otp, label, navigation-menu, select,
+separator, sheet, sidebar, skeleton, spinner, tooltip
+
+## Wayfinder — importar siempre desde @/actions/ o @/routes/
+import IndexEmployees from '@/actions/EmployeeController/index'
+import ShowEmployee from '@/actions/EmployeeController/show'
+// Con form: v-bind="StoreEmployee.form()"
+// Con parámetros: ShowEmployee({ id: employee.id })
+
+## Inertia v2 patterns específicos del proyecto
+- Sidebar: AppSidebar.vue — agregar nav items aquí para nuevas secciones
+- Breadcrumbs: componente Breadcrumbs.vue con array de { label, href }
+- Deferred props: siempre con <Skeleton> de resources/js/components/ui/skeleton/
+- Polling: usado en Dashboard.vue — setInterval(60s) + router.reload({ only: ['key'] })
+
+## i18n del proyecto
+- **Frontend (Vue):** vue-i18n con `resources/js/locales/en.json` y `resources/js/locales/es.json`
+  - En componentes Vue: `const { t } = useI18n()` → `t('key')`
+  - AppSidebar y componentes globales usan este sistema
+- **Backend (PHP):** `lang/en/messages.php` y `lang/es/messages.php` → `__('messages.key')`
+  - Solo para mensajes de validación, flash, o strings renderizados en PHP/Blade
+
+## Cuándo actualizar AppSidebar.vue
+Al agregar una nueva sección/página principal → agregar nav item condicionado al rol

@@ -36,7 +36,7 @@ class CalculateWorkHours
         // y poder acceder a los datos sin restricciones del request actual.
         $rules = SurchargeRule::withoutGlobalScopes()
             ->where('company_id', $entry->company_id)
-            ->firstOrFail();
+            ->first();
 
         // Zona horaria de la empresa. Por defecto Colombia si no está configurada.
         // Es crítico convertir a zona horaria local para determinar correctamente
@@ -69,7 +69,15 @@ class CalculateWorkHours
 
         // Límite semanal de horas ordinarias en minutos (ej: 47h → 2820 min).
         // Cuando el acumulado supere este valor, los minutos pasan a ser "extra".
-        $weeklyLimitMinutes = $rules->max_weekly_hours * 60;
+        $weeklyLimitMinutes = ($rules?->max_weekly_hours ?? 42) * 60;
+
+        // Horario nocturno configurable por empresa. Si no hay regla, se usa el default colombiano.
+        $nightStartTime = $rules?->night_start_time ?? '21:00';
+        $nightEndTime = $rules?->night_end_time ?? '06:00';
+        [$nightStartHour, $nightStartMin] = array_map('intval', explode(':', $nightStartTime));
+        [$nightEndHour, $nightEndMin] = array_map('intval', explode(':', $nightEndTime));
+        $nightStartMinutes = $nightStartHour * 60 + $nightStartMin;
+        $nightEndMinutes = $nightEndHour * 60 + $nightEndMin;
 
         // --- Cálculo del netRatio ---
         // gross_hours = tiempo total del turno (clock_out - clock_in), incluyendo pausas.
@@ -104,7 +112,7 @@ class CalculateWorkHours
         $accumulatedNetMinutes = $priorNetMinutes;
 
         // Construir los puntos de corte donde puede cambiar la clasificación del segmento.
-        $breakpoints = $this->buildBreakpoints($clockIn, $clockOut, $priorNetMinutes, $weeklyLimitMinutes, $netRatio);
+        $breakpoints = $this->buildBreakpoints($clockIn, $clockOut, $priorNetMinutes, $weeklyLimitMinutes, $netRatio, $nightStartTime, $nightEndTime);
 
         // --- Loop principal: clasificar cada segmento entre breakpoints consecutivos ---
         // Entre dos breakpoints, los tres flags (isNight, isSundayOrHoliday, isOvertime)
@@ -121,7 +129,12 @@ class CalculateWorkHours
 
             // Clasificar usando el inicio del segmento (todos los minutos del segmento
             // comparten la misma clasificación por construcción de los breakpoints).
-            $isNight = $segStart->hour >= 21 || $segStart->hour < 6;
+            $segMinuteOfDay = $segStart->hour * 60 + $segStart->minute;
+            // Rango nocturno puede cruzar medianoche (ej: 21:00–06:00, start > end)
+            // o estar dentro del mismo día (ej: 22:00–23:00, start <= end).
+            $isNight = $nightStartMinutes > $nightEndMinutes
+                ? ($segMinuteOfDay >= $nightStartMinutes || $segMinuteOfDay < $nightEndMinutes)
+                : ($segMinuteOfDay >= $nightStartMinutes && $segMinuteOfDay < $nightEndMinutes);
             $isSundayOrHoliday = $segStart->dayOfWeek === Carbon::SUNDAY
                 || in_array($segStart->toDateString(), $holidayDates);
             $isOvertime = $accumulatedNetMinutes >= $weeklyLimitMinutes;
@@ -168,13 +181,15 @@ class CalculateWorkHours
         float $priorNetMinutes,
         float $weeklyLimitMinutes,
         float $netRatio,
+        string $nightStartTime = '21:00',
+        string $nightEndTime = '06:00',
     ): array {
         $breakpoints = [$clockIn->copy(), $clockOut->copy()];
 
         // Iterar por cada día calendario cubierto por el turno.
         $day = $clockIn->copy()->startOfDay();
         while ($day <= $clockOut) {
-            foreach (['06:00', '21:00'] as $time) {
+            foreach ([$nightEndTime, $nightStartTime] as $time) {
                 [$h, $m] = explode(':', $time);
                 $candidate = $day->copy()->setTime((int) $h, (int) $m);
                 if ($candidate > $clockIn && $candidate < $clockOut) {

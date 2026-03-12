@@ -15,4 +15,6 @@ return [
     'schedule_created' => 'Turno creado exitosamente.',
     'schedule_updated' => 'Turno actualizado exitosamente.',
     'schedule_deleted' => 'Turno eliminado exitosamente.',
+    'night_start_time' => 'Inicio horario nocturno',
+    'night_end_time' => 'Fin horario nocturno',
 ];

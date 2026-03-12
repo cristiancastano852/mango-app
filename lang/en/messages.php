@@ -15,4 +15,6 @@ return [
     'schedule_created' => 'Schedule created successfully.',
     'schedule_updated' => 'Schedule updated successfully.',
     'schedule_deleted' => 'Schedule deleted successfully.',
+    'night_start_time' => 'Night start time',
+    'night_end_time' => 'Night end time',
 ];

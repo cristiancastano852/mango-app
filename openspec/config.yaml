@@ -1,0 +1,40 @@
+schema: spec-driven
+
+context: |
+  Mango App — Multi-tenant HR & Time Tracking SaaS para empresas colombianas.
+  Stack: Laravel 12, Inertia.js v2, Vue 3, Tailwind CSS v4, PHPUnit 13.
+
+  ANTES DE GENERAR CUALQUIER ARTEFACTO, leer obligatoriamente estos archivos:
+  - ai-specs/specs/base-standards.mdc — multi-tenancy, roles, reglas de testing críticas
+  - ai-specs/specs/data-model.md — schema completo de BD (tablas, columnas, relaciones)
+  - ai-specs/specs/domain-model.md — mapa de dominios y responsabilidades
+
+  Para cambios backend, leer además:
+  - ai-specs/specs/backend-standards.mdc — orden de implementación, patrones Laravel del proyecto
+
+  Para cambios frontend, leer además:
+  - ai-specs/specs/frontend-standards.mdc — componentes UI, Wayfinder, i18n del proyecto
+
+rules:
+  proposal:
+    - Identificar el dominio afectado (Company/Employee/Organization/TimeTracking/Shared)
+    - Incluir sección Non-goals
+    - Señalar implicaciones multi-tenant (¿toca datos con company_id?)
+    - Señalar implicaciones de roles (¿qué roles tienen acceso? super-admin/admin/employee)
+    - Señalar si requiere migración de BD
+
+  specs:
+    - Incluir secciones Business Rules y Authorization
+    - Especificar comportamiento por rol (super-admin/admin/employee)
+    - Documentar reglas de validación cross-company
+
+  design:
+    - Seguir arquitectura de dominios (app/Domain/{Company,Employee,Organization,TimeTracking,Shared}/)
+    - Controllers delgados — lógica en Actions del dominio correcto
+    - Incluir Form Request con reglas y mensajes de error
+
+  tasks:
+    - Máximo 2 horas por tarea
+    - Backend seguir orden exacto — migración → modelo → factory → action → form request → controller → ruta → wayfinder:generate → npm run build → tests → pint
+    - Frontend seguir orden exacto — revisar components/ui/ → Vue page → Wayfinder → Tailwind → i18n → AppSidebar si aplica → npm run build
+    - Cada tarea termina con tests pasando (backend) o build exitoso (frontend)

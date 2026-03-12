@@ -1,0 +1,38 @@
+---
+description: Contexto de dominio y reglas de negocio específicas de mango-app. Complementa CLAUDE.md.
+alwaysApply: true
+---
+
+## Proyecto
+Mango App — Multi-tenant HR & Time Tracking SaaS para empresas colombianas.
+Leer CLAUDE.md para reglas de framework (PHP, Laravel, testing, Inertia, Tailwind).
+
+## Multi-tenancy (CRÍTICO — reglas de negocio)
+- Todos los modelos tienen `company_id`; el trait `BelongsToCompany` aplica global scope
+- Usar `withoutGlobalScopes()` en tests, seeders y observers
+- `super-admin` tiene `company_id = null` — NUNCA aplicar validaciones de company a este rol
+- `Rule::exists()->where('company_id', ...)` solo si `$companyId` no es null (condicional)
+
+## Roles y autorización
+- Roles: `super-admin` (company_id=null), `admin`, `employee`
+- Por cada rol en el middleware de la ruta → un test de happy path separado
+- Cross-company: admin NO puede actuar sobre recursos de otra empresa → assertSessionHasErrors
+
+## Testing de dominio (CRÍTICO — errores frecuentes)
+- `assertDatabaseHas` debe incluir TODOS los campos que la action setea (especialmente `status`)
+- `Role::create(['name' => 'employee'])` en setUp cuando los tests crean employees
+- SQLite guarda `date` como datetime completo — no asumir formato de string
+- Overtime: entradas previas deben estar en la MISMA semana ISO (lun-dom) que la entrada de prueba
+
+## Reglas colombianas (TimeTracking)
+- Timezone: `America/Bogota`
+- Recargo nocturno: configurable por empresa (default 21:00–06:00)
+- Recargo dominical/festivo: detección por minuto usando tabla `holidays`
+- Overtime: límite semanal de `SurchargeRule.max_weekly_hours` (default 42h, semana ISO lun-dom)
+- `CalculateWorkHours`: clasificación minuto a minuto en regular/night/sunday_holiday/overtime
+
+## Specs de referencia del proyecto
+- ai-specs/specs/backend-standards.mdc — patrones de implementación backend
+- ai-specs/specs/frontend-standards.mdc — patrones de implementación frontend
+- ai-specs/specs/data-model.md — schema completo de BD
+- ai-specs/specs/domain-model.md — mapa de dominios

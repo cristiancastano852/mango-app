@@ -21,6 +21,8 @@ type SurchargeRule = {
     overtime_night_sunday: string;
     night_sunday: string;
     max_weekly_hours: number;
+    night_start_time: string;
+    night_end_time: string;
 };
 
 defineProps<{ rule: SurchargeRule }>();
@@ -84,6 +86,30 @@ const fields: { name: keyof SurchargeRule; label: string; isInt?: boolean }[] = 
                             class="mt-1 block w-full"
                         />
                         <InputError :message="errors[field.name]" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="night_start_time">Inicio horario nocturno</Label>
+                        <Input
+                            id="night_start_time"
+                            name="night_start_time"
+                            type="time"
+                            :default-value="rule.night_start_time"
+                            class="mt-1 block w-full"
+                        />
+                        <InputError :message="errors.night_start_time" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="night_end_time">Fin horario nocturno</Label>
+                        <Input
+                            id="night_end_time"
+                            name="night_end_time"
+                            type="time"
+                            :default-value="rule.night_end_time"
+                            class="mt-1 block w-full"
+                        />
+                        <InputError :message="errors.night_end_time" />
                     </div>
 
                     <div class="flex items-center gap-4 pt-2">

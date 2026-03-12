@@ -1,0 +1,23 @@
+---
+description: Cuándo y cómo actualizar los specs del proyecto.
+---
+
+## Los specs evolucionan junto al código — mismo commit que el código que los motivó
+
+## Cuándo actualizar cada spec
+- data-model.md → cada migración nueva (nueva tabla, columna, relación)
+- domain-model.md → al agregar Actions, Models u Observers
+- backend-standards.mdc → al descubrir patrón recurrente o bug sistemático en backend
+- frontend-standards.mdc → al descubrir patrón recurrente o bug sistemático en frontend
+- base-standards.mdc → solo para reglas de dominio verdaderamente universales
+
+## Anti-patrones (nunca hacer)
+- Modificar specs sin que un cambio real de código lo motive
+- Actualizar múltiples reglas no relacionadas en un mismo commit
+- Duplicar reglas que ya están en CLAUDE.md
+
+## Proceso
+1. Implementar el cambio de código
+2. Identificar qué specs se ven afectados
+3. Actualizar specs en el mismo commit
+4. En el mensaje de commit, mencionar qué spec se actualizó y por qué

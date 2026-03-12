@@ -24,6 +24,7 @@ class SurchargeRuleControllerTest extends TestCase
     {
         parent::setUp();
 
+        Role::create(['name' => 'super-admin']);
         Role::create(['name' => 'admin']);
         Role::create(['name' => 'employee']);
 
@@ -74,6 +75,8 @@ class SurchargeRuleControllerTest extends TestCase
             'overtime_night_sunday' => 160,
             'night_sunday' => 120,
             'max_weekly_hours' => 40,
+            'night_start_time' => '21:00',
+            'night_end_time' => '06:00',
         ]);
 
         $response->assertRedirect(route('surcharge-rules.edit'));
@@ -115,6 +118,119 @@ class SurchargeRuleControllerTest extends TestCase
             'overtime_night_sunday',
             'night_sunday',
             'max_weekly_hours',
+            'night_start_time',
+            'night_end_time',
         ]);
+    }
+
+    public function test_admin_can_update_night_schedule_times(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(route('surcharge-rules.update'), [
+            'night_surcharge' => 35,
+            'overtime_day' => 25,
+            'overtime_night' => 75,
+            'sunday_holiday' => 75,
+            'overtime_day_sunday' => 100,
+            'overtime_night_sunday' => 150,
+            'night_sunday' => 110,
+            'max_weekly_hours' => 42,
+            'night_start_time' => '22:00',
+            'night_end_time' => '05:00',
+        ]);
+
+        $response->assertRedirect(route('surcharge-rules.edit'));
+
+        $this->assertDatabaseHas('surcharge_rules', [
+            'company_id' => $this->company->id,
+            'night_start_time' => '22:00',
+            'night_end_time' => '05:00',
+            'night_surcharge' => 35,
+            'max_weekly_hours' => 42,
+        ]);
+    }
+
+    public function test_super_admin_can_update_any_company_night_schedule(): void
+    {
+        $superAdmin = User::factory()->create(['company_id' => null]);
+        $superAdmin->assignRole('super-admin');
+
+        $response = $this->actingAs($superAdmin)->put(route('surcharge-rules.update'), [
+            'company_id' => $this->company->id,
+            'night_surcharge' => 35,
+            'overtime_day' => 25,
+            'overtime_night' => 75,
+            'sunday_holiday' => 75,
+            'overtime_day_sunday' => 100,
+            'overtime_night_sunday' => 150,
+            'night_sunday' => 110,
+            'max_weekly_hours' => 42,
+            'night_start_time' => '23:00',
+            'night_end_time' => '07:00',
+        ]);
+
+        $response->assertRedirect(route('surcharge-rules.edit'));
+
+        $this->assertDatabaseHas('surcharge_rules', [
+            'company_id' => $this->company->id,
+            'night_start_time' => '23:00',
+            'night_end_time' => '07:00',
+        ]);
+    }
+
+    public function test_admin_cannot_update_another_company_surcharge_rule(): void
+    {
+        $otherCompany = Company::create(['name' => 'Other Co', 'slug' => 'other-co']);
+
+        $response = $this->actingAs($this->adminUser)->put(route('surcharge-rules.update'), [
+            'company_id' => $otherCompany->id,
+            'night_surcharge' => 35,
+            'overtime_day' => 25,
+            'overtime_night' => 75,
+            'sunday_holiday' => 75,
+            'overtime_day_sunday' => 100,
+            'overtime_night_sunday' => 150,
+            'night_sunday' => 110,
+            'max_weekly_hours' => 42,
+            'night_start_time' => '21:00',
+            'night_end_time' => '06:00',
+        ]);
+
+        $response->assertSessionHasErrors('company_id');
+    }
+
+    public function test_night_start_time_must_be_valid_time_format(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(route('surcharge-rules.update'), [
+            'night_surcharge' => 35,
+            'overtime_day' => 25,
+            'overtime_night' => 75,
+            'sunday_holiday' => 75,
+            'overtime_day_sunday' => 100,
+            'overtime_night_sunday' => 150,
+            'night_sunday' => 110,
+            'max_weekly_hours' => 42,
+            'night_start_time' => '25:00',
+            'night_end_time' => '06:00',
+        ]);
+
+        $response->assertSessionHasErrors('night_start_time');
+    }
+
+    public function test_night_start_time_rejects_invalid_string(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(route('surcharge-rules.update'), [
+            'night_surcharge' => 35,
+            'overtime_day' => 25,
+            'overtime_night' => 75,
+            'sunday_holiday' => 75,
+            'overtime_day_sunday' => 100,
+            'overtime_night_sunday' => 150,
+            'night_sunday' => 110,
+            'max_weekly_hours' => 42,
+            'night_start_time' => 'abc',
+            'night_end_time' => '06:00',
+        ]);
+
+        $response->assertSessionHasErrors('night_start_time');
     }
 }
