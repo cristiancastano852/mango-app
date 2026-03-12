@@ -2,6 +2,7 @@
 
 namespace App\Domain\Employee\Actions;
 
+use App\Domain\Company\Models\Company;
 use App\Domain\Employee\Models\Employee;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -33,9 +34,16 @@ class CreateEmployee
                 'hire_date' => $data['hire_date'] ?? null,
                 'hourly_rate' => $data['hourly_rate'] ?? null,
                 'salary_type' => $data['salary_type'] ?? 'hourly',
-                'schedule_id' => $data['schedule_id'] ?? null,
+                'schedule_id' => $data['schedule_id'] ?? $this->getDefaultScheduleId($companyId),
                 'location_id' => $data['location_id'] ?? null,
             ]);
         });
+    }
+
+    private function getDefaultScheduleId(int $companyId): ?int
+    {
+        $company = Company::find($companyId);
+
+        return $company?->settings['default_schedule_id'] ?? null;
     }
 }

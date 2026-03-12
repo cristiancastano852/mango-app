@@ -437,6 +437,53 @@
             "cost": "Cost"
         }
     },
+    "settings": {
+        "break_types": "Break Types",
+        "company_profile": "Company",
+        "company_settings": "Working Days",
+        "working_days": "Working Days",
+        "default_schedule": "Default Schedule"
+    },
+    "break_type": {
+        "description": "Manage break types available for your company's employees.",
+        "name": "Name",
+        "name_placeholder": "e.g. Lunch",
+        "is_paid": "Type",
+        "paid": "Paid",
+        "unpaid": "Unpaid",
+        "max_duration": "Max duration",
+        "max_per_day": "Max/day",
+        "is_default": "Default",
+        "default": "Default",
+        "status": "Status",
+        "active": "Active",
+        "inactive": "Inactive",
+        "actions": "Actions",
+        "create": "Add break type",
+        "edit": "Edit",
+        "add": "Add",
+        "save": "Save",
+        "cancel": "Cancel",
+        "empty": "No break types registered."
+    },
+    "company": {
+        "name": "Company name",
+        "logo": "Logo",
+        "upload_logo": "Upload logo",
+        "remove_logo": "Remove logo",
+        "country": "Country",
+        "timezone": "Timezone",
+        "no_company": "No company assigned to your account."
+    },
+    "days": {
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday"
+    },
     "time_entries": {
         "breadcrumb": "Time Entries",
         "head_title": "Time Entries",

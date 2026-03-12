@@ -3,6 +3,7 @@
 namespace App\Domain\TimeTracking\Models;
 
 use App\Domain\Shared\Traits\BelongsToCompany;
+use Database\Factories\BreakTypeFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,6 +11,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class BreakType extends Model
 {
     use BelongsToCompany, HasFactory;
+
+    protected static function newFactory(): BreakTypeFactory
+    {
+        return BreakTypeFactory::new();
+    }
 
     protected $fillable = [
         'company_id',

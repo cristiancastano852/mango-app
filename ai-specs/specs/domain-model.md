@@ -4,11 +4,11 @@
 - Models: Company, Holiday, SurchargeRule
 - Observers: CompanyObserver — auto-seeds SurchargeRule + ColombianHolidays al crear empresa
 - Seeders: ColombianHolidaysSeeder::seedForCompany(int $id) — 6 fijos (recurring) + 12 móviles (2026)
-- Controllers: Settings/HolidayController, Settings/SurchargeRuleController (admin-only)
+- Controllers: Settings/HolidayController, Settings/SurchargeRuleController, Settings/CompanyProfileController, Settings/CompanySettingsController (admin-only)
 
 ## Employee (app/Domain/Employee/)
 - Models: Employee
-- Actions: CreateEmployee, UpdateEmployee, DeleteEmployee (si existen)
+- Actions: CreateEmployee (with default schedule fallback from company settings), UpdateEmployee, DeleteEmployee (si existen)
 
 ## TimeTracking (app/Domain/TimeTracking/)
 - Actions (clock): ClockIn, ClockOut, StartBreak, EndBreak, AdminClockIn
@@ -31,3 +31,6 @@
 - CalendarController — GET /calendar?month=Y-m&employee_id=optional
 - Settings/HolidayController — CRUD holidays (admin + super-admin)
 - Settings/SurchargeRuleController — read/update surcharge rules (admin + super-admin)
+- Settings/CompanyProfileController — edit/update company name, logo, country, timezone (admin + super-admin)
+- Settings/CompanySettingsController — edit/update working days + default schedule (admin + super-admin)
+- Settings/BreakTypeController — index/store/update/toggleActive break types (admin + super-admin)

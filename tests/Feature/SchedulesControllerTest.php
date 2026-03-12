@@ -138,4 +138,28 @@ class SchedulesControllerTest extends TestCase
         $response->assertRedirect(route('schedules.index'));
         $this->assertDatabaseMissing('schedules', ['id' => $schedule->id]);
     }
+
+    public function test_deleting_default_schedule_clears_company_setting(): void
+    {
+        $schedule = Schedule::create([
+            'company_id' => $this->company->id,
+            'name' => 'Default Schedule',
+            'start_time' => '08:00',
+            'end_time' => '17:00',
+            'break_duration' => 60,
+            'days_of_week' => [1, 2, 3, 4, 5],
+        ]);
+
+        $this->company->update([
+            'settings' => ['default_schedule_id' => $schedule->id, 'working_days' => [1, 2, 3, 4, 5]],
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->delete(route('schedules.destroy', $schedule));
+
+        $response->assertRedirect(route('schedules.index'));
+        $this->assertDatabaseMissing('schedules', ['id' => $schedule->id]);
+
+        $this->company->refresh();
+        $this->assertNull($this->company->settings['default_schedule_id']);
+    }
 }
