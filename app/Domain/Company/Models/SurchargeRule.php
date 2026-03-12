@@ -3,6 +3,7 @@
 namespace App\Domain\Company\Models;
 
 use App\Domain\Shared\Traits\BelongsToCompany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -35,5 +36,23 @@ class SurchargeRule extends Model
             'overtime_night_sunday' => 'decimal:2',
             'night_sunday' => 'decimal:2',
         ];
+    }
+
+    /**
+     * Normalize TIME columns to H:i format regardless of DB driver.
+     * MySQL returns '22:00:00'; SQLite returns '22:00'. Both normalize to '22:00'.
+     */
+    protected function nightStartTime(): Attribute
+    {
+        return Attribute::make(
+            get: fn (string $value) => substr($value, 0, 5),
+        );
+    }
+
+    protected function nightEndTime(): Attribute
+    {
+        return Attribute::make(
+            get: fn (string $value) => substr($value, 0, 5),
+        );
     }
 }

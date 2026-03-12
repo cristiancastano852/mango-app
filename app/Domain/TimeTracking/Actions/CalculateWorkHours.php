@@ -69,11 +69,11 @@ class CalculateWorkHours
 
         // Límite semanal de horas ordinarias en minutos (ej: 47h → 2820 min).
         // Cuando el acumulado supere este valor, los minutos pasan a ser "extra".
-        $weeklyLimitMinutes = ($rules->max_weekly_hours ?? 42) * 60;
+        $weeklyLimitMinutes = ($rules?->max_weekly_hours ?? 42) * 60;
 
         // Horario nocturno configurable por empresa. Si no hay regla, se usa el default colombiano.
-        $nightStartTime = $rules->night_start_time ?? '21:00';
-        $nightEndTime = $rules->night_end_time ?? '06:00';
+        $nightStartTime = $rules?->night_start_time ?? '21:00';
+        $nightEndTime = $rules?->night_end_time ?? '06:00';
         [$nightStartHour, $nightStartMin] = array_map('intval', explode(':', $nightStartTime));
         [$nightEndHour, $nightEndMin] = array_map('intval', explode(':', $nightEndTime));
         $nightStartMinutes = $nightStartHour * 60 + $nightStartMin;
@@ -130,7 +130,11 @@ class CalculateWorkHours
             // Clasificar usando el inicio del segmento (todos los minutos del segmento
             // comparten la misma clasificación por construcción de los breakpoints).
             $segMinuteOfDay = $segStart->hour * 60 + $segStart->minute;
-            $isNight = $segMinuteOfDay >= $nightStartMinutes || $segMinuteOfDay < $nightEndMinutes;
+            // Rango nocturno puede cruzar medianoche (ej: 21:00–06:00, start > end)
+            // o estar dentro del mismo día (ej: 22:00–23:00, start <= end).
+            $isNight = $nightStartMinutes > $nightEndMinutes
+                ? ($segMinuteOfDay >= $nightStartMinutes || $segMinuteOfDay < $nightEndMinutes)
+                : ($segMinuteOfDay >= $nightStartMinutes && $segMinuteOfDay < $nightEndMinutes);
             $isSundayOrHoliday = $segStart->dayOfWeek === Carbon::SUNDAY
                 || in_array($segStart->toDateString(), $holidayDates);
             $isOvertime = $accumulatedNetMinutes >= $weeklyLimitMinutes;

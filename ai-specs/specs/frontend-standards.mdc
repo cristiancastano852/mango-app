@@ -26,8 +26,11 @@ import ShowEmployee from '@/actions/EmployeeController/show'
 - Polling: usado en Dashboard.vue — setInterval(60s) + router.reload({ only: ['key'] })
 
 ## i18n del proyecto
-lang/en/messages.php y lang/es/messages.php — estructura de arrays PHP
-Acceder en Vue con $t('key') o en PHP con __('messages.key')
+- **Frontend (Vue):** vue-i18n con `resources/js/locales/en.json` y `resources/js/locales/es.json`
+  - En componentes Vue: `const { t } = useI18n()` → `t('key')`
+  - AppSidebar y componentes globales usan este sistema
+- **Backend (PHP):** `lang/en/messages.php` y `lang/es/messages.php` → `__('messages.key')`
+  - Solo para mensajes de validación, flash, o strings renderizados en PHP/Blade
 
 ## Cuándo actualizar AppSidebar.vue
 Al agregar una nueva sección/página principal → agregar nav item condicionado al rol

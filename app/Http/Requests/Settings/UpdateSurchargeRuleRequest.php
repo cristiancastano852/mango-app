@@ -30,11 +30,11 @@ class UpdateSurchargeRuleRequest extends FormRequest
             'night_end_time' => ['required', 'date_format:H:i'],
         ];
 
-        // Admin can only target their own company; super-admin (company_id = null) has no restriction.
+        // Admin can only target their own company; super-admin must explicitly supply which company.
         if ($userCompanyId !== null) {
             $rules['company_id'] = ['sometimes', 'integer', Rule::in([$userCompanyId])];
         } else {
-            $rules['company_id'] = ['sometimes', 'integer', Rule::exists('surcharge_rules', 'company_id')];
+            $rules['company_id'] = ['required', 'integer', Rule::exists('surcharge_rules', 'company_id')];
         }
 
         return $rules;
