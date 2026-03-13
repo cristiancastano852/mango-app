@@ -19,7 +19,7 @@ type Schedule = {
 
 const { t } = useI18n();
 
-const props = defineProps<{
+defineProps<{
     workingDays: number[];
     defaultScheduleId: number | null;
     schedules: Schedule[];
