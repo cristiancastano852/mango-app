@@ -33,6 +33,10 @@ class BreakTypeController extends Controller
         $data = $request->validated();
         $companyId = $request->user()->company_id;
 
+        if (! $companyId) {
+            return to_route('break-types.index');
+        }
+
         DB::transaction(function () use ($data, $companyId) {
             if (! empty($data['is_default'])) {
                 BreakType::withoutGlobalScopes()

@@ -440,8 +440,8 @@
     "settings": {
         "break_types": "Tipos de Pausa",
         "company_profile": "Empresa",
-        "company_settings": "Dias Laborales",
-        "working_days": "Dias Laborales",
+        "company_settings": "Días Laborales",
+        "working_days": "Días Laborales",
         "default_schedule": "Horario por Defecto"
     },
     "break_type": {
@@ -451,8 +451,8 @@
         "is_paid": "Tipo",
         "paid": "Pagada",
         "unpaid": "No pagada",
-        "max_duration": "Duracion max",
-        "max_per_day": "Max/dia",
+        "max_duration": "Duración máx.",
+        "max_per_day": "Máx./día",
         "is_default": "Por defecto",
         "default": "Por defecto",
         "status": "Estado",
@@ -478,10 +478,10 @@
     "days": {
         "monday": "Lunes",
         "tuesday": "Martes",
-        "wednesday": "Miercoles",
+        "wednesday": "Miércoles",
         "thursday": "Jueves",
         "friday": "Viernes",
-        "saturday": "Sabado",
+        "saturday": "Sábado",
         "sunday": "Domingo"
     },
     "time_entries": {

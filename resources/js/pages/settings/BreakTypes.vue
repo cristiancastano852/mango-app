@@ -173,6 +173,7 @@ function toggleActive(breakType: BreakType) {
                                             </div>
                                             <div class="flex flex-wrap items-center gap-4">
                                                 <div class="flex items-center gap-2">
+                                                    <input type="hidden" name="is_paid" value="0" />
                                                     <Checkbox
                                                         :id="`edit-paid-${breakType.id}`"
                                                         name="is_paid"
@@ -238,6 +239,7 @@ function toggleActive(breakType: BreakType) {
                         </div>
                         <div class="flex flex-wrap items-center gap-4">
                             <div class="flex items-center gap-2">
+                                <input type="hidden" name="is_paid" value="0" />
                                 <Checkbox id="is_paid" name="is_paid" value="1" />
                                 <Label for="is_paid">{{ t('break_type.paid') }}</Label>
                             </div>

@@ -48,12 +48,14 @@ class CompanySettingsController extends Controller
         $company = Company::findOrFail($companyId);
         $data = $request->validated();
 
-        $workingDays = array_values(array_unique($data['working_days']));
+        $workingDays = array_values(array_unique(array_map('intval', $data['working_days'])));
         sort($workingDays);
 
         $settings = $company->settings ?? [];
         $settings['working_days'] = $workingDays;
-        $settings['default_schedule_id'] = $data['default_schedule_id'] ?? null;
+        $settings['default_schedule_id'] = isset($data['default_schedule_id']) && $data['default_schedule_id'] !== ''
+            ? (int) $data['default_schedule_id']
+            : null;
 
         $company->settings = $settings;
         $company->save();

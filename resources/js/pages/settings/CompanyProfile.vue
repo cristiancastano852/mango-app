@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import CompanyProfileController from '@/actions/App/Http/Controllers/Settings/CompanyProfileController';
 import Heading from '@/components/Heading.vue';
@@ -33,14 +33,25 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 const logoPreview = ref<string | null>(props.company?.logo ?? null);
 const removeLogo = ref(false);
+let blobUrl: string | null = null;
 
 function onLogoChange(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (file) {
-        logoPreview.value = URL.createObjectURL(file);
+        if (blobUrl) {
+            URL.revokeObjectURL(blobUrl);
+        }
+        blobUrl = URL.createObjectURL(file);
+        logoPreview.value = blobUrl;
         removeLogo.value = false;
     }
 }
+
+onUnmounted(() => {
+    if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+    }
+});
 
 function handleRemoveLogo() {
     logoPreview.value = null;
@@ -104,14 +115,14 @@ const timezones = [
                                 <img
                                     v-if="logoPreview"
                                     :src="logoPreview"
-                                    alt="Logo"
+                                    :alt="t('company.logo')"
                                     class="h-16 w-16 rounded-md border object-contain"
                                 />
                                 <div
                                     v-else
                                     class="bg-muted text-muted-foreground flex h-16 w-16 items-center justify-center rounded-md border text-xs"
                                 >
-                                    Logo
+                                    {{ t('company.logo') }}
                                 </div>
                                 <div class="flex flex-col gap-2">
                                     <Input
