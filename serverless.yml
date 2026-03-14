@@ -1,0 +1,119 @@
+service: mango-app
+
+provider:
+  name: aws
+  region: ${opt:region, 'us-east-1'}
+  stage: ${opt:stage, 'dev'}
+  runtime: provided.al2023
+  environment:
+    XDG_CONFIG_HOME: /tmp
+    SQS_QUEUE: !Ref JobsQueue
+    QUEUE_FAILED_TABLE: !Ref FailedJobsTable
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - ses:SendRawEmail
+            - ses:SendEmail
+            - dynamodb:DescribeTable
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+          Resource: !GetAtt JobsQueue.Arn
+
+package:
+  patterns:
+    - "!node_modules/**"
+    - "!public/hot"
+    - "!public/storage"
+    - "!resources/assets/**"
+    - "!storage/**"
+    - "!tests/**"
+    - "!vendor/**/test/**"
+    - "!vendor/**/tests/**"
+    - "!vendor/**/docs/**"
+    - "!vendor/**/samples/**"
+    - "!vendor/**/*.txt"
+    - "!vendor/**/*.md"
+    - "!vendor/**/*.csv"
+    - "!vendor/**/phpunit.xml"
+    - "!vendor/**/composer.lock"
+
+functions:
+  web:
+    handler: public/index.php
+    runtime: php-84-fpm
+    timeout: 28
+    events:
+      - httpApi: "*"
+
+  artisan:
+    handler: artisan
+    runtime: php-84-console
+    timeout: 300
+    events:
+      - schedule:
+          rate: rate(1 minute)
+          input: '"schedule:run"'
+
+  queue:
+    handler: Bref\LaravelBridge\Queue\QueueHandler
+    runtime: php-84
+    timeout: 60
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - JobsQueue
+              - Arn
+
+plugins:
+  - ./vendor/bref/bref
+  - serverless-lift
+
+constructs:
+  storage:
+    type: storage
+
+resources:
+  Resources:
+    JobsQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-jobs
+        VisibilityTimeout: 60
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt JobsDeadLetterQueue.Arn
+          maxReceiveCount: 3
+
+    JobsDeadLetterQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-jobs-dlq
+
+    FailedJobsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-failed-jobs
+        AttributeDefinitions:
+          - AttributeName: application
+            AttributeType: S
+          - AttributeName: uuid
+            AttributeType: S
+        KeySchema:
+          - AttributeName: application
+            KeyType: HASH
+          - AttributeName: uuid
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        SSESpecification:
+          SSEEnabled: true

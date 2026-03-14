@@ -1,0 +1,87 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+  PHP_VERSION: '8.4'
+
+jobs:
+  deploy:
+    name: Deploy to ${{ github.ref_name == 'main' && 'production' || 'dev' }}
+    runs-on: ubuntu-latest
+
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'develop' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, pdo, pdo_pgsql, redis
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Install Composer dependencies (production)
+        run: composer install --no-dev --no-interaction --optimize-autoloader
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Install Serverless Framework
+        run: npm install -g serverless && npm install --save-dev serverless-lift
+
+      - name: Generate .env
+        run: chmod +x create_env_deploy.sh && ./create_env_deploy.sh > .env
+        env:
+          APP_NAME: ${{ vars.APP_NAME }}
+          APP_KEY: ${{ secrets.APP_KEY }}
+          APP_URL: ${{ vars.APP_URL }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          REDIS_CACHE_DB: ${{ vars.REDIS_CACHE_DB }}
+          REDIS_CLIENT: ${{ vars.REDIS_CLIENT }}
+          CACHE_PREFIX: ${{ vars.CACHE_PREFIX }}
+          SQS_QUEUE: ${{ vars.SQS_QUEUE }}
+          FILESYSTEM_DISK: ${{ vars.FILESYSTEM_DISK }}
+          AWS_BUCKET: ${{ vars.AWS_BUCKET }}
+          MAIL_FROM_ADDRESS: ${{ vars.MAIL_FROM_ADDRESS }}
+          MAIL_FROM_NAME: ${{ vars.MAIL_FROM_NAME }}
+          AWS_SES_ARN: ${{ secrets.AWS_SES_ARN }}
+
+      - name: Clear config cache
+        run: php artisan config:clear
+
+      - name: Deploy
+        run: serverless deploy --stage ${{ github.ref_name == 'main' && 'production' || 'dev' }}
+
+      - name: Run migrations
+        run: serverless invoke -f artisan --data '"migrate --force"'
