@@ -476,7 +476,20 @@ resources:
 }
 ```
 
-3. Adjuntar al role policies para: CloudFormation, Lambda, API Gateway, S3, SQS, DynamoDB, IAM, CloudWatch Logs.
+3. Adjuntar al role las siguientes políticas administradas por AWS (buscar cada una en el buscador de políticas):
+
+| Política | Para qué |
+|---|---|
+| `AWSCloudFormationFullAccess` | Crear/actualizar el stack de CloudFormation |
+| `AWSLambda_FullAccess` | Crear/actualizar las funciones Lambda |
+| `AmazonAPIGatewayAdministrator` | Crear y configurar API Gateway |
+| `AmazonS3FullAccess` | Bucket de deployment + storage de archivos |
+| `AmazonSQSFullAccess` | Crear colas SQS (jobs y DLQ) |
+| `AmazonDynamoDBFullAccess` | Tabla DynamoDB de failed jobs |
+| `IAMFullAccess` | Serverless crea roles IAM para las Lambdas automáticamente |
+| `CloudWatchLogsFullAccess` | Log groups de las funciones Lambda |
+
+> **Nota sobre `IAMFullAccess`**: Es amplio pero necesario porque Serverless Framework crea un IAM role para las Lambdas durante el deploy. Sin este permiso el deploy falla. En entornos más maduros se puede reemplazar por una política inline más restrictiva.
 
 ### 6.2 Secrets y Variables en GitHub
 
