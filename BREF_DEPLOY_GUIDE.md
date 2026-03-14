@@ -4,6 +4,8 @@
 
 **Sin VPC.** Tanto Supabase como Upstash tienen endpoints públicos. Sin VPC no hay NAT Gateway (~$35-70/mes de ahorro).
 
+> **Importante sobre assets estáticos:** Bref's PHP-FPM no sirve archivos estáticos — todo request pasa por PHP/Laravel. Los assets de Vite (JS/CSS) deben ir a **S3 + CloudFront** vía el construct `server-side-website` de serverless-lift. CloudFront enruta `/build/*` a S3 y el resto a Lambda.
+
 ---
 
 ## Arquitectura
@@ -12,20 +14,25 @@
 Internet
    │
    ▼
-API Gateway (HTTP API)
-   │
+Cloudflare (DNS + CDN + DDoS)
+   │  CNAME → CloudFront
    ▼
-Lambda: web (php-84-fpm, 28s)
-│   handler: public/index.php
-│   assets JS/CSS incluidos en el zip (public/build/)
-│
-├── dispatch(Job)
-▼
+CloudFront (serverless-lift)
+   │
+   ├── /build/* → S3 (assets JS/CSS de Vite, sin pasar por Lambda)
+   │
+   └── /* → API Gateway (HTTP API)
+                  │
+                  ▼
+            Lambda: web (php-84-fpm, 28s)
+            │   handler: public/index.php
+            │
+            ├── dispatch(Job)
+            ▼
 SQS Queue (mango-app-{stage}-jobs)
    │                          ┌─ DLQ (después de 3 reintentos)
    ▼                          │
 Lambda: queue (php-84, 60s) ──┘
-   │   handler: Bref\LaravelBridge\Queue\QueueHandler
 
 EventBridge (rate: 1 minute)
    │   input: "schedule:run"
@@ -37,10 +44,10 @@ Lambda: artisan (php-84-console, 300s)
           │  (público, port 6543) │    │  (público, TLS 6379)  │
           └───────────────────────┘    └──────────────────────┘
 
-          ┌───────────────────────┐    ┌──────────────────────┐
-          │  S3 Bucket (Lift)     │    │   DynamoDB           │
-          │  (archivos usuarios)  │    │   (failed jobs)      │
-          └───────────────────────┘    └──────────────────────┘
+          ┌───────────────────────┐    ┌──────────────────────┐    ┌──────────────────────┐
+          │  S3 assets (Lift)     │    │  S3 storage (Lift)   │    │   DynamoDB           │
+          │  (JS/CSS vía CF)      │    │  (archivos usuarios) │    │   (failed jobs)      │
+          └───────────────────────┘    └──────────────────────┘    └──────────────────────┘
 ```
 
 ---
@@ -54,9 +61,10 @@ Lambda: artisan (php-84-console, 300s)
 | Upstash Redis | $0 (free tier) |
 | SQS | ~$0 (free tier: 1M requests/mes) |
 | DynamoDB | ~$0 (pay per request) |
-| S3 | ~$0-2 |
+| S3 (assets + storage) | ~$0-2 |
+| CloudFront | ~$0 (free tier: 1TB + 10M requests/mes) |
 | SES | $0.10/1000 emails |
-| ACM (SSL) | **$0** (gratis con API Gateway) |
+| ACM (SSL) | **$0** (gratis con CloudFront) |
 | Dominio | ~$1/mes |
 | **Total** | **$1-28/mes** |
 
@@ -347,9 +355,8 @@ provider:
 
 package:
   patterns:
-    - "public/build/**"       # forzar inclusión: está en .gitignore pero Serverless lo respeta
     - "!node_modules/**"
-    - "!public/hot"           # dev server de Vite, no incluir
+    - "!public/hot"
     - "!public/storage"
     - "!resources/assets/**"
     - "!storage/**"
@@ -363,7 +370,7 @@ package:
     - "!vendor/**/*.csv"
     - "!vendor/**/phpunit.xml"
     - "!vendor/**/composer.lock"
-    # public/build/ NO está excluido — los assets de Vite van en el zip
+    # public/build/ NO va en el zip — los assets van a S3 vía el construct website
 
 functions:
   web:
@@ -398,6 +405,13 @@ plugins:
   - serverless-lift
 
 constructs:
+  website:
+    type: server-side-website
+    assets:
+      '/build/*': './public/build'
+      '/favicon.ico': './public/favicon.ico'
+      '/favicon.svg': './public/favicon.svg'
+
   storage:
     type: storage
 
@@ -439,8 +453,9 @@ resources:
 **Puntos clave:**
 - **Sin VPC** — Supabase y Upstash son públicos; sin VPC no hay NAT Gateway
 - **`SQS_QUEUE` y `QUEUE_FAILED_TABLE`** usan CloudFormation refs (`!Ref`) — se resuelven en el deploy
-- **`public/build/` NO está excluido** — los assets compilados de Vite van en el zip y PHP los sirve
-- **`storage` construct** — serverless-lift crea el bucket S3 para archivos de usuario y otorga permisos IAM
+- **`public/build/` NO va en el zip** — los assets van a S3 vía el construct `website`; Bref's PHP-FPM no sirve archivos estáticos
+- **`website` construct** — crea S3 + CloudFront; sube `public/build` automáticamente en cada deploy; el URL de CloudFront es el punto de entrada de la app
+- **`storage` construct** — bucket S3 separado para archivos subidos por usuarios
 
 ---
 
@@ -592,7 +607,13 @@ functions:
   web:     mango-app-dev-web
   artisan: mango-app-dev-artisan
   queue:   mango-app-dev-queue
+website:
+  url:   https://d2x9u47fwwnfoi.cloudfront.net   ← este es el URL de la app
+  cname: d2x9u47fwwnfoi.cloudfront.net
+storage: mango-app-dev-storagebucket-xxxx
 ```
+
+> **La URL de la app es la de CloudFront (`website.url`), NO la de API Gateway.** API Gateway es el backend interno; CloudFront enruta `/build/*` a S3 y el resto a Lambda. Actualizar `APP_URL` con la URL de CloudFront.
 
 ### 7.4 Ejecutar migraciones
 
@@ -600,7 +621,26 @@ functions:
 serverless invoke -f artisan --data '"migrate --force"'
 ```
 
-### 7.5 Obtener el nombre del bucket S3
+### 7.5 Ejecutar seeders
+
+**Dev** — roles + datos demo (empresa, empleados, usuarios de prueba):
+
+```bash
+serverless invoke -f artisan --data '"db:seed --force"'
+```
+
+Usuarios creados por el DemoSeeder:
+- Super Admin: `admin@mangoapp.co` / `password`
+- Admin empresa: `carlos@elmango.co` / `password`
+- Empleados: `maria@elmango.co`, `juan@elmango.co`, etc. / `password`
+
+**Producción** — solo roles, sin datos demo:
+
+```bash
+serverless invoke -f artisan --data '"db:seed --class=RoleSeeder --force"'
+```
+
+### 7.6 Obtener el nombre del bucket S3
 
 ```bash
 serverless info --stage dev
@@ -743,7 +783,7 @@ serverless remove --stage dev
 | `ErrorException: Undefined array key "key"` en BrefServiceProvider | `config/queue.php` sin `key` en sección `failed` | Agregar `key`, `secret`, `region` a `failed` (ver Fase 2.3) |
 | Redis connection error | TLS no habilitado | Verificar `php/conf.d/php.ini` con `extension=redis` y `REDIS_SCHEME=tls` |
 | `SQLSTATE[08006]` (PostgreSQL) | Puerto incorrecto | Supabase transaction pooler usa **6543**, no 5432 |
-| Assets JS/CSS no cargan (404) | `public/build/` excluido del zip | Verificar que `package.patterns` **no** excluya `public/build` |
+| Assets JS/CSS no cargan (404) | Bref PHP-FPM no sirve estáticos; accediendo por API Gateway en vez de CloudFront | Acceder por la URL de CloudFront (`website.url` del output). Los assets van a S3 vía construct `website`, no en el zip |
 | `NoSuchBucket` en S3 | Bucket no creado | Ejecutar `serverless deploy` completo (no `deploy function`) |
 | `SES MessageRejected` | Email no verificado | `MAIL_FROM_ADDRESS` debe usar dominio verificado en SES |
 | Scheduler no ejecuta | EventBridge desconectado | Verificar función `artisan` deployada con el event `schedule` |
