@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Settings\BreakTypeController;
+use App\Http\Controllers\Settings\CompanyProfileController;
+use App\Http\Controllers\Settings\CompanySettingsController;
 use App\Http\Controllers\Settings\HolidayController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -30,6 +33,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified', 'role:admin|super-admin'])->group(function () {
+    Route::get('settings/company-profile', [CompanyProfileController::class, 'edit'])
+        ->name('company-profile.edit');
+    Route::put('settings/company-profile', [CompanyProfileController::class, 'update'])
+        ->name('company-profile.update');
+
+    Route::get('settings/company-settings', [CompanySettingsController::class, 'edit'])
+        ->name('company-settings.edit');
+    Route::put('settings/company-settings', [CompanySettingsController::class, 'update'])
+        ->name('company-settings.update');
+
     Route::get('settings/surcharge-rules', [SurchargeRuleController::class, 'edit'])
         ->name('surcharge-rules.edit');
     Route::put('settings/surcharge-rules', [SurchargeRuleController::class, 'update'])
@@ -38,4 +51,10 @@ Route::middleware(['auth', 'verified', 'role:admin|super-admin'])->group(functio
     Route::resource('settings/holidays', HolidayController::class)
         ->names('holidays')
         ->only(['index', 'store', 'update', 'destroy']);
+
+    Route::resource('settings/break-types', BreakTypeController::class)
+        ->names('break-types')
+        ->only(['index', 'store', 'update']);
+    Route::patch('settings/break-types/{break_type}/toggle', [BreakTypeController::class, 'toggleActive'])
+        ->name('break-types.toggle');
 });

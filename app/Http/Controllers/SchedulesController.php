@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Company\Models\Company;
 use App\Domain\Organization\Models\Schedule;
 use App\Http\Requests\StoreScheduleRequest;
 use App\Http\Requests\UpdateScheduleRequest;
@@ -52,6 +53,18 @@ class SchedulesController extends Controller
 
     public function destroy(Schedule $schedule): RedirectResponse
     {
+        $company = Company::find($schedule->company_id);
+
+        if ($company) {
+            $settings = $company->settings ?? [];
+
+            if (($settings['default_schedule_id'] ?? null) === $schedule->id) {
+                $settings['default_schedule_id'] = null;
+                $company->settings = $settings;
+                $company->save();
+            }
+        }
+
         $schedule->delete();
 
         return redirect()->route('schedules.index')

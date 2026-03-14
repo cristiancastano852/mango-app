@@ -437,6 +437,53 @@
             "cost": "Costo"
         }
     },
+    "settings": {
+        "break_types": "Tipos de Pausa",
+        "company_profile": "Empresa",
+        "company_settings": "Días Laborales",
+        "working_days": "Días Laborales",
+        "default_schedule": "Horario por Defecto"
+    },
+    "break_type": {
+        "description": "Gestiona los tipos de pausa disponibles para los empleados de tu empresa.",
+        "name": "Nombre",
+        "name_placeholder": "Ej. Almuerzo",
+        "is_paid": "Tipo",
+        "paid": "Pagada",
+        "unpaid": "No pagada",
+        "max_duration": "Duración máx.",
+        "max_per_day": "Máx./día",
+        "is_default": "Por defecto",
+        "default": "Por defecto",
+        "status": "Estado",
+        "active": "Activo",
+        "inactive": "Inactivo",
+        "actions": "Acciones",
+        "create": "Agregar tipo de pausa",
+        "edit": "Editar",
+        "add": "Agregar",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "empty": "No hay tipos de pausa registrados."
+    },
+    "company": {
+        "name": "Nombre de la empresa",
+        "logo": "Logo",
+        "upload_logo": "Subir logo",
+        "remove_logo": "Eliminar logo",
+        "country": "Pais",
+        "timezone": "Zona horaria",
+        "no_company": "No tienes empresa asignada a tu cuenta."
+    },
+    "days": {
+        "monday": "Lunes",
+        "tuesday": "Martes",
+        "wednesday": "Miércoles",
+        "thursday": "Jueves",
+        "friday": "Viernes",
+        "saturday": "Sábado",
+        "sunday": "Domingo"
+    },
     "time_entries": {
         "breadcrumb": "Registros",
         "head_title": "Registros de Tiempo",
