@@ -490,6 +490,10 @@ resources:
 | `IAMFullAccess` | Serverless crea roles IAM para las Lambdas automáticamente |
 | `CloudWatchLogsFullAccess` | Log groups de las funciones Lambda |
 | `AmazonEventBridgeFullAccess` | El scheduler de Lambda usa EventBridge |
+| `CloudFrontFullAccess` | crear funciones de CloudFront, que son necesarias para el construct server-side-website de Lift |
+
+
+
 
 > **Nota sobre `IAMFullAccess`**: Es amplio pero necesario porque Serverless Framework crea un IAM role para las Lambdas durante el deploy. Sin este permiso el deploy falla. En entornos más maduros se puede reemplazar por una política inline más restrictiva.
 

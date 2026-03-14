@@ -32,7 +32,6 @@ provider:
 
 package:
   patterns:
-    - "public/build/**"
     - "!node_modules/**"
     - "!public/hot"
     - "!public/storage"
@@ -82,6 +81,13 @@ plugins:
   - serverless-lift
 
 constructs:
+  website:
+    type: server-side-website
+    assets:
+      '/build/*': './public/build'
+      '/favicon.ico': './public/favicon.ico'
+      '/favicon.svg': './public/favicon.svg'
+
   storage:
     type: storage
 
