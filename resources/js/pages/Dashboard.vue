@@ -5,6 +5,7 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { store as manualCheckIn } from '@/actions/App/Http/Controllers/Admin/ManualCheckInController';
 import { edit as editTimeEntry } from '@/actions/App/Http/Controllers/Admin/TimeEntryController';
+import GuidedTour from '@/components/GuidedTour.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,9 +63,10 @@ type Props = {
     employeeStatus: EmployeeStatus[];
     lateArrivals: LateArrival[];
     employees?: SimpleEmployee[];
+    showTour?: boolean;
 };
 
-defineProps<Props>();
+const props = defineProps<Props>();
 const { t } = useI18n();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -315,4 +317,6 @@ function deltaSign(delta: number) {
             </DialogContent>
         </Dialog>
     </AppLayout>
+
+    <GuidedTour v-if="props.showTour" :show="props.showTour ?? false" />
 </template>

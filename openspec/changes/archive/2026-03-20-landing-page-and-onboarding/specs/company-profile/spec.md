@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Admin puede ver y editar datos básicos de su empresa
 El sistema SHALL mostrar un formulario en `Settings → Empresa` con nombre, país y timezone de la empresa del admin. El admin SHALL poder actualizar estos campos.
@@ -88,7 +88,7 @@ Todos los endpoints de perfil de empresa SHALL requerir rol `admin` o `super-adm
 - **THEN** el sistema usa `$request->user()->company_id` (ignora cualquier company_id enviado)
 - **THEN** solo se modifica la empresa del admin autenticado
 
----
+## ADDED Requirements
 
 ### Requirement: Modelo Company expone campo `onboarding_completed`
 El modelo Company SHALL tener el atributo `onboarding_completed` (boolean, default false) persistido en BD. El campo SHALL ser casteable a boolean.
