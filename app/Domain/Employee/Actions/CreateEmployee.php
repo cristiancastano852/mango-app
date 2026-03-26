@@ -11,21 +11,26 @@ use Illuminate\Support\Str;
 
 class CreateEmployee
 {
-    public function execute(array $data, int $companyId): Employee
+    /**
+     * @return array{employee: Employee, plain_password: string}
+     */
+    public function execute(array $data, int $companyId): array
     {
         return DB::transaction(function () use ($data, $companyId) {
+            $plainPassword = $data['password'] ?? Str::random(16);
+
             $user = User::create([
                 'company_id' => $companyId,
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'] ?? null,
-                'password' => Hash::make(Str::random(16)),
+                'password' => Hash::make($plainPassword),
                 'is_active' => true,
             ]);
 
             $user->assignRole('employee');
 
-            return Employee::create([
+            $employee = Employee::create([
                 'user_id' => $user->id,
                 'company_id' => $companyId,
                 'department_id' => $data['department_id'] ?? null,
@@ -37,6 +42,8 @@ class CreateEmployee
                 'schedule_id' => $data['schedule_id'] ?? $this->getDefaultScheduleId($companyId),
                 'location_id' => $data['location_id'] ?? null,
             ]);
+
+            return ['employee' => $employee, 'plain_password' => $plainPassword];
         });
     }
 

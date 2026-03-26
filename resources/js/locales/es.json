@@ -221,13 +221,21 @@
             "salary_type": "Tipo",
             "salary_hourly": "Por hora",
             "salary_monthly": "Mensual",
-            "hourly_rate": "Valor hora"
+            "hourly_rate": "Valor hora",
+            "created_password_title": "Empleado creado",
+            "created_password_warning": "Guarda esta contraseña — no volverá a mostrarse.",
+            "copy_password": "Copiar contraseña",
+            "password_copied": "¡Copiado!"
         },
         "form": {
             "full_name": "Nombre completo *",
             "email": "Email *",
             "phone": "Telefono",
             "employee_code": "Codigo empleado",
+            "password": "Contraseña (opcional)",
+            "password_placeholder": "Dejar vacío para generar automáticamente",
+            "show_password": "Mostrar contraseña",
+            "hide_password": "Ocultar contraseña",
             "department": "Departamento",
             "position": "Cargo",
             "schedule": "Horario",

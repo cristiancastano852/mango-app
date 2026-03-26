@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /* eslint-disable vue/no-mutating-props */
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Eye, EyeOff } from 'lucide-vue-next';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ type Props = {
         name: string;
         email: string;
         phone: string;
+        password?: string;
         department_id: string;
         position_id: string;
         employee_code: string;
@@ -37,10 +39,12 @@ type Props = {
     schedules: Schedule[];
     locations: Location[];
     showStatus?: boolean;
+    showPassword?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
     showStatus: false,
+    showPassword: false,
 });
 
 const emit = defineEmits<{
@@ -48,6 +52,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+const showPasswordText = ref(false);
 
 const filteredPositions = computed(() =>
     props.form.department_id
@@ -79,6 +85,30 @@ const filteredPositions = computed(() =>
                 <Label for="employee_code">{{ t('employees.form.employee_code') }}</Label>
                 <Input id="employee_code" v-model="form.employee_code" placeholder="EMP-001" />
                 <InputError :message="form.errors.employee_code" />
+            </div>
+            <div v-if="showPassword" class="space-y-2">
+                <Label for="password">{{ t('employees.form.password') }}</Label>
+                <div class="relative">
+                    <Input
+                        id="password"
+                        v-model="form.password"
+                        :type="showPasswordText ? 'text' : 'password'"
+                        :placeholder="t('employees.form.password_placeholder')"
+                        class="pr-10"
+                    />
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        class="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                        :aria-label="showPasswordText ? t('employees.form.hide_password') : t('employees.form.show_password')"
+                        @click="showPasswordText = !showPasswordText"
+                    >
+                        <EyeOff v-if="showPasswordText" class="size-4" />
+                        <Eye v-else class="size-4" />
+                    </Button>
+                </div>
+                <InputError :message="form.errors.password" />
             </div>
         </div>
 

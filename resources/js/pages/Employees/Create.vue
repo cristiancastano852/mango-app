@@ -28,6 +28,7 @@ const form = useForm({
     name: '',
     email: '',
     phone: '',
+    password: '',
     department_id: '',
     position_id: '',
     employee_code: '',
@@ -60,6 +61,7 @@ function submit() {
                         :positions="positions"
                         :schedules="schedules"
                         :locations="locations"
+                        show-password
                         @submit="submit"
                     />
                 </CardContent>

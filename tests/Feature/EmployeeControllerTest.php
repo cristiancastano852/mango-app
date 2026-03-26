@@ -123,8 +123,69 @@ class EmployeeControllerTest extends TestCase
             'email' => 'new@test.com',
         ]);
 
-        $response->assertRedirect(route('employees.index'));
         $this->assertDatabaseHas('users', ['email' => 'new@test.com']);
+
+        $employee = Employee::whereHas('user', fn ($q) => $q->where('email', 'new@test.com'))->first();
+        $response->assertRedirect(route('employees.show', $employee));
+    }
+
+    public function test_admin_can_create_employee_with_custom_password(): void
+    {
+        $response = $this->actingAs($this->adminUser)->post(route('employees.store'), [
+            'name' => 'Custom Pass Employee',
+            'email' => 'custom@test.com',
+            'password' => 'MySecret123',
+        ]);
+
+        $this->assertDatabaseHas('users', ['email' => 'custom@test.com']);
+
+        $employee = Employee::whereHas('user', fn ($q) => $q->where('email', 'custom@test.com'))->first();
+        $response->assertRedirect(route('employees.show', $employee));
+        $response->assertSessionHas('created_password', 'MySecret123');
+    }
+
+    public function test_admin_can_create_employee_without_password_and_random_is_generated(): void
+    {
+        $response = $this->actingAs($this->adminUser)->post(route('employees.store'), [
+            'name' => 'Random Pass Employee',
+            'email' => 'random@test.com',
+        ]);
+
+        $this->assertDatabaseHas('users', ['email' => 'random@test.com']);
+
+        $employee = Employee::whereHas('user', fn ($q) => $q->where('email', 'random@test.com'))->first();
+        $response->assertRedirect(route('employees.show', $employee));
+
+        $createdPassword = $response->getSession()->get('created_password');
+        $this->assertNotNull($createdPassword);
+        $this->assertGreaterThanOrEqual(16, strlen($createdPassword));
+    }
+
+    public function test_super_admin_can_create_employee_with_password(): void
+    {
+        $superAdmin = User::factory()->create(['company_id' => $this->company->id]);
+        $superAdmin->assignRole('super-admin');
+
+        $response = $this->actingAs($superAdmin)->post(route('employees.store'), [
+            'name' => 'Super Admin Employee',
+            'email' => 'superadmin-emp@test.com',
+            'password' => 'SuperSecret99',
+        ]);
+
+        $this->assertDatabaseHas('users', ['email' => 'superadmin-emp@test.com']);
+        $response->assertSessionHas('created_password', 'SuperSecret99');
+    }
+
+    public function test_password_validation_min_8_chars(): void
+    {
+        $response = $this->actingAs($this->adminUser)->post(route('employees.store'), [
+            'name' => 'Short Pass Employee',
+            'email' => 'short@test.com',
+            'password' => 'short',
+        ]);
+
+        $response->assertSessionHasErrors(['password']);
+        $this->assertDatabaseMissing('users', ['email' => 'short@test.com']);
     }
 
     public function test_admin_can_edit_employee(): void

@@ -53,9 +53,11 @@ class EmployeeController extends Controller
 
     public function store(StoreEmployeeRequest $request, CreateEmployee $action): RedirectResponse
     {
-        $action->execute($request->validated(), $request->user()->company_id);
+        ['employee' => $employee, 'plain_password' => $plainPassword] = $action->execute($request->validated(), $request->user()->company_id);
 
-        return redirect()->route('employees.index')->with('success', __('messages.employee_created'));
+        return redirect()->route('employees.show', $employee)
+            ->with('success', __('messages.employee_created'))
+            ->with('created_password', $plainPassword);
     }
 
     public function show(Employee $employee): Response
