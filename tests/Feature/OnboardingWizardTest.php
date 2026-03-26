@@ -88,6 +88,9 @@ class OnboardingWizardTest extends TestCase
             'company_id' => $this->company->id,
             'name' => 'Jornada Normal',
         ]);
+        $schedule = \App\Domain\Organization\Models\Schedule::where('company_id', $this->company->id)->first();
+        $this->company->refresh();
+        $this->assertEquals($schedule->id, $this->company->settings['default_schedule_id']);
     }
 
     public function test_step2_skip_redirects_to_step3_without_creating_schedule(): void

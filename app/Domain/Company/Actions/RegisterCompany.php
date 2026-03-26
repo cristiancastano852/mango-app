@@ -15,7 +15,7 @@ class RegisterCompany
         return DB::transaction(function () use ($data) {
             $company = Company::create([
                 'name' => $data['company_name'],
-                'slug' => Str::slug($data['company_name']).'-'.Str::random(6),
+                'slug' => Str::limit(Str::slug($data['company_name']), 248, '').'-'.Str::random(6),
                 'timezone' => 'America/Bogota',
                 'country' => 'CO',
                 'onboarding_completed' => false,

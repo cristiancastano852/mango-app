@@ -26,12 +26,12 @@ class OnboardingBreakTypesController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'active_ids' => ['present', 'array'],
+            'active_ids' => ['sometimes', 'array'],
             'active_ids.*' => ['integer'],
         ]);
 
         $companyId = $request->user()->company_id;
-        $activeIds = $validated['active_ids'];
+        $activeIds = $validated['active_ids'] ?? [];
 
         BreakType::withoutGlobalScopes()
             ->where('company_id', $companyId)
