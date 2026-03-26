@@ -25,6 +25,7 @@ class StoreEmployeeRequest extends FormRequest
             'salary_type' => ['nullable', 'in:hourly,monthly'],
             'schedule_id' => ['nullable', 'exists:schedules,id'],
             'location_id' => ['nullable', 'exists:locations,id'],
+            'password' => ['nullable', 'string', 'min:8', 'max:128'],
         ];
     }
 }

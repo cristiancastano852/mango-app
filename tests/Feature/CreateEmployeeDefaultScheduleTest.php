@@ -41,7 +41,7 @@ class CreateEmployeeDefaultScheduleTest extends TestCase
         ]);
 
         $action = new CreateEmployee;
-        $employee = $action->execute([
+        ['employee' => $employee] = $action->execute([
             'name' => 'John Doe',
             'email' => 'john@example.com',
         ], $this->company->id);
@@ -70,7 +70,7 @@ class CreateEmployeeDefaultScheduleTest extends TestCase
         ]);
 
         $action = new CreateEmployee;
-        $employee = $action->execute([
+        ['employee' => $employee] = $action->execute([
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'schedule_id' => $explicitSchedule->id,
@@ -82,7 +82,7 @@ class CreateEmployeeDefaultScheduleTest extends TestCase
     public function test_employee_gets_null_schedule_when_no_default_configured(): void
     {
         $action = new CreateEmployee;
-        $employee = $action->execute([
+        ['employee' => $employee] = $action->execute([
             'name' => 'Bob Doe',
             'email' => 'bob@example.com',
         ], $this->company->id);

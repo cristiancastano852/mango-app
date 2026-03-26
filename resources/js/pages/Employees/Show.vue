@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
-import { Pencil, Trash2, ArrowLeft } from 'lucide-vue-next';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Pencil, Trash2, ArrowLeft, Eye, EyeOff, Copy, Check } from 'lucide-vue-next';
+import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { index as employeesIndex } from '@/actions/App/Http/Controllers/EmployeeController';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,12 +18,31 @@ type Props = {
 
 const props = defineProps<Props>();
 const { t } = useI18n();
+const page = usePage();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: t('common.dashboard'), href: { url: '/dashboard', method: 'get' } },
     { title: t('employees.breadcrumb'), href: employeesIndex() },
     { title: props.employee.user.name, href: { url: `/employees/${props.employee.id}`, method: 'get' } },
 ];
+
+const createdPassword = computed(() => page.props.flash?.created_password ?? null);
+const showCreatedPassword = ref(false);
+const passwordCopied = ref(false);
+
+function copyPassword() {
+    if (!createdPassword.value) {
+        return;
+    }
+    navigator.clipboard.writeText(createdPassword.value).then(() => {
+        passwordCopied.value = true;
+        setTimeout(() => {
+            passwordCopied.value = false;
+        }, 2000);
+    }).catch(() => {
+        // clipboard not available (non-HTTPS or denied); user can copy manually from the visible text
+    });
+}
 
 function deleteEmployee() {
     if (confirm(t('employees.confirm_delete', { name: props.employee.user.name }))) {
@@ -35,6 +56,41 @@ function deleteEmployee() {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto w-full max-w-3xl p-4 md:p-6">
+            <!-- Created password banner -->
+            <Alert v-if="createdPassword" class="mb-6 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
+                <AlertTitle class="text-amber-800 dark:text-amber-200">{{ t('employees.show.created_password_title') }}</AlertTitle>
+                <AlertDescription class="mt-2 text-amber-700 dark:text-amber-300">
+                    <p class="mb-3 text-sm">{{ t('employees.show.created_password_warning') }}</p>
+                    <div class="flex items-center gap-2">
+                        <span class="font-mono text-sm tracking-widest">
+                            {{ showCreatedPassword ? createdPassword : '••••••••••••' }}
+                        </span>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="size-7 text-amber-700 hover:text-amber-900 dark:text-amber-300"
+                            :aria-label="showCreatedPassword ? t('employees.form.hide_password') : t('employees.form.show_password')"
+                            @click="showCreatedPassword = !showCreatedPassword"
+                        >
+                            <EyeOff v-if="showCreatedPassword" class="size-4" />
+                            <Eye v-else class="size-4" />
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="size-7 text-amber-700 hover:text-amber-900 dark:text-amber-300"
+                            :aria-label="t('employees.show.copy_password')"
+                            @click="copyPassword"
+                        >
+                            <Check v-if="passwordCopied" class="size-4" />
+                            <Copy v-else class="size-4" />
+                        </Button>
+                    </div>
+                </AlertDescription>
+            </Alert>
+
             <!-- Header -->
             <div class="mb-6 flex items-center justify-between">
                 <div class="flex items-center gap-4">
