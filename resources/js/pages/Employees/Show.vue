@@ -39,6 +39,8 @@ function copyPassword() {
         setTimeout(() => {
             passwordCopied.value = false;
         }, 2000);
+    }).catch(() => {
+        // clipboard not available (non-HTTPS or denied); user can copy manually from the visible text
     });
 }
 

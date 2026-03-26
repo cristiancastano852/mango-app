@@ -6,6 +6,7 @@ use App\Domain\Company\Models\Company;
 use App\Domain\Employee\Models\Employee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -142,6 +143,9 @@ class EmployeeControllerTest extends TestCase
         $employee = Employee::whereHas('user', fn ($q) => $q->where('email', 'custom@test.com'))->first();
         $response->assertRedirect(route('employees.show', $employee));
         $response->assertSessionHas('created_password', 'MySecret123');
+
+        $user = User::where('email', 'custom@test.com')->first();
+        $this->assertTrue(Hash::check('MySecret123', $user->password));
     }
 
     public function test_admin_can_create_employee_without_password_and_random_is_generated(): void
@@ -159,6 +163,9 @@ class EmployeeControllerTest extends TestCase
         $createdPassword = $response->getSession()->get('created_password');
         $this->assertNotNull($createdPassword);
         $this->assertGreaterThanOrEqual(16, strlen($createdPassword));
+
+        $user = User::where('email', 'random@test.com')->first();
+        $this->assertTrue(Hash::check($createdPassword, $user->password));
     }
 
     public function test_super_admin_can_create_employee_with_password(): void
