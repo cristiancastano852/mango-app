@@ -25,6 +25,7 @@ class Company extends Model
         'timezone',
         'country',
         'settings',
+        'onboarding_completed',
         'subscription_plan',
         'trial_ends_at',
     ];
@@ -33,6 +34,7 @@ class Company extends Model
     {
         return [
             'settings' => 'array',
+            'onboarding_completed' => 'boolean',
             'trial_ends_at' => 'datetime',
         ];
     }

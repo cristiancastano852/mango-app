@@ -2,7 +2,7 @@
 
 ## companies
 - id, name, slug (unique), logo (nullable), timezone (default: America/Bogota), country (default: CO)
-- settings (jsonb nullable), subscription_plan (default: free), trial_ends_at (nullable)
+- settings (jsonb nullable), onboarding_completed (boolean, default: false), subscription_plan (default: free), trial_ends_at (nullable)
 - timestamps
 
 ## users

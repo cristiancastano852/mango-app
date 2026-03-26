@@ -111,6 +111,11 @@ class DashboardController extends Controller
             ];
         });
 
+        $company = $user->company;
+        $showTour = $company
+            && $company->onboarding_completed
+            && ! $request->session()->get('tour_dismissed', false);
+
         return Inertia::render('Dashboard', [
             'kpis' => [
                 'present' => $presentCount,
@@ -122,6 +127,7 @@ class DashboardController extends Controller
             ],
             'employeeStatus' => $employeeStatus,
             'lateArrivals' => $lateArrivals,
+            'showTour' => $showTour,
         ]);
     }
 }

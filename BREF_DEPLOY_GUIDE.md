@@ -650,51 +650,70 @@ Buscar `storageBucketName` en el output → ese es el valor para `AWS_BUCKET`.
 
 ---
 
-## Fase 8 — Custom Domain
+## Fase 8 — Custom Domain con Cloudflare + CloudFront
+
+> Esta guía usa **Cloudflare como DNS** y **CloudFront como punto de entrada** (el construct `website` de Lift). No se usa Route 53 ni API Gateway custom domain.
 
 ### 8.1 Certificado SSL en ACM
 
-**Gratis** cuando se usa con API Gateway.
+**Obligatorio:** el certificado debe crearse en la región **`us-east-1`** — CloudFront solo acepta certificados de esa región.
 
 ```
-AWS Console → ACM → Request certificate
-→ Domain: *.tu-dominio.com
-→ DNS validation → Create records in Route 53
+AWS Console → ACM (región us-east-1) → Request a public certificate
+→ Fully qualified domain names: tudominio.com
+                                 www.tudominio.com
+→ Validation method: DNS validation
+→ Request
 ```
 
-### 8.2 Custom Domain Name en API Gateway
+El certificado quedará en estado **"Pendiente de validación"**. AWS muestra 2 registros CNAME para validar la propiedad del dominio — los agregas en el siguiente paso.
+
+### 8.2 Agregar los 4 registros DNS en Cloudflare
+
+En Cloudflare → DNS → **Add record**. En total son 4 registros CNAME.
+
+**Registros de validación ACM** (AWS los provee en la consola de ACM):
+
+| Tipo | Name | Content | Proxy |
+|------|------|---------|-------|
+| CNAME | `_c8db04...` (el prefijo que da AWS) | `_769b7c....acm-validations.aws` | OFF (nube gris) |
+| CNAME | `_f43d92....www` (el prefijo que da AWS) | `_427d46....acm-validations.aws` | OFF (nube gris) |
+
+> En el campo **Name** de Cloudflare ingresa solo la parte antes de `.tudominio.com` — Cloudflare agrega el dominio automáticamente.
+
+Espera 5–30 minutos hasta que el certificado cambie a estado **"Emitido"** en ACM.
+
+**Registros que apuntan el dominio a CloudFront** (agregar una vez emitido el certificado):
+
+| Tipo | Name | Content | Proxy |
+|------|------|---------|-------|
+| CNAME | `@` | `d2x9u47fwwnfoi.cloudfront.net` | OFF (nube gris) |
+| CNAME | `www` | `d2x9u47fwwnfoi.cloudfront.net` | OFF (nube gris) |
+
+> **Importante:** El proxy de Cloudflare debe estar en **OFF** (nube gris). Si se activa (nube naranja) habrá conflicto de SSL entre Cloudflare y CloudFront.
+
+### 8.3 Configurar CloudFront para aceptar el dominio
 
 ```
-API Gateway Console → Custom domain names → Create
-→ Domain name: app.tu-dominio.com
-→ API type: HTTP
-→ ACM certificate: tu certificado wildcard
-→ Create domain name
+AWS Console → CloudFront → tu distribución → Edit
+→ Alternate domain names (CNAMEs):
+    tudominio.com
+    www.tudominio.com
+→ Custom SSL certificate: seleccionar el certificado emitido en el paso 8.1
+→ Save changes
 ```
 
-Te genera un endpoint: `d-xxxxxxxxxx.execute-api.us-east-1.amazonaws.com`
+CloudFront tarda ~5–15 minutos en propagar los cambios.
 
-### 8.3 API Mapping
+### 8.4 Actualizar APP_URL
 
-```
-→ API mappings tab → Configure API mappings → Add new mapping
-   API: mango-app-dev
-   Stage: $default
-   Path: (vacío)
-→ Save
+En las variables de entorno de producción (GitHub Secrets o `.env`):
+
+```env
+APP_URL=https://www.tudominio.com
 ```
 
-### 8.4 Route 53
-
-```
-Route 53 → Hosted zones → tu-dominio.com
-→ Crear record: app.tu-dominio.com
-→ Tipo: A (Alias) → API Gateway custom domain name
-→ Value: d-xxxxxxxxxx.execute-api.us-east-1.amazonaws.com
-→ Save
-```
-
-### 8.5 Actualizar APP_URL y re-deployar
+Re-deployar para que Lambda tome el nuevo `APP_URL`:
 
 ```bash
 serverless deploy function -f web
@@ -771,6 +790,82 @@ aws logs tail /aws/lambda/mango-app-dev-web --follow --region us-east-1
 # Eliminar stack completo (¡destruye todos los recursos!)
 serverless remove --stage dev
 ```
+
+---
+
+## Fase 9b — Agregar Subdominios (sitio1.webplena.com)
+
+> Para cada nuevo sitio o app que quieras alojar bajo el mismo dominio raíz.
+
+### Paso 1 — Certificado wildcard en ACM (una sola vez)
+
+Si ya tienes el certificado de `webplena.com`, crea uno adicional wildcard que cubra todos los subdominios. Solo necesitas hacerlo una vez — sirve para `sitio1.webplena.com`, `sitio2.webplena.com`, etc.
+
+```
+AWS Console → ACM (región us-east-1) → Request a public certificate
+→ Fully qualified domain name: *.webplena.com
+→ Validation method: DNS validation
+→ Request
+```
+
+ACM te dará 1 registro CNAME de validación. Agrégalo en Cloudflare con proxy **OFF**:
+
+```
+Tipo:    CNAME
+Name:    _xxxx (el prefijo que da AWS)
+Content: _yyyy.acm-validations.aws
+Proxy:   OFF
+```
+
+Espera a que el estado cambie a **"Emitido"**. Este certificado cubre cualquier subdominio de primer nivel (`*.webplena.com`), pero **no** el dominio raíz (`webplena.com`) — para ese sigue usando el certificado de la Fase 8.
+
+### Paso 2 — Desplegar el nuevo sitio
+
+Despliega tu nueva app normalmente (otro `serverless deploy`, una app diferente, etc.) y obtén su URL de CloudFront del output:
+
+```
+website:
+  url:   https://d9xyz123abc.cloudfront.net   ← URL del nuevo sitio
+  cname: d9xyz123abc.cloudfront.net
+```
+
+### Paso 3 — Configurar CloudFront del nuevo sitio
+
+```
+AWS Console → CloudFront → distribución del nuevo sitio → Edit
+→ Alternate domain names (CNAMEs): sitio1.webplena.com
+→ Custom SSL certificate: *.webplena.com  (el wildcard del Paso 1)
+→ Save changes
+```
+
+### Paso 4 — Agregar CNAME en Cloudflare
+
+Un solo registro por subdominio:
+
+```
+Tipo:    CNAME
+Name:    sitio1
+Content: d9xyz123abc.cloudfront.net
+Proxy:   OFF (nube gris)
+```
+
+### Paso 5 — Actualizar APP_URL del nuevo sitio
+
+```env
+APP_URL=https://sitio1.webplena.com
+```
+
+---
+
+### Resumen: certificados por escenario
+
+| Dominio | Certificado a usar |
+|---|---|
+| `webplena.com` | Certificado exacto `webplena.com` (Fase 8) |
+| `www.webplena.com` | Certificado exacto `webplena.com` (ya incluye www) |
+| `sitio1.webplena.com` | Wildcard `*.webplena.com` |
+| `sitio2.webplena.com` | Wildcard `*.webplena.com` |
+| `sub.sitio1.webplena.com` | No cubierto por `*.webplena.com` — necesita certificado propio |
 
 ---
 
