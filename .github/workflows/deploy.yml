@@ -80,7 +80,7 @@ jobs:
         run: php artisan config:clear
 
       - name: Deploy
-        run: serverless deploy --stage ${{ github.ref_name == 'main' && 'production' || 'dev' }}
+        run: serverless deploy --stage dev
 
       - name: Run migrations
         run: serverless invoke -f artisan --data '"migrate --force"'
