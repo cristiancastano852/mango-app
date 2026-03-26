@@ -53,7 +53,7 @@ jobs:
         run: npm run build
 
       - name: Install Serverless Framework
-        run: npm install -g serverless && npm install --save-dev serverless-lift
+        run: npm install -g serverless
 
       - name: Generate .env
         run: chmod +x create_env_deploy.sh && ./create_env_deploy.sh > .env
@@ -70,7 +70,6 @@ jobs:
           REDIS_CACHE_DB: ${{ vars.REDIS_CACHE_DB }}
           REDIS_CLIENT: ${{ vars.REDIS_CLIENT }}
           CACHE_PREFIX: ${{ vars.CACHE_PREFIX }}
-          SQS_QUEUE: ${{ vars.SQS_QUEUE }}
           FILESYSTEM_DISK: ${{ vars.FILESYSTEM_DISK }}
           AWS_BUCKET: ${{ vars.AWS_BUCKET }}
           MAIL_FROM_ADDRESS: ${{ vars.MAIL_FROM_ADDRESS }}
