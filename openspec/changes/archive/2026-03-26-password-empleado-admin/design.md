@@ -69,7 +69,7 @@ El cambio es localizado: afecta únicamente al dominio `Employee`, sin cambios d
 ## Risks / Trade-offs
 
 - **[Risk] La contraseña se pierde si el admin cierra el tab accidentalmente** → El banner incluye un aviso explícito "Guarda esta contraseña, no volverá a mostrarse." No hay mitigación técnica intencional; es el comportamiento deseado por seguridad.
-- **[Risk] Flash de Inertia puede no estar tipado en el frontend** → Extender el tipo global de `PageProps` en `resources/js/types/index.d.ts` para incluir `flash: { created_password?: string }`.
+- **[Risk] Flash de Inertia puede no estar tipado en el frontend** → Extender el tipo global de `PageProps` en `resources/js/types/global.d.ts` para incluir `flash: { created_password?: string }`.
 - **[Trade-off] Redirigir a `show` en lugar de `index`** → El admin llega al detalle del empleado recién creado en vez de al listado. Es un cambio de UX menor pero positivo (ve el perfil completo).
 
 ## Migration Plan
