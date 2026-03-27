@@ -14,6 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { formatDecimalHours } from '@/lib/utils';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import DateRangeFilter from './partials/DateRangeFilter.vue';
@@ -130,8 +131,8 @@ function downloadPdf() {
 }
 
 const avgPerDay = computed(() => {
-    if (props.report.totals.days_worked === 0) return 0;
-    return (props.report.totals.net_hours / props.report.totals.days_worked).toFixed(1);
+    if (props.report.totals.days_worked === 0) return formatDecimalHours(0);
+    return formatDecimalHours(props.report.totals.net_hours / props.report.totals.days_worked);
 });
 
 function formatCurrency(value: number): string {
@@ -289,8 +290,8 @@ onMounted(async () => {
                             <Clock class="text-muted-foreground size-4" />
                         </CardHeader>
                         <CardContent>
-                            <div class="text-3xl font-bold">{{ report.totals.net_hours }}h</div>
-                            <p class="text-muted-foreground text-xs">{{ t('reports.kpi.avg_per_day') }}: {{ avgPerDay }}h</p>
+                            <div class="text-3xl font-bold">{{ formatDecimalHours(report.totals.net_hours) }}</div>
+                            <p class="text-muted-foreground text-xs">{{ t('reports.kpi.avg_per_day') }}: {{ avgPerDay }}</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -299,8 +300,8 @@ onMounted(async () => {
                             <TrendingUp class="text-muted-foreground size-4" />
                         </CardHeader>
                         <CardContent>
-                            <div class="text-3xl font-bold">{{ report.totals.gross_hours }}h</div>
-                            <p class="text-muted-foreground text-xs">{{ t('reports.kpi.break_hours') }}: {{ report.totals.break_hours }}h</p>
+                            <div class="text-3xl font-bold">{{ formatDecimalHours(report.totals.gross_hours) }}</div>
+                            <p class="text-muted-foreground text-xs">{{ t('reports.kpi.break_hours') }}: {{ formatDecimalHours(report.totals.break_hours) }}</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -319,28 +320,28 @@ onMounted(async () => {
                     <div class="bg-blue-50 dark:bg-blue-950/30 flex items-center gap-3 rounded-lg p-3">
                         <Sun class="size-5 text-blue-500" />
                         <div>
-                            <div class="text-lg font-semibold">{{ report.totals.regular_hours }}h</div>
+                            <div class="text-lg font-semibold">{{ formatDecimalHours(report.totals.regular_hours) }}</div>
                             <div class="text-muted-foreground text-xs">{{ t('reports.hours.regular') }}</div>
                         </div>
                     </div>
                     <div class="bg-indigo-50 dark:bg-indigo-950/30 flex items-center gap-3 rounded-lg p-3">
                         <Moon class="size-5 text-indigo-500" />
                         <div>
-                            <div class="text-lg font-semibold">{{ report.totals.night_hours }}h</div>
+                            <div class="text-lg font-semibold">{{ formatDecimalHours(report.totals.night_hours) }}</div>
                             <div class="text-muted-foreground text-xs">{{ t('reports.hours.night') }}</div>
                         </div>
                     </div>
                     <div class="bg-amber-50 dark:bg-amber-950/30 flex items-center gap-3 rounded-lg p-3">
                         <Zap class="size-5 text-amber-500" />
                         <div>
-                            <div class="text-lg font-semibold">{{ report.totals.overtime_hours }}h</div>
+                            <div class="text-lg font-semibold">{{ formatDecimalHours(report.totals.overtime_hours) }}</div>
                             <div class="text-muted-foreground text-xs">{{ t('reports.hours.overtime') }}</div>
                         </div>
                     </div>
                     <div class="bg-red-50 dark:bg-red-950/30 flex items-center gap-3 rounded-lg p-3">
                         <Calendar class="size-5 text-red-500" />
                         <div>
-                            <div class="text-lg font-semibold">{{ report.totals.sunday_holiday_hours }}h</div>
+                            <div class="text-lg font-semibold">{{ formatDecimalHours(report.totals.sunday_holiday_hours) }}</div>
                             <div class="text-muted-foreground text-xs">{{ t('reports.hours.sunday_holiday') }}</div>
                         </div>
                     </div>
@@ -414,7 +415,7 @@ onMounted(async () => {
                                     <tbody class="divide-y">
                                         <tr v-for="detail in report.cost_summary.details" :key="detail.type">
                                             <td class="py-2">{{ hourTypeLabel(detail.type) }}</td>
-                                            <td class="py-2 text-right">{{ detail.hours }}h</td>
+                                            <td class="py-2 text-right">{{ formatDecimalHours(detail.hours) }}</td>
                                             <td class="hidden py-2 text-right sm:table-cell">
                                                 <span v-if="detail.surcharge > 0">+{{ detail.surcharge }}%</span>
                                                 <span v-else class="text-muted-foreground">-</span>
@@ -425,7 +426,7 @@ onMounted(async () => {
                                     <tfoot>
                                         <tr class="border-t font-semibold">
                                             <td class="pt-2">{{ t('reports.costs.total') }}</td>
-                                            <td class="pt-2 text-right">{{ report.totals.net_hours }}h</td>
+                                            <td class="pt-2 text-right">{{ formatDecimalHours(report.totals.net_hours) }}</td>
                                             <td class="hidden pt-2 sm:table-cell" />
                                             <td class="pt-2 text-right">{{ formatCurrency(report.cost_summary.total) }}</td>
                                         </tr>

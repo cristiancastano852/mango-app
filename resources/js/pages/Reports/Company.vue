@@ -13,6 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { formatDecimalHours } from '@/lib/utils';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import DateRangeFilter from './partials/DateRangeFilter.vue';
@@ -86,14 +87,14 @@ const dateFilter = ref({
     end_date: props.filters.end_date,
 });
 
-const selectedDepartment = ref(props.filters.department_id ? String(props.filters.department_id) : '');
+const selectedDepartment = ref(props.filters.department_id ? String(props.filters.department_id) : 'all');
 
 function applyFilter() {
     router.get('/reports/company', {
         date_range: dateFilter.value.date_range,
         start_date: dateFilter.value.start_date,
         end_date: dateFilter.value.end_date,
-        department_id: selectedDepartment.value || undefined,
+        department_id: selectedDepartment.value !== 'all' ? selectedDepartment.value : undefined,
     });
 }
 
@@ -219,7 +220,7 @@ onMounted(async () => {
                                 <SelectValue :placeholder="t('reports.all_departments')" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">{{ t('reports.all_departments') }}</SelectItem>
+                                <SelectItem value="all">{{ t('reports.all_departments') }}</SelectItem>
                                 <SelectItem v-for="dept in departments" :key="dept.id" :value="String(dept.id)">
                                     {{ dept.name }}
                                 </SelectItem>
@@ -254,7 +255,7 @@ onMounted(async () => {
                             <Clock class="text-muted-foreground size-4" />
                         </CardHeader>
                         <CardContent>
-                            <div class="text-3xl font-bold">{{ report.totals.net_hours }}h</div>
+                            <div class="text-3xl font-bold">{{ formatDecimalHours(report.totals.net_hours) }}</div>
                         </CardContent>
                     </Card>
                     <Card>
@@ -326,7 +327,7 @@ onMounted(async () => {
                                             {{ emp.department || '-' }}
                                         </td>
                                         <td class="py-2.5 text-right">{{ emp.days_worked }}</td>
-                                        <td class="py-2.5 text-right font-medium">{{ emp.net_hours }}h</td>
+                                        <td class="py-2.5 text-right font-medium">{{ formatDecimalHours(emp.net_hours) }}</td>
                                         <td class="py-2.5 text-right">{{ formatCurrency(emp.cost) }}</td>
                                     </tr>
                                 </tbody>
@@ -334,7 +335,7 @@ onMounted(async () => {
                                     <tr class="border-t font-semibold">
                                         <td class="pt-2" colspan="3">{{ t('reports.costs.total') }}</td>
                                         <td class="pt-2 text-right">{{ report.totals.total_days_worked }}</td>
-                                        <td class="pt-2 text-right">{{ report.totals.net_hours }}h</td>
+                                        <td class="pt-2 text-right">{{ formatDecimalHours(report.totals.net_hours) }}</td>
                                         <td class="pt-2 text-right">{{ formatCurrency(report.cost_summary.total) }}</td>
                                     </tr>
                                 </tfoot>

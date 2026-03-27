@@ -41,16 +41,9 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: t('time_entries.edit.breadcrumb'), href: '#' },
 ];
 
-function toLocalDatetime(iso: string | null): string {
-    if (!iso) return '';
-    const d = new Date(iso);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 const form = useForm({
-    clock_in: toLocalDatetime(props.entry.clock_in),
-    clock_out: toLocalDatetime(props.entry.clock_out),
+    clock_in: props.entry.clock_in ?? '',
+    clock_out: props.entry.clock_out ?? '',
     edit_reason: props.entry.edit_reason ?? '',
 });
 

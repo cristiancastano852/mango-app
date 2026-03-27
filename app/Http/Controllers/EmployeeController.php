@@ -10,24 +10,26 @@ use App\Domain\Organization\Models\Department;
 use App\Domain\Organization\Models\Location;
 use App\Domain\Organization\Models\Position;
 use App\Domain\Organization\Models\Schedule;
+use App\Http\Requests\Employee\IndexEmployeeRequest;
 use App\Http\Requests\Employee\StoreEmployeeRequest;
 use App\Http\Requests\Employee\UpdateEmployeeRequest;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class EmployeeController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(IndexEmployeeRequest $request): Response
     {
+        $validated = $request->validated();
+
         $employees = Employee::with(['user', 'department', 'position', 'schedule', 'location'])
-            ->when($request->input('search'), function ($q, $search) {
+            ->when($validated['search'] ?? null, function ($q, $search) {
                 $q->whereHas('user', fn ($u) => $u->where('name', 'ilike', "%{$search}%")
                     ->orWhere('email', 'ilike', "%{$search}%"));
             })
-            ->when($request->input('department'), fn ($q, $dept) => $q->where('department_id', $dept))
-            ->when($request->input('status'), function ($q, $status) {
+            ->when($validated['department'] ?? null, fn ($q, $dept) => $q->where('department_id', $dept))
+            ->when($validated['status'] ?? null, function ($q, $status) {
                 $q->whereHas('user', fn ($u) => $u->where('is_active', $status === 'active'));
             })
             ->latest()

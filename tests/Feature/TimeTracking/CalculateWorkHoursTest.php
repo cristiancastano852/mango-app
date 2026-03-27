@@ -58,8 +58,8 @@ class CalculateWorkHoursTest extends TestCase
 
         // Shift from 22:30 to 23:30 on a weekday — all within the night range 22:00–05:00
         $tz = 'America/Bogota';
-        $clockIn = Carbon::parse('2026-03-09 22:30:00', $tz)->utc();
-        $clockOut = Carbon::parse('2026-03-09 23:30:00', $tz)->utc();
+        $clockIn = Carbon::parse('2026-03-09 22:30:00', $tz);
+        $clockOut = Carbon::parse('2026-03-09 23:30:00', $tz);
         $grossHours = 1.0;
 
         $entry = TimeEntry::create([
@@ -89,8 +89,8 @@ class CalculateWorkHoursTest extends TestCase
 
         // Shift from 21:00 to 22:00 on a weekday — all BEFORE night range starts at 22:00
         $tz = 'America/Bogota';
-        $clockIn = Carbon::parse('2026-03-09 21:00:00', $tz)->utc();
-        $clockOut = Carbon::parse('2026-03-09 22:00:00', $tz)->utc();
+        $clockIn = Carbon::parse('2026-03-09 21:00:00', $tz);
+        $clockOut = Carbon::parse('2026-03-09 22:00:00', $tz);
         $grossHours = 1.0;
 
         $entry = TimeEntry::create([
@@ -115,8 +115,8 @@ class CalculateWorkHoursTest extends TestCase
     {
         // Default: 21:00–06:00. Shift 21:00–22:00 should be all night.
         $tz = 'America/Bogota';
-        $clockIn = Carbon::parse('2026-03-09 21:00:00', $tz)->utc();
-        $clockOut = Carbon::parse('2026-03-09 22:00:00', $tz)->utc();
+        $clockIn = Carbon::parse('2026-03-09 21:00:00', $tz);
+        $clockOut = Carbon::parse('2026-03-09 22:00:00', $tz);
 
         $entry = TimeEntry::create([
             'employee_id' => $this->employee->id,

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Company\Models\Company;
 use App\Domain\Employee\Models\Employee;
+use App\Domain\Organization\Models\Department;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -106,6 +107,52 @@ class EmployeeControllerTest extends TestCase
     public function test_admin_can_access_employee_index(): void
     {
         $response = $this->actingAs($this->adminUser)->get(route('employees.index'));
+
+        $response->assertOk();
+    }
+
+    public function test_index_rejects_invalid_status(): void
+    {
+        $response = $this->actingAs($this->adminUser)->get(route('employees.index', ['status' => 'banned']));
+
+        $response->assertSessionHasErrors(['status']);
+    }
+
+    public function test_index_rejects_search_exceeding_max_length(): void
+    {
+        $response = $this->actingAs($this->adminUser)->get(route('employees.index', ['search' => str_repeat('a', 101)]));
+
+        $response->assertSessionHasErrors(['search']);
+    }
+
+    public function test_index_rejects_department_from_another_company(): void
+    {
+        $otherCompany = Company::create(['name' => 'Other', 'slug' => 'other']);
+        $otherDept = Department::withoutGlobalScopes()->create(['name' => 'Other Dept', 'company_id' => $otherCompany->id]);
+
+        $response = $this->actingAs($this->adminUser)->get(route('employees.index', ['department' => $otherDept->id]));
+
+        $response->assertSessionHasErrors(['department']);
+    }
+
+    public function test_index_accepts_valid_department_from_same_company(): void
+    {
+        $dept = Department::withoutGlobalScopes()->create(['name' => 'Engineering', 'company_id' => $this->company->id]);
+
+        $response = $this->actingAs($this->adminUser)->get(route('employees.index', ['department' => $dept->id]));
+
+        $response->assertOk();
+    }
+
+    public function test_super_admin_index_accepts_any_department(): void
+    {
+        $superAdmin = User::factory()->create(['company_id' => null]);
+        $superAdmin->assignRole('super-admin');
+
+        $otherCompany = Company::create(['name' => 'Other', 'slug' => 'other']);
+        $dept = Department::withoutGlobalScopes()->create(['name' => 'Finance', 'company_id' => $otherCompany->id]);
+
+        $response = $this->actingAs($superAdmin)->get(route('employees.index', ['department' => $dept->id]));
 
         $response->assertOk();
     }

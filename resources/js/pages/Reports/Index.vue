@@ -30,7 +30,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const dateFilter = ref({ date_range: 'month' as const });
 const selectedEmployee = ref('');
-const selectedDepartment = ref('');
+const selectedDepartment = ref('all');
 
 function goToEmployeeReport() {
     if (!selectedEmployee.value) return;
@@ -47,7 +47,7 @@ function goToCompanyReport() {
         date_range: dateFilter.value.date_range,
         start_date: dateFilter.value.start_date,
         end_date: dateFilter.value.end_date,
-        department_id: selectedDepartment.value || undefined,
+        department_id: selectedDepartment.value !== 'all' ? selectedDepartment.value : undefined,
     });
 }
 </script>
@@ -129,7 +129,7 @@ function goToCompanyReport() {
                                     <SelectValue :placeholder="t('reports.all_departments')" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">{{ t('reports.all_departments') }}</SelectItem>
+                                    <SelectItem value="all">{{ t('reports.all_departments') }}</SelectItem>
                                     <SelectItem
                                         v-for="dept in departments"
                                         :key="dept.id"

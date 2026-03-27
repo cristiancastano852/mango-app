@@ -18,6 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { formatDecimalHours } from '@/lib/utils';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem, PaginatedData } from '@/types';
@@ -138,7 +139,7 @@ function statusVariant(status: string) {
                             </div>
 
                             <div class="hidden text-sm font-medium sm:block">
-                                {{ entry.net_hours }}h
+                                {{ formatDecimalHours(entry.net_hours) }}
                             </div>
 
                             <Badge :variant="statusVariant(entry.status)" class="shrink-0 text-xs">

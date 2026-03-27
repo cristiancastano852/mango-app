@@ -11,6 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { formatDecimalHours } from '@/lib/utils';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import { index as calendarIndex } from '@/routes/calendar';
@@ -190,7 +191,7 @@ const dayHeaders = computed(() => [
                                     <span v-if="selectedEmployee === 'all'" class="font-medium">
                                         {{ entry.employee_name.split(' ')[0] }}
                                     </span>
-                                    {{ entry.net_hours > 0 ? t('calendar.hours', { h: entry.net_hours }) : '' }}
+                                    {{ entry.net_hours > 0 ? formatDecimalHours(entry.net_hours) : '' }}
                                 </div>
                             </div>
                         </div>
