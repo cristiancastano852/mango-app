@@ -13,6 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { formatDecimalHours } from '@/lib/utils';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import DateRangeFilter from './partials/DateRangeFilter.vue';
@@ -254,7 +255,7 @@ onMounted(async () => {
                             <Clock class="text-muted-foreground size-4" />
                         </CardHeader>
                         <CardContent>
-                            <div class="text-3xl font-bold">{{ report.totals.net_hours }}h</div>
+                            <div class="text-3xl font-bold">{{ formatDecimalHours(report.totals.net_hours) }}</div>
                         </CardContent>
                     </Card>
                     <Card>
@@ -326,7 +327,7 @@ onMounted(async () => {
                                             {{ emp.department || '-' }}
                                         </td>
                                         <td class="py-2.5 text-right">{{ emp.days_worked }}</td>
-                                        <td class="py-2.5 text-right font-medium">{{ emp.net_hours }}h</td>
+                                        <td class="py-2.5 text-right font-medium">{{ formatDecimalHours(emp.net_hours) }}</td>
                                         <td class="py-2.5 text-right">{{ formatCurrency(emp.cost) }}</td>
                                     </tr>
                                 </tbody>
@@ -334,7 +335,7 @@ onMounted(async () => {
                                     <tr class="border-t font-semibold">
                                         <td class="pt-2" colspan="3">{{ t('reports.costs.total') }}</td>
                                         <td class="pt-2 text-right">{{ report.totals.total_days_worked }}</td>
-                                        <td class="pt-2 text-right">{{ report.totals.net_hours }}h</td>
+                                        <td class="pt-2 text-right">{{ formatDecimalHours(report.totals.net_hours) }}</td>
                                         <td class="pt-2 text-right">{{ formatCurrency(report.cost_summary.total) }}</td>
                                     </tr>
                                 </tfoot>

@@ -23,6 +23,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { formatDecimalHours } from '@/lib/utils';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
@@ -189,9 +190,9 @@ function deltaSign(delta: number) {
                         <Clock class="text-muted-foreground size-4" />
                     </CardHeader>
                     <CardContent>
-                        <div class="text-3xl font-bold">{{ kpis.net_hours_today }}h</div>
+                        <div class="text-3xl font-bold">{{ formatDecimalHours(kpis.net_hours_today) }}</div>
                         <p class="text-muted-foreground mt-1 text-xs">
-                            {{ t('dashboard.kpi.avg_per_employee') }}: {{ kpis.avg_net_hours }}h
+                            {{ t('dashboard.kpi.avg_per_employee') }}: {{ formatDecimalHours(kpis.avg_net_hours) }}
                         </p>
                     </CardContent>
                 </Card>
@@ -258,7 +259,7 @@ function deltaSign(delta: number) {
 
                                 <!-- Net hours -->
                                 <div class="hidden text-right text-sm font-medium sm:block">
-                                    <span v-if="emp.net_hours_today > 0">{{ emp.net_hours_today }}h</span>
+                                    <span v-if="emp.net_hours_today > 0">{{ formatDecimalHours(emp.net_hours_today) }}</span>
                                     <span v-else class="text-muted-foreground">—</span>
                                 </div>
 

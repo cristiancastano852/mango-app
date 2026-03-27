@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { formatDecimalHours } from '@/lib/utils';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem, BreakType, Employee, TimeEntry } from '@/types';
 
@@ -294,17 +295,17 @@ function endBreak() {
                     <CardContent class="grid gap-3 text-sm">
                         <div class="flex justify-between">
                             <span class="text-muted-foreground">{{ t('time_clock.gross_hours') }}</span>
-                            <span class="font-medium">{{ Number(todayEntry.gross_hours).toFixed(1) }}h</span>
+                            <span class="font-medium">{{ formatDecimalHours(todayEntry.gross_hours) }}</span>
                         </div>
                         <Separator />
                         <div class="flex justify-between">
                             <span class="text-muted-foreground">{{ t('time_clock.break_time_unpaid') }}</span>
-                            <span class="font-medium">{{ Number(todayEntry.break_hours).toFixed(1) }}h</span>
+                            <span class="font-medium">{{ formatDecimalHours(todayEntry.break_hours) }}</span>
                         </div>
                         <Separator />
                         <div class="flex justify-between text-base font-semibold">
                             <span>{{ t('time_clock.net_hours') }}</span>
-                            <span>{{ Number(todayEntry.net_hours).toFixed(1) }}h</span>
+                            <span>{{ formatDecimalHours(todayEntry.net_hours) }}</span>
                         </div>
                     </CardContent>
                 </Card>
@@ -328,7 +329,7 @@ function endBreak() {
                                     {{ formatTime(entry.clock_in) }} — {{ formatTime(entry.clock_out) }}
                                 </span>
                                 <Badge variant="outline" class="font-mono">
-                                    {{ Number(entry.net_hours).toFixed(1) }}h
+                                    {{ formatDecimalHours(entry.net_hours) }}
                                 </Badge>
                             </div>
                         </div>
