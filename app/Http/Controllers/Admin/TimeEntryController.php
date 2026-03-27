@@ -22,7 +22,18 @@ class TimeEntryController extends Controller
             ->orderByDesc('date')
             ->orderByDesc('clock_in')
             ->paginate(20)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(fn (TimeEntry $entry) => [
+                'id' => $entry->id,
+                'date' => $entry->date,
+                'clock_in' => $entry->clock_in?->format('H:i'),
+                'clock_out' => $entry->clock_out?->format('H:i'),
+                'net_hours' => $entry->net_hours,
+                'status' => $entry->status,
+                'edit_reason' => $entry->edit_reason,
+                'employee' => $entry->employee,
+                'edited_by' => $entry->editedBy,
+            ]);
 
         return Inertia::render('Admin/TimeEntries/Index', [
             'entries' => $entries,
@@ -39,7 +50,20 @@ class TimeEntryController extends Controller
         $timeEntry->load(['employee.user', 'editedBy']);
 
         return Inertia::render('Admin/TimeEntries/Edit', [
-            'entry' => $timeEntry,
+            'entry' => [
+                'id' => $timeEntry->id,
+                'date' => $timeEntry->date,
+                'clock_in' => $timeEntry->clock_in?->format('Y-m-d\TH:i'),
+                'clock_out' => $timeEntry->clock_out?->format('Y-m-d\TH:i'),
+                'net_hours' => $timeEntry->net_hours,
+                'regular_hours' => $timeEntry->regular_hours,
+                'overtime_hours' => $timeEntry->overtime_hours,
+                'night_hours' => $timeEntry->night_hours,
+                'sunday_holiday_hours' => $timeEntry->sunday_holiday_hours,
+                'status' => $timeEntry->status,
+                'edit_reason' => $timeEntry->edit_reason,
+                'employee' => $timeEntry->employee,
+            ],
         ]);
     }
 
