@@ -28,7 +28,7 @@ Leer CLAUDE.md para reglas de framework (PHP, Laravel, testing, Inertia, Tailwin
 - Timezone: `America/Bogota`
 - Recargo nocturno: configurable por empresa (default 21:00–06:00)
 - Recargo dominical/festivo: detección por minuto usando tabla `holidays`
-- Overtime: límite semanal de `SurchargeRule.max_weekly_hours` (default 42h, semana ISO lun-dom)
+- Overtime: doble trigger — límite diario (`SurchargeRule.max_daily_hours`, default 8h) O límite semanal (`SurchargeRule.max_weekly_hours`, default 42h, semana ISO lun-dom), lo que llegue primero. Sin doble cobro: un minuto ya clasificado como overtime no cuenta para ambos triggers.
 - `CalculateWorkHours`: clasificación minuto a minuto en regular/night/sunday_holiday/overtime
 
 ## Specs de referencia del proyecto

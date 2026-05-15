@@ -238,6 +238,116 @@ class WorkHourCalculationTest extends TestCase
         $this->assertEquals(8.00, (float) $result->sunday_holiday_hours);
     }
 
+    public function test_daily_limit_triggers_overtime_independent_of_weekly(): void
+    {
+        // Monday 08:00–18:00 = 10h net, weekly total stays at 10h (far below 42h limit)
+        // Daily limit default = 8h → first 8h regular, last 2h overtime
+        $entry = $this->createEntry('2026-03-02 08:00', '2026-03-02 18:00');
+
+        $result = app(CalculateWorkHours::class)->execute($entry);
+
+        $this->assertEquals(8.00, (float) $result->regular_hours);
+        $this->assertEquals(0.00, (float) $result->night_hours);
+        $this->assertEquals(0.00, (float) $result->sunday_holiday_hours);
+        $this->assertEquals(2.00, (float) $result->overtime_hours);
+    }
+
+    public function test_weekly_limit_triggers_overtime_when_daily_not_exceeded(): void
+    {
+        // Mon–Sun: 7h/day × 6 days = 42h prior (hits weekly limit exactly)
+        // Sunday 7th day: any hours should be overtime (weekly exhausted)
+        $this->rules->update(['max_weekly_hours' => 42, 'max_daily_hours' => 8]);
+
+        foreach (['2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05', '2026-03-06', '2026-03-07'] as $date) {
+            TimeEntry::create([
+                'employee_id' => $this->employee->id,
+                'company_id' => $this->company->id,
+                'date' => $date,
+                'clock_in' => Carbon::parse("{$date} 08:00", 'America/Bogota')->utc(),
+                'clock_out' => Carbon::parse("{$date} 15:00", 'America/Bogota')->utc(),
+                'gross_hours' => 7,
+                'break_hours' => 0,
+                'net_hours' => 7,
+            ]);
+        }
+
+        // Sunday 2026-03-08: 7h shift, weekly already at 42h → all overtime
+        $entry = $this->createEntry('2026-03-08 08:00', '2026-03-08 15:00');
+
+        $result = app(CalculateWorkHours::class)->execute($entry);
+
+        $this->assertEquals(0.00, (float) $result->regular_hours);
+        $this->assertEquals(7.00, (float) $result->overtime_hours);
+    }
+
+    public function test_no_double_overtime_when_both_limits_are_hit(): void
+    {
+        // Prior weekly: 40h (Mon-Thu, 10h each). Prior daily for Friday: 0.
+        // Friday shift 08:00-14:00 = 6h: weekly triggers at 2h, daily limit is 8h (never hit).
+        // Total overtime = 4h (not 6h).
+        $this->rules->update(['max_weekly_hours' => 42, 'max_daily_hours' => 8]);
+
+        foreach (['2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05'] as $date) {
+            TimeEntry::create([
+                'employee_id' => $this->employee->id,
+                'company_id' => $this->company->id,
+                'date' => $date,
+                'clock_in' => Carbon::parse("{$date} 08:00", 'America/Bogota')->utc(),
+                'clock_out' => Carbon::parse("{$date} 18:00", 'America/Bogota')->utc(),
+                'gross_hours' => 10,
+                'break_hours' => 0,
+                'net_hours' => 10,
+            ]);
+        }
+
+        $entry = $this->createEntry('2026-03-06 08:00', '2026-03-06 14:00');
+
+        $result = app(CalculateWorkHours::class)->execute($entry);
+
+        $this->assertEquals(2.00, (float) $result->regular_hours);
+        $this->assertEquals(4.00, (float) $result->overtime_hours);
+        // Sanity: total classified equals net_hours
+        $total = (float) $result->regular_hours + (float) $result->overtime_hours;
+        $this->assertEquals(6.00, $total);
+    }
+
+    public function test_midnight_crossing_shift_resets_daily_counter(): void
+    {
+        // Shift: Monday 22:00 – Tuesday 10:00 (12h net), max_daily_hours = 8
+        // Monday portion: 22:00–00:00 = 2h (all night, daily counter goes 0→2h)
+        // Tuesday portion: 00:00–10:00 = 10h. Counter resets to 0 at midnight.
+        //   Daily limit hit at 08:00 (0+8h). So: 8h night (00:00–06:00 + 06:00–08:00), 2h OT (08:00–10:00)
+        // Net result: 2h night (Mon) + 6h night (Tue pre-dawn) + 2h regular (Tue 06–08) + 2h OT (Tue 08–10)
+        $this->rules->update(['max_daily_hours' => 8, 'max_weekly_hours' => 42]);
+
+        $entry = $this->createEntry('2026-03-02 22:00', '2026-03-03 10:00');
+
+        $result = app(CalculateWorkHours::class)->execute($entry);
+
+        $this->assertEquals(2.00, (float) $result->regular_hours);  // 06:00–08:00 Tue
+        $this->assertEquals(8.00, (float) $result->night_hours);    // 22:00–00:00 Mon + 00:00–06:00 Tue
+        $this->assertEquals(0.00, (float) $result->sunday_holiday_hours);
+        $this->assertEquals(2.00, (float) $result->overtime_hours); // 08:00–10:00 Tue (daily limit hit)
+
+        $total = (float) $result->regular_hours
+            + (float) $result->night_hours
+            + (float) $result->overtime_hours;
+        $this->assertEquals(12.00, $total);
+    }
+
+    public function test_custom_daily_limit_is_respected(): void
+    {
+        // Company configured 10h daily limit. 12h shift → 10h regular + 2h overtime.
+        $this->rules->update(['max_daily_hours' => 10]);
+
+        $entry = $this->createEntry('2026-03-02 06:00', '2026-03-02 18:00');
+
+        $result = app(CalculateWorkHours::class)->execute($entry);
+
+        $this->assertEquals(10.00, (float) $result->regular_hours);
+        $this->assertEquals(2.00, (float) $result->overtime_hours);
+    }
+
     public function test_clock_out_integration_stores_calculated_hours(): void
     {
         Role::firstOrCreate(['name' => 'admin']);

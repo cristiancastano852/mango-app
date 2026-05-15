@@ -26,6 +26,7 @@ class UpdateSurchargeRuleRequest extends FormRequest
             'overtime_night_sunday' => ['required', 'numeric', 'min:0', 'max:999'],
             'night_sunday' => ['required', 'numeric', 'min:0', 'max:999'],
             'max_weekly_hours' => ['required', 'integer', 'min:1', 'max:168'],
+            'max_daily_hours' => ['required', 'integer', 'min:1', 'max:24'],
             'night_start_time' => ['required', 'date_format:H:i'],
             'night_end_time' => ['required', 'date_format:H:i'],
         ];
@@ -47,6 +48,10 @@ class UpdateSurchargeRuleRequest extends FormRequest
             'night_start_time.date_format' => 'El inicio del horario nocturno debe tener formato HH:MM (ej: 21:00).',
             'night_end_time.required' => 'El fin del horario nocturno es obligatorio.',
             'night_end_time.date_format' => 'El fin del horario nocturno debe tener formato HH:MM (ej: 06:00).',
+            'max_daily_hours.required' => 'El límite diario de horas ordinarias es obligatorio.',
+            'max_daily_hours.integer' => 'El límite diario debe ser un número entero.',
+            'max_daily_hours.min' => 'El límite diario debe ser al menos 1 hora.',
+            'max_daily_hours.max' => 'El límite diario no puede superar 24 horas.',
             'company_id.in' => 'No puedes modificar la configuración de otra empresa.',
         ];
     }
