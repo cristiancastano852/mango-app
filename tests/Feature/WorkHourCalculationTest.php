@@ -280,11 +280,11 @@ class WorkHourCalculationTest extends TestCase
         $this->assertEquals(7.00, (float) $result->overtime_hours);
     }
 
-    public function test_no_double_overtime_when_both_limits_are_hit(): void
+    public function test_weekly_limit_triggers_before_daily_limit_is_reached(): void
     {
         // Prior weekly: 40h (Mon-Thu, 10h each). Prior daily for Friday: 0.
-        // Friday shift 08:00-14:00 = 6h: weekly triggers at 2h, daily limit is 8h (never hit).
-        // Total overtime = 4h (not 6h).
+        // Friday shift 08:00-14:00 = 6h: weekly triggers at 2h, daily limit 8h is never reached.
+        // Total overtime = 4h (2h regular until weekly exhausted, then 4h OT).
         $this->rules->update(['max_weekly_hours' => 42, 'max_daily_hours' => 8]);
 
         foreach (['2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05'] as $date) {

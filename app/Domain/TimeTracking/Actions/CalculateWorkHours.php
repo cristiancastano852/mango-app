@@ -205,7 +205,6 @@ class CalculateWorkHours
         // Breakpoints diarios: uno por cada día calendario dentro del turno.
         // El cupo diario se reinicia en cada medianoche.
         $currentDayPriorMinutes = $priorDailyNetMinutes;
-        $grossSecondsElapsed = 0.0;
         $day = $clockIn->copy()->startOfDay();
 
         while ($day <= $clockOut) {
