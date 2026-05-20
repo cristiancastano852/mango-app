@@ -21,6 +21,7 @@ type SurchargeRule = {
     overtime_night_sunday: string;
     night_sunday: string;
     max_weekly_hours: number;
+    max_daily_hours: number;
     night_start_time: string;
     night_end_time: string;
 };
@@ -43,6 +44,7 @@ const fields: { name: keyof SurchargeRule; label: string; isInt?: boolean }[] = 
     { name: 'overtime_night_sunday', label: 'Hora extra nocturna dominical (%)' },
     { name: 'night_sunday', label: 'Nocturna dominical (%)' },
     { name: 'max_weekly_hours', label: 'Máx. horas semanales', isInt: true },
+    { name: 'max_daily_hours', label: 'Máx. horas diarias ordinarias', isInt: true },
 ];
 </script>
 
