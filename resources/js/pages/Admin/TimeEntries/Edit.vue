@@ -17,9 +17,13 @@ type TimeEntryFull = {
     clock_out: string | null;
     net_hours: string;
     regular_hours: string;
-    overtime_hours: string;
     night_hours: string;
     sunday_holiday_hours: string;
+    night_sunday_hours: string;
+    overtime_day_hours: string;
+    overtime_night_hours: string;
+    overtime_day_sunday_hours: string;
+    overtime_night_sunday_hours: string;
     status: string;
     edit_reason: string | null;
     employee: {

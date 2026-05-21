@@ -22,7 +22,7 @@ class GenerateEmployeeReport
      *
      * @return array{
      *     employee: array{id: int, name: string, department: ?string, position: ?string, hourly_rate: float},
-     *     totals: array{days_worked: int, gross_hours: float, break_hours: float, net_hours: float, regular_hours: float, overtime_hours: float, night_hours: float, sunday_holiday_hours: float},
+     *     totals: array{days_worked: int, gross_hours: float, break_hours: float, net_hours: float, regular_hours: float, night_hours: float, sunday_holiday_hours: float, night_sunday_hours: float, overtime_day_hours: float, overtime_night_hours: float, overtime_day_sunday_hours: float, overtime_night_sunday_hours: float},
      *     breaks_by_type: array<int, array{name: string, is_paid: bool, icon: string, color: string, total_minutes: float, count: int}>,
      *     daily_breakdown: array,
      *     cost_summary: array,
@@ -48,8 +48,12 @@ class GenerateEmployeeReport
             [
                 'regular_hours' => $totals->total_regular ?? 0,
                 'night_hours' => $totals->total_night ?? 0,
-                'overtime_hours' => $totals->total_overtime ?? 0,
                 'sunday_holiday_hours' => $totals->total_sunday_holiday ?? 0,
+                'night_sunday_hours' => $totals->total_night_sunday ?? 0,
+                'overtime_day_hours' => $totals->total_overtime_day ?? 0,
+                'overtime_night_hours' => $totals->total_overtime_night ?? 0,
+                'overtime_day_sunday_hours' => $totals->total_overtime_day_sunday ?? 0,
+                'overtime_night_sunday_hours' => $totals->total_overtime_night_sunday ?? 0,
             ],
             $rules,
         );
@@ -68,9 +72,13 @@ class GenerateEmployeeReport
                 'break_hours' => round((float) ($totals->total_breaks ?? 0), 2),
                 'net_hours' => round((float) ($totals->total_net ?? 0), 2),
                 'regular_hours' => round((float) ($totals->total_regular ?? 0), 2),
-                'overtime_hours' => round((float) ($totals->total_overtime ?? 0), 2),
                 'night_hours' => round((float) ($totals->total_night ?? 0), 2),
                 'sunday_holiday_hours' => round((float) ($totals->total_sunday_holiday ?? 0), 2),
+                'night_sunday_hours' => round((float) ($totals->total_night_sunday ?? 0), 2),
+                'overtime_day_hours' => round((float) ($totals->total_overtime_day ?? 0), 2),
+                'overtime_night_hours' => round((float) ($totals->total_overtime_night ?? 0), 2),
+                'overtime_day_sunday_hours' => round((float) ($totals->total_overtime_day_sunday ?? 0), 2),
+                'overtime_night_sunday_hours' => round((float) ($totals->total_overtime_night_sunday ?? 0), 2),
             ],
             'breaks_by_type' => $breaksByType,
             'daily_breakdown' => $dailyBreakdown,
@@ -97,9 +105,13 @@ class GenerateEmployeeReport
                 COALESCE(SUM(break_hours), 0) as total_breaks,
                 COALESCE(SUM(net_hours), 0) as total_net,
                 COALESCE(SUM(regular_hours), 0) as total_regular,
-                COALESCE(SUM(overtime_hours), 0) as total_overtime,
                 COALESCE(SUM(night_hours), 0) as total_night,
-                COALESCE(SUM(sunday_holiday_hours), 0) as total_sunday_holiday
+                COALESCE(SUM(sunday_holiday_hours), 0) as total_sunday_holiday,
+                COALESCE(SUM(night_sunday_hours), 0) as total_night_sunday,
+                COALESCE(SUM(overtime_day_hours), 0) as total_overtime_day,
+                COALESCE(SUM(overtime_night_hours), 0) as total_overtime_night,
+                COALESCE(SUM(overtime_day_sunday_hours), 0) as total_overtime_day_sunday,
+                COALESCE(SUM(overtime_night_sunday_hours), 0) as total_overtime_night_sunday
             ')
             ->first();
     }
@@ -143,7 +155,7 @@ class GenerateEmployeeReport
      * Obtiene el desglose diario para gráficas de tendencia.
      * Una query con GROUP BY date, ordenada cronológicamente.
      *
-     * @return array<array{date: string, gross_hours: float, net_hours: float, regular_hours: float, night_hours: float, overtime_hours: float, sunday_holiday_hours: float}>
+     * @return array<array{date: string, gross_hours: float, net_hours: float, regular_hours: float, night_hours: float, sunday_holiday_hours: float, night_sunday_hours: float, overtime_day_hours: float, overtime_night_hours: float, overtime_day_sunday_hours: float, overtime_night_sunday_hours: float}>
      */
     private function getDailyBreakdown(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): array
     {
@@ -159,8 +171,12 @@ class GenerateEmployeeReport
                 SUM(net_hours) as net_hours,
                 SUM(regular_hours) as regular_hours,
                 SUM(night_hours) as night_hours,
-                SUM(overtime_hours) as overtime_hours,
-                SUM(sunday_holiday_hours) as sunday_holiday_hours
+                SUM(sunday_holiday_hours) as sunday_holiday_hours,
+                SUM(night_sunday_hours) as night_sunday_hours,
+                SUM(overtime_day_hours) as overtime_day_hours,
+                SUM(overtime_night_hours) as overtime_night_hours,
+                SUM(overtime_day_sunday_hours) as overtime_day_sunday_hours,
+                SUM(overtime_night_sunday_hours) as overtime_night_sunday_hours
             ')
             ->orderBy('date')
             ->get()
@@ -171,8 +187,12 @@ class GenerateEmployeeReport
                 'net_hours' => round((float) $row->net_hours, 2),
                 'regular_hours' => round((float) $row->regular_hours, 2),
                 'night_hours' => round((float) $row->night_hours, 2),
-                'overtime_hours' => round((float) $row->overtime_hours, 2),
                 'sunday_holiday_hours' => round((float) $row->sunday_holiday_hours, 2),
+                'night_sunday_hours' => round((float) $row->night_sunday_hours, 2),
+                'overtime_day_hours' => round((float) $row->overtime_day_hours, 2),
+                'overtime_night_hours' => round((float) $row->overtime_night_hours, 2),
+                'overtime_day_sunday_hours' => round((float) $row->overtime_day_sunday_hours, 2),
+                'overtime_night_sunday_hours' => round((float) $row->overtime_night_sunday_hours, 2),
             ])
             ->toArray();
     }

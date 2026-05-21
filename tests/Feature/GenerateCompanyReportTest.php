@@ -210,7 +210,7 @@ class GenerateCompanyReportTest extends TestCase
 
     public function test_night_and_overtime_costs_calculated_correctly(): void
     {
-        // emp1: 4h regular + 2h night + 2h overtime = 8h
+        // emp1: 4h regular + 2h night + 2h overtime_day = 8h
         TimeEntry::withoutGlobalScopes()->create([
             'employee_id' => $this->employee1->id,
             'company_id' => $this->company->id,
@@ -222,7 +222,7 @@ class GenerateCompanyReportTest extends TestCase
             'net_hours' => 8.0,
             'regular_hours' => 4.0,
             'night_hours' => 2.0,
-            'overtime_hours' => 2.0,
+            'overtime_day_hours' => 2.0,
             'sunday_holiday_hours' => 0,
             'status' => 'calculated',
         ]);
@@ -235,10 +235,10 @@ class GenerateCompanyReportTest extends TestCase
 
         // regular: 4 × 10000 = 40000
         // night: 2 × 10000 × 1.35 = 27000
-        // overtime: 2 × 10000 × 1.25 = 25000
+        // overtime_day: 2 × 10000 × 1.25 = 25000
         $this->assertEquals(40000.0, $result['cost_summary']['regular']);
         $this->assertEquals(27000.0, $result['cost_summary']['night']);
-        $this->assertEquals(25000.0, $result['cost_summary']['overtime']);
+        $this->assertEquals(25000.0, $result['cost_summary']['overtime_day']);
         $this->assertEquals(92000.0, $result['cost_summary']['total']);
     }
 
@@ -260,7 +260,7 @@ class GenerateCompanyReportTest extends TestCase
             'net_hours' => $netHours,
             'regular_hours' => $regularHours,
             'night_hours' => $nightHours,
-            'overtime_hours' => 0,
+            'overtime_day_hours' => 0,
             'sunday_holiday_hours' => 0,
             'status' => 'calculated',
         ]);

@@ -57,7 +57,7 @@ class TimeEntryController extends Controller
                 'clock_out' => $timeEntry->clock_out?->format('Y-m-d\TH:i'),
                 'net_hours' => $timeEntry->net_hours,
                 'regular_hours' => $timeEntry->regular_hours,
-                'overtime_hours' => $timeEntry->overtime_hours,
+                'overtime_day_hours' => $timeEntry->overtime_day_hours,
                 'night_hours' => $timeEntry->night_hours,
                 'sunday_holiday_hours' => $timeEntry->sunday_holiday_hours,
                 'status' => $timeEntry->status,

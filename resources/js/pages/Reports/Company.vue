@@ -28,8 +28,12 @@ type EmployeeSummary = {
     net_hours: number;
     regular_hours: number;
     night_hours: number;
-    overtime_hours: number;
     sunday_holiday_hours: number;
+    night_sunday_hours: number;
+    overtime_day_hours: number;
+    overtime_night_hours: number;
+    overtime_day_sunday_hours: number;
+    overtime_night_sunday_hours: number;
     cost: number;
 };
 
@@ -47,17 +51,25 @@ type Report = {
         break_hours: number;
         net_hours: number;
         regular_hours: number;
-        overtime_hours: number;
         night_hours: number;
         sunday_holiday_hours: number;
+        night_sunday_hours: number;
+        overtime_day_hours: number;
+        overtime_night_hours: number;
+        overtime_day_sunday_hours: number;
+        overtime_night_sunday_hours: number;
     };
     employees: EmployeeSummary[];
     daily_attendance: DailyAttendance[];
     cost_summary: {
         regular: number;
         night: number;
-        overtime: number;
         sunday_holiday: number;
+        night_sunday: number;
+        overtime_day: number;
+        overtime_night: number;
+        overtime_day_sunday: number;
+        overtime_night_sunday: number;
         total: number;
     };
     period: { start: string; end: string };

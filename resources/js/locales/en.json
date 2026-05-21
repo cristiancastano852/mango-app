@@ -403,15 +403,19 @@
             "total_employees": "Employees",
             "regular_hours": "Regular hours",
             "night_hours": "Night hours",
-            "overtime_hours": "Overtime hours",
+            "overtime_day_hours": "Day overtime hours",
             "sunday_holiday_hours": "Sunday/Holiday hours"
         },
         "hours": {
             "title": "Hours Breakdown",
             "regular": "Regular",
             "night": "Night",
-            "overtime": "Overtime",
-            "sunday_holiday": "Sun/Holiday"
+            "sunday_holiday": "Sun/Holiday",
+            "night_sunday": "Night Sun/Holiday",
+            "overtime_day": "Day Overtime",
+            "overtime_night": "Night Overtime",
+            "overtime_day_sunday": "Sun/Holiday Day OT",
+            "overtime_night_sunday": "Sun/Holiday Night OT"
         },
         "breaks": {
             "title": "Breaks Breakdown",

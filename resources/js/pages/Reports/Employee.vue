@@ -34,8 +34,12 @@ type DailyBreakdown = {
     net_hours: number;
     regular_hours: number;
     night_hours: number;
-    overtime_hours: number;
     sunday_holiday_hours: number;
+    night_sunday_hours: number;
+    overtime_day_hours: number;
+    overtime_night_hours: number;
+    overtime_day_sunday_hours: number;
+    overtime_night_sunday_hours: number;
 };
 
 type CostDetail = {
@@ -60,17 +64,25 @@ type Report = {
         break_hours: number;
         net_hours: number;
         regular_hours: number;
-        overtime_hours: number;
         night_hours: number;
         sunday_holiday_hours: number;
+        night_sunday_hours: number;
+        overtime_day_hours: number;
+        overtime_night_hours: number;
+        overtime_day_sunday_hours: number;
+        overtime_night_sunday_hours: number;
     };
     breaks_by_type: BreakByType[];
     daily_breakdown: DailyBreakdown[];
     cost_summary: {
         regular: number;
         night: number;
-        overtime: number;
         sunday_holiday: number;
+        night_sunday: number;
+        overtime_day: number;
+        overtime_night: number;
+        overtime_day_sunday: number;
+        overtime_night_sunday: number;
         total: number;
         details: CostDetail[];
     };
@@ -143,8 +155,12 @@ function hourTypeLabel(type: string): string {
     const map: Record<string, string> = {
         regular: t('reports.hours.regular'),
         night: t('reports.hours.night'),
-        overtime: t('reports.hours.overtime'),
         sunday_holiday: t('reports.hours.sunday_holiday'),
+        night_sunday: t('reports.hours.night_sunday'),
+        overtime_day: t('reports.hours.overtime_day'),
+        overtime_night: t('reports.hours.overtime_night'),
+        overtime_day_sunday: t('reports.hours.overtime_day_sunday'),
+        overtime_night_sunday: t('reports.hours.overtime_night_sunday'),
     };
     return map[type] || type;
 }
@@ -167,8 +183,12 @@ onMounted(async () => {
             series: [
                 { name: t('reports.hours.regular'), data: props.report.daily_breakdown.map(d => d.regular_hours), color: '#3b82f6' },
                 { name: t('reports.hours.night'), data: props.report.daily_breakdown.map(d => d.night_hours), color: '#6366f1' },
-                { name: t('reports.hours.overtime'), data: props.report.daily_breakdown.map(d => d.overtime_hours), color: '#f59e0b' },
                 { name: t('reports.hours.sunday_holiday'), data: props.report.daily_breakdown.map(d => d.sunday_holiday_hours), color: '#ef4444' },
+                { name: t('reports.hours.night_sunday'), data: props.report.daily_breakdown.map(d => d.night_sunday_hours), color: '#a855f7' },
+                { name: t('reports.hours.overtime_day'), data: props.report.daily_breakdown.map(d => d.overtime_day_hours), color: '#f59e0b' },
+                { name: t('reports.hours.overtime_night'), data: props.report.daily_breakdown.map(d => d.overtime_night_hours), color: '#f97316' },
+                { name: t('reports.hours.overtime_day_sunday'), data: props.report.daily_breakdown.map(d => d.overtime_day_sunday_hours), color: '#ec4899' },
+                { name: t('reports.hours.overtime_night_sunday'), data: props.report.daily_breakdown.map(d => d.overtime_night_sunday_hours), color: '#dc2626' },
             ],
             xaxis: { categories, labels: { style: { fontSize: '11px' } } },
             yaxis: { title: { text: 'h' }, labels: { formatter: (v: number) => `${v}h` } },
@@ -315,7 +335,7 @@ onMounted(async () => {
                     </Card>
                 </div>
 
-                <!-- Hour type mini cards -->
+                <!-- Hour type mini cards (8 types) -->
                 <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
                     <div class="bg-blue-50 dark:bg-blue-950/30 flex items-center gap-3 rounded-lg p-3">
                         <Sun class="size-5 text-blue-500" />
@@ -331,18 +351,46 @@ onMounted(async () => {
                             <div class="text-muted-foreground text-xs">{{ t('reports.hours.night') }}</div>
                         </div>
                     </div>
-                    <div class="bg-amber-50 dark:bg-amber-950/30 flex items-center gap-3 rounded-lg p-3">
-                        <Zap class="size-5 text-amber-500" />
-                        <div>
-                            <div class="text-lg font-semibold">{{ formatDecimalHours(report.totals.overtime_hours) }}</div>
-                            <div class="text-muted-foreground text-xs">{{ t('reports.hours.overtime') }}</div>
-                        </div>
-                    </div>
                     <div class="bg-red-50 dark:bg-red-950/30 flex items-center gap-3 rounded-lg p-3">
                         <Calendar class="size-5 text-red-500" />
                         <div>
                             <div class="text-lg font-semibold">{{ formatDecimalHours(report.totals.sunday_holiday_hours) }}</div>
                             <div class="text-muted-foreground text-xs">{{ t('reports.hours.sunday_holiday') }}</div>
+                        </div>
+                    </div>
+                    <div class="bg-purple-50 dark:bg-purple-950/30 flex items-center gap-3 rounded-lg p-3">
+                        <Moon class="size-5 text-purple-500" />
+                        <div>
+                            <div class="text-lg font-semibold">{{ formatDecimalHours(report.totals.night_sunday_hours) }}</div>
+                            <div class="text-muted-foreground text-xs">{{ t('reports.hours.night_sunday') }}</div>
+                        </div>
+                    </div>
+                    <div class="bg-amber-50 dark:bg-amber-950/30 flex items-center gap-3 rounded-lg p-3">
+                        <Zap class="size-5 text-amber-500" />
+                        <div>
+                            <div class="text-lg font-semibold">{{ formatDecimalHours(report.totals.overtime_day_hours) }}</div>
+                            <div class="text-muted-foreground text-xs">{{ t('reports.hours.overtime_day') }}</div>
+                        </div>
+                    </div>
+                    <div class="bg-orange-50 dark:bg-orange-950/30 flex items-center gap-3 rounded-lg p-3">
+                        <Zap class="size-5 text-orange-500" />
+                        <div>
+                            <div class="text-lg font-semibold">{{ formatDecimalHours(report.totals.overtime_night_hours) }}</div>
+                            <div class="text-muted-foreground text-xs">{{ t('reports.hours.overtime_night') }}</div>
+                        </div>
+                    </div>
+                    <div class="bg-pink-50 dark:bg-pink-950/30 flex items-center gap-3 rounded-lg p-3">
+                        <Zap class="size-5 text-pink-500" />
+                        <div>
+                            <div class="text-lg font-semibold">{{ formatDecimalHours(report.totals.overtime_day_sunday_hours) }}</div>
+                            <div class="text-muted-foreground text-xs">{{ t('reports.hours.overtime_day_sunday') }}</div>
+                        </div>
+                    </div>
+                    <div class="bg-rose-50 dark:bg-rose-950/30 flex items-center gap-3 rounded-lg p-3">
+                        <Zap class="size-5 text-rose-600" />
+                        <div>
+                            <div class="text-lg font-semibold">{{ formatDecimalHours(report.totals.overtime_night_sunday_hours) }}</div>
+                            <div class="text-muted-foreground text-xs">{{ t('reports.hours.overtime_night_sunday') }}</div>
                         </div>
                     </div>
                 </div>

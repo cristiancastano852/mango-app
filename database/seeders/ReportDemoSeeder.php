@@ -14,12 +14,14 @@ use Illuminate\Database\Seeder;
 class ReportDemoSeeder extends Seeder
 {
     /**
-     * Genera datos de asistencia del último mes para 3 empleados.
+         * Genera datos de asistencia del último mes para los 5 empleados demo.
      *
-     * Perfiles:
-     *   - María García (Chef, turno mañana 07:00-15:00): horario regular, pocas extras
-     *   - Ana López (Mesera, turno tarde 14:00-22:00): tiene horas nocturnas (21:00-22:00)
-     *   - Pedro Martínez (Mesero, turno tarde): extras los fines de semana, horas dominicales
+     * Perfiles y tipos de hora que ejercitan:
+     *   - María García  (Chef, turno mañana)    → ordinaria
+     *   - Ana López     (Mesera, turno tarde)    → ordinaria + nocturna
+     *   - Pedro Martínez(Mesero, turno tarde)    → ordinaria + nocturna + dominical diurna
+     *   - Juan Pérez    (Cocinero, jornadas largas) → ordinaria + extra_diurna + extra_nocturna
+     *   - Laura Rodríguez(Cajera, domingos extendidos) → dominical + noc_dominical + extra_dom_diurna + extra_dom_nocturna
      */
     public function run(): void
     {
@@ -29,24 +31,26 @@ class ReportDemoSeeder extends Seeder
                 'maria@elmango.co',
                 'ana@elmango.co',
                 'pedro@elmango.co',
+                'juan@elmango.co',
+                'laura@elmango.co',
             ]))
             ->get()
             ->keyBy(fn ($e) => $e->user->email);
 
-        if ($employees->count() < 3) {
+        if ($employees->count() < 5) {
             $this->command->error('Ejecuta DemoSeeder primero: php artisan db:seed --class=DemoSeeder');
 
             return;
         }
 
-        // Asignar tarifas por hora
         $employees['maria@elmango.co']->update(['hourly_rate' => 15000]);
         $employees['ana@elmango.co']->update(['hourly_rate' => 10000]);
         $employees['pedro@elmango.co']->update(['hourly_rate' => 10000]);
+        $employees['juan@elmango.co']->update(['hourly_rate' => 12000]);
+        $employees['laura@elmango.co']->update(['hourly_rate' => 11000]);
 
         $companyId = $employees['maria@elmango.co']->company_id;
 
-        // Obtener break types
         $breakTypes = BreakType::withoutGlobalScopes()
             ->where('company_id', $companyId)
             ->get()
@@ -59,41 +63,26 @@ class ReportDemoSeeder extends Seeder
 
         $this->command->info("Generando entries desde {$startDate->toDateString()} hasta {$endDate->toDateString()}...");
 
-        // --- María: turno mañana regular, lun-sáb ---
-        $maria = $employees['maria@elmango.co'];
-        $this->generateEntries(
-            employee: $maria,
-            companyId: $companyId,
-            startDate: $startDate->copy(),
-            endDate: $endDate->copy(),
-            profile: 'morning_regular',
-            breakTypes: $breakTypes,
-            calculator: $calculator,
-        );
+        $profiles = [
+            // Tipo de hora principal que ejercita cada perfil
+            'maria@elmango.co' => 'morning_regular',     // ordinaria
+            'ana@elmango.co' => 'afternoon_night',      // ordinaria + nocturna
+            'pedro@elmango.co' => 'weekend_overtime',     // ordinaria + nocturna + dominical_diurna
+            'juan@elmango.co' => 'weekday_overtime',     // ordinaria + extra_diurna + extra_nocturna
+            'laura@elmango.co' => 'sunday_extended',      // dominical + noc_dominical + extra_dom_diurna + extra_dom_nocturna
+        ];
 
-        // --- Ana: turno tarde con horas nocturnas ---
-        $ana = $employees['ana@elmango.co'];
-        $this->generateEntries(
-            employee: $ana,
-            companyId: $companyId,
-            startDate: $startDate->copy(),
-            endDate: $endDate->copy(),
-            profile: 'afternoon_night',
-            breakTypes: $breakTypes,
-            calculator: $calculator,
-        );
-
-        // --- Pedro: turno tarde + extras fines de semana ---
-        $pedro = $employees['pedro@elmango.co'];
-        $this->generateEntries(
-            employee: $pedro,
-            companyId: $companyId,
-            startDate: $startDate->copy(),
-            endDate: $endDate->copy(),
-            profile: 'weekend_overtime',
-            breakTypes: $breakTypes,
-            calculator: $calculator,
-        );
+        foreach ($profiles as $email => $profile) {
+            $this->generateEntries(
+                employee: $employees[$email],
+                companyId: $companyId,
+                startDate: $startDate->copy(),
+                endDate: $endDate->copy(),
+                profile: $profile,
+                breakTypes: $breakTypes,
+                calculator: $calculator,
+            );
+        }
 
         $totalEntries = TimeEntry::withoutGlobalScopes()->where('company_id', $companyId)->count();
         $this->command->info("Listo! {$totalEntries} time entries creados.");
@@ -113,9 +102,7 @@ class ReportDemoSeeder extends Seeder
         $count = 0;
 
         while ($date <= $end) {
-            $shouldWork = $this->shouldWorkThisDay($date, $profile, $employee);
-
-            if ($shouldWork) {
+            if ($this->shouldWorkThisDay($date, $profile)) {
                 $entry = $this->createDayEntry($employee, $companyId, $date, $profile, $breakTypes);
                 if ($entry) {
                     $calculator->execute($entry);
@@ -126,20 +113,24 @@ class ReportDemoSeeder extends Seeder
             $date->addDay();
         }
 
-        $this->command->info("  {$employee->user->name}: {$count} días trabajados");
+        $this->command->info("  {$employee->user->name} [{$profile}]: {$count} días trabajados");
     }
 
-    private function shouldWorkThisDay(Carbon $date, string $profile, Employee $employee): bool
+    private function shouldWorkThisDay(Carbon $date, string $profile): bool
     {
-        $dow = $date->dayOfWeek; // 0=dom, 6=sáb
+        $dow = $date->dayOfWeek; // 0=dom, 1=lun … 6=sáb
 
         return match ($profile) {
-            // María: lun-sáb, descansa domingos, falta aleatoriamente 2 días/mes
+            // María: lun-sáb, descansa domingos, falta ~7% de días
             'morning_regular' => $dow !== Carbon::SUNDAY && rand(1, 100) > 7,
             // Ana: lun-sáb, descansa domingos
             'afternoon_night' => $dow !== Carbon::SUNDAY && rand(1, 100) > 5,
-            // Pedro: lun-dom (trabaja domingos!), descansa miércoles
+            // Pedro: lun-dom excepto miércoles (trabaja domingos)
             'weekend_overtime' => $dow !== Carbon::WEDNESDAY && rand(1, 100) > 5,
+            // Juan: lun-vie, jornadas largas que generan extras
+            'weekday_overtime' => $dow >= Carbon::MONDAY && $dow <= Carbon::FRIDAY && rand(1, 100) > 5,
+            // Laura: lun-jue + domingos (4 días semana para no agotar límite semanal antes del domingo)
+            'sunday_extended' => ($dow >= Carbon::MONDAY && $dow <= Carbon::THURSDAY) || $dow === Carbon::SUNDAY,
         };
     }
 
@@ -150,7 +141,6 @@ class ReportDemoSeeder extends Seeder
         string $profile,
         $breakTypes,
     ): ?TimeEntry {
-        // Evitar duplicados
         $exists = TimeEntry::withoutGlobalScopes()
             ->where('employee_id', $employee->id)
             ->whereDate('date', $date->toDateString())
@@ -162,12 +152,10 @@ class ReportDemoSeeder extends Seeder
 
         [$clockInTime, $clockOutTime, $breakMinutes] = $this->getScheduleForDay($date, $profile);
 
-        // Crear tiempos en zona horaria Colombia y convertir a UTC para storage
         $tz = 'America/Bogota';
         $clockIn = Carbon::parse($date->toDateString().' '.$clockInTime, $tz)->setTimezone('UTC');
         $clockOut = Carbon::parse($date->toDateString().' '.$clockOutTime, $tz)->setTimezone('UTC');
 
-        // Si clock_out cruza medianoche (ej: sale a las 23:30 COT)
         if ($clockOut <= $clockIn) {
             $clockOut->addDay();
         }
@@ -188,62 +176,97 @@ class ReportDemoSeeder extends Seeder
             'net_hours' => $netHours,
             'regular_hours' => 0,
             'night_hours' => 0,
-            'overtime_hours' => 0,
             'sunday_holiday_hours' => 0,
+            'night_sunday_hours' => 0,
+            'overtime_day_hours' => 0,
+            'overtime_night_hours' => 0,
+            'overtime_day_sunday_hours' => 0,
+            'overtime_night_sunday_hours' => 0,
             'status' => 'pending',
             'pin_verified' => true,
         ]);
 
-        // Crear registros de breaks
         $this->createBreaks($entry, $employee, $companyId, $clockIn, $breakMinutes, $breakTypes, $profile);
 
         return $entry;
     }
 
     /**
-     * Retorna [clock_in, clock_out, break_minutes] según el perfil y día.
-     * Agrega variación realista: llegar un poco antes/después, quedarse extra.
+     * Retorna [clock_in_str, clock_out_str, break_minutes] según perfil y día.
+     *
+     * Tipos de hora que genera cada perfil:
+     *   morning_regular  → ordinaria (sin extras)
+     *   afternoon_night  → ordinaria + nocturna (22:00-23:00)
+     *   weekend_overtime → ordinaria + nocturna + dominical_diurna (domingos 10:00-18:00)
+     *   weekday_overtime → ordinaria + [extra_diurna] + [extra_nocturna]
+     *   sunday_extended  → dominical_diurna + [noc_dominical|extra_dom_diurna + extra_dom_nocturna]
      *
      * @return array{string, string, int}
      */
     private function getScheduleForDay(Carbon $date, string $profile): array
     {
         $dow = $date->dayOfWeek;
-        $variance = rand(-10, 15); // Minutos de variación en llegada
+        $jitter = rand(-10, 15);
 
         return match ($profile) {
-            // María: 07:00-15:00, a veces se queda hasta 15:30-16:00
-            'morning_regular' => [
-                $this->addMinutesToTime('07:00', $variance),
-                $this->addMinutesToTime('15:00', rand(0, 30) > 20 ? rand(15, 60) : rand(0, 10)),
-                60, // 1h almuerzo
-            ],
 
-            // Ana: 14:00-22:00, a veces hasta 22:30-23:00 (más horas nocturnas)
-            'afternoon_night' => [
-                $this->addMinutesToTime('14:00', $variance),
-                $this->addMinutesToTime('22:00', rand(0, 100) > 40 ? rand(15, 60) : rand(0, 10)),
+            // María: 07:00–15:00, rara vez se queda hasta 15:30
+            'morning_regular' => [
+                $this->shiftTime('07:00', $jitter),
+                $this->shiftTime('15:00', rand(0, 100) > 80 ? rand(15, 45) : rand(0, 10)),
                 60,
             ],
 
-            // Pedro: 14:00-22:00 entre semana, domingos 10:00-18:00
+            // Ana: 14:00–22:00, 40% de días se queda hasta 22:30-23:00 (nocturnas)
+            'afternoon_night' => [
+                $this->shiftTime('14:00', $jitter),
+                $this->shiftTime('22:00', rand(0, 100) > 60 ? rand(20, 60) : rand(0, 10)),
+                60,
+            ],
+
+            // Pedro: semana 14:00-22:30 (nocturnas), domingo 10:00-18:00 (dominical)
             'weekend_overtime' => $dow === Carbon::SUNDAY
-                ? [
-                    $this->addMinutesToTime('10:00', $variance),
-                    $this->addMinutesToTime('18:00', rand(0, 30)),
-                    45,
-                ]
-                : [
-                    $this->addMinutesToTime('14:00', $variance),
-                    $this->addMinutesToTime('22:00', rand(0, 100) > 50 ? rand(20, 90) : rand(0, 15)),
-                    60,
-                ],
+                ? [$this->shiftTime('10:00', $jitter), $this->shiftTime('18:00', rand(0, 30)), 45]
+                : [$this->shiftTime('14:00', $jitter), $this->shiftTime('22:00', rand(20, 60)), 60],
+
+            // Juan: jornadas largas que superan el límite diario de 8h netas
+            //   60% → 06:00-15:00 (8h netas, sin extras)
+            //   30% → 06:00-18:00 (11h netas = 8h ordinaria + 3h extra_diurna)
+            //   10% → 06:00-22:30 (15.5h netas = 8h ordinaria + 7h extra_diurna + 0.5h extra_nocturna)
+            'weekday_overtime' => (function () use ($jitter): array {
+                $roll = rand(1, 100);
+                if ($roll <= 60) {
+                    // Turno normal: ordinaria pura
+                    return [$this->shiftTime('06:00', $jitter), $this->shiftTime('15:00', rand(0, 15)), 60];
+                } elseif ($roll <= 90) {
+                    // Jornada larga: extra_diurna
+                    return [$this->shiftTime('06:00', $jitter), $this->shiftTime('18:00', rand(0, 20)), 60];
+                } else {
+                    // Jornada muy larga: extra_diurna + extra_nocturna (pasa las 21:00 con límite ya agotado)
+                    return [$this->shiftTime('06:00', $jitter), $this->shiftTime('22:30', rand(0, 30)), 60];
+                }
+            })(),
+
+            // Laura:
+            //   Lun-Jue: 08:00-17:00 (8h netas, ordinaria) — acumula 4×8=32h semanales
+            //   Domingo impar: 09:00-23:00 (13h netas = dominical + extra_dom_diurna + extra_dom_nocturna)
+            //                   Aquí el semanal (32+13=45h > 42h) pero el diario (8h) dispara antes.
+            //   Domingo par: 19:00-23:30 (4.5h netas, sin break = noc_dominical pura)
+            //                 Semanal = 32+4.5=36.5h < 42h → sin extras → night_sunday
+            'sunday_extended' => $dow !== Carbon::SUNDAY
+                ? [$this->shiftTime('08:00', $jitter), $this->shiftTime('17:00', rand(0, 20)), 60]
+                : ($date->weekOfYear % 2 === 0
+                    // Domingo par → nocturna dominical pura (19:00-23:30, sin pausa)
+                    ? ['19:00', '23:30', 0]
+                    // Domingo impar → turno largo (dominical + extra dom diurna + extra dom nocturna)
+                    : ['09:00', '23:00', 60]
+                ),
         };
     }
 
-    private function addMinutesToTime(string $time, int $minutes): string
+    private function shiftTime(string $base, int $minutes): string
     {
-        return Carbon::parse($time)->addMinutes($minutes)->format('H:i');
+        return Carbon::parse($base)->addMinutes($minutes)->format('H:i');
     }
 
     private function createBreaks(
@@ -255,14 +278,18 @@ class ReportDemoSeeder extends Seeder
         $breakTypes,
         string $profile,
     ): void {
-        // clockInUtc ya está en UTC, los offsets relativos funcionan igual
-        // Almuerzo (siempre)
+        if ($totalBreakMinutes === 0) {
+            return;
+        }
+
+        // Almuerzo (siempre que haya pausa programada)
         $lunchType = $breakTypes->get('almuerzo');
         if ($lunchType) {
-            $lunchStart = match ($profile) {
-                'morning_regular' => $clockInUtc->copy()->addHours(5)->addMinutes(rand(0, 15)),
-                default => $clockInUtc->copy()->addHours(4)->addMinutes(rand(0, 15)),
+            $hoursUntilLunch = match ($profile) {
+                'morning_regular', 'weekday_overtime', 'sunday_extended' => 4,
+                default => 4,
             };
+            $lunchStart = $clockInUtc->copy()->addHours($hoursUntilLunch)->addMinutes(rand(0, 15));
             $lunchDuration = min($totalBreakMinutes, rand(45, 60));
 
             BreakEntry::withoutGlobalScopes()->create([

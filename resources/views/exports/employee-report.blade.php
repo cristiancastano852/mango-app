@@ -108,10 +108,34 @@
                         <td class="text-right">${{ number_format($report['cost_summary']['night'], 0, ',', '.') }}</td>
                     </tr>
                     <tr>
-                        <td>Extras</td>
-                        <td class="text-right">{{ $report['totals']['overtime_hours'] }}</td>
-                        <td class="text-right">{{ $surcharges['overtime']['surcharge'] ?? 25 }}%</td>
-                        <td class="text-right">${{ number_format($report['cost_summary']['overtime'], 0, ',', '.') }}</td>
+                        <td>Extra Diurnas</td>
+                        <td class="text-right">{{ $report['totals']['overtime_day_hours'] }}</td>
+                        <td class="text-right">{{ $surcharges['overtime_day']['surcharge'] ?? 25 }}%</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['overtime_day'], 0, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Extra Nocturnas</td>
+                        <td class="text-right">{{ $report['totals']['overtime_night_hours'] }}</td>
+                        <td class="text-right">{{ $surcharges['overtime_night']['surcharge'] ?? 75 }}%</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['overtime_night'], 0, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Noc. Dominicales</td>
+                        <td class="text-right">{{ $report['totals']['night_sunday_hours'] }}</td>
+                        <td class="text-right">{{ $surcharges['night_sunday']['surcharge'] ?? 110 }}%</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['night_sunday'], 0, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Extra Dom Diurnas</td>
+                        <td class="text-right">{{ $report['totals']['overtime_day_sunday_hours'] }}</td>
+                        <td class="text-right">{{ $surcharges['overtime_day_sunday']['surcharge'] ?? 100 }}%</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['overtime_day_sunday'], 0, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Extra Dom Nocturnas</td>
+                        <td class="text-right">{{ $report['totals']['overtime_night_sunday_hours'] }}</td>
+                        <td class="text-right">{{ $surcharges['overtime_night_sunday']['surcharge'] ?? 150 }}%</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['overtime_night_sunday'], 0, ',', '.') }}</td>
                     </tr>
                     <tr>
                         <td>Dom/Festivas</td>
@@ -181,7 +205,7 @@
                         <td class="text-right">{{ $day['net_hours'] }}</td>
                         <td class="text-right">{{ $day['regular_hours'] }}</td>
                         <td class="text-right">{{ $day['night_hours'] }}</td>
-                        <td class="text-right">{{ $day['overtime_hours'] }}</td>
+                        <td class="text-right">{{ $day['overtime_day_hours'] }}</td>
                         <td class="text-right">{{ $day['sunday_holiday_hours'] }}</td>
                     </tr>
                     @endforeach
