@@ -129,8 +129,8 @@
                         <th class="text-right">Horas netas</th>
                         <th class="text-right">Ordinarias</th>
                         <th class="text-right">Nocturnas</th>
-                        <th class="text-right">Extras</th>
                         <th class="text-right">Dom/Fest.</th>
+                        <th class="text-right">Extra Diurnas</th>
                         <th class="text-right">Costo</th>
                     </tr>
                 </thead>
@@ -145,8 +145,8 @@
                         <td class="text-right">{{ $emp['net_hours'] }}</td>
                         <td class="text-right">{{ $emp['regular_hours'] }}</td>
                         <td class="text-right">{{ $emp['night_hours'] }}</td>
-                        <td class="text-right">{{ $emp['overtime_day_hours'] }}</td>
                         <td class="text-right">{{ $emp['sunday_holiday_hours'] }}</td>
+                        <td class="text-right">{{ $emp['overtime_day_hours'] }}</td>
                         <td class="text-right">${{ number_format($emp['cost'], 0, ',', '.') }}</td>
                     </tr>
                     @endforeach

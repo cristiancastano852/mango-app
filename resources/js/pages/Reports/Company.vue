@@ -167,20 +167,25 @@ onMounted(async () => {
     // Cost distribution pie
     if (costChartEl.value) {
         const cs = props.report.cost_summary;
-        const costValues = [cs.regular, cs.night, cs.overtime, cs.sunday_holiday].filter(v => v > 0);
-        const costLabels = [
-            t('reports.hours.regular'),
-            t('reports.hours.night'),
-            t('reports.hours.overtime'),
-            t('reports.hours.sunday_holiday'),
-        ].filter((_, i) => [cs.regular, cs.night, cs.overtime, cs.sunday_holiday][i] > 0);
+        const allCosts = [
+            { value: cs.regular, label: t('reports.hours.regular'), color: '#3b82f6' },
+            { value: cs.night, label: t('reports.hours.night'), color: '#6366f1' },
+            { value: cs.sunday_holiday, label: t('reports.hours.sunday_holiday'), color: '#ef4444' },
+            { value: cs.night_sunday, label: t('reports.hours.night_sunday'), color: '#a855f7' },
+            { value: cs.overtime_day, label: t('reports.hours.overtime_day'), color: '#f59e0b' },
+            { value: cs.overtime_night, label: t('reports.hours.overtime_night'), color: '#f97316' },
+            { value: cs.overtime_day_sunday, label: t('reports.hours.overtime_day_sunday'), color: '#ec4899' },
+            { value: cs.overtime_night_sunday, label: t('reports.hours.overtime_night_sunday'), color: '#dc2626' },
+        ].filter(e => e.value > 0);
+        const costValues = allCosts.map(e => e.value);
+        const costLabels = allCosts.map(e => e.label);
 
         if (costValues.length > 0) {
             new ApexCharts(costChartEl.value, {
                 chart: { type: 'donut', height: 280, fontFamily: 'inherit' },
                 series: costValues,
                 labels: costLabels,
-                colors: ['#3b82f6', '#6366f1', '#f59e0b', '#ef4444'],
+                colors: allCosts.map(e => e.color),
                 legend: { position: 'bottom', fontSize: '12px' },
                 tooltip: { y: { formatter: (v: number) => formatCurrency(v) } },
                 plotOptions: { pie: { donut: { size: '55%' } } },

@@ -192,8 +192,8 @@
                         <th class="text-right">Netas</th>
                         <th class="text-right">Ordinarias</th>
                         <th class="text-right">Nocturnas</th>
-                        <th class="text-right">Extras</th>
                         <th class="text-right">Dom/Fest.</th>
+                        <th class="text-right">Extra Diurnas</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -205,8 +205,8 @@
                         <td class="text-right">{{ $day['net_hours'] }}</td>
                         <td class="text-right">{{ $day['regular_hours'] }}</td>
                         <td class="text-right">{{ $day['night_hours'] }}</td>
-                        <td class="text-right">{{ $day['overtime_day_hours'] }}</td>
                         <td class="text-right">{{ $day['sunday_holiday_hours'] }}</td>
+                        <td class="text-right">{{ $day['overtime_day_hours'] }}</td>
                     </tr>
                     @endforeach
                 </tbody>

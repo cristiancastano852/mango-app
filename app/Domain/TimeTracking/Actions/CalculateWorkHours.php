@@ -10,8 +10,9 @@ use Carbon\Carbon;
 class CalculateWorkHours
 {
     /**
-     * Clasifica y distribuye los minutos trabajados en un TimeEntry en 4 tipos de hora:
-     * regular, nocturna, dominical/festiva y extra. Luego actualiza el registro en BD.
+     * Clasifica y distribuye los minutos trabajados en un TimeEntry en 8 tipos de hora
+     * mutuamente excluyentes (semana/dom-fest × diurno/nocturno × dentro-límite/extra).
+     * Luego actualiza el registro en BD.
      *
      * Flujo general:
      *   1. Validar que el turno esté completo (tiene clock_out y horas > 0).
