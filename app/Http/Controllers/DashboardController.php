@@ -16,7 +16,11 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->isCompanyAdmin() && ! $user->isSuperAdmin()) {
+        if ($user->isSuperAdmin()) {
+            return redirect()->route('super-admin.companies.index');
+        }
+
+        if (! $user->isCompanyAdmin()) {
             return redirect()->route('time-clock.index');
         }
 

@@ -38,7 +38,8 @@
         "platform": "Platform",
         "schedules": "Schedules",
         "calendar": "Calendar",
-        "time_entries": "Time Entries"
+        "time_entries": "Time Entries",
+        "companies": "Companies"
     },
     "settings_layout": {
         "title": "Settings",
@@ -547,6 +548,32 @@
             "save": "Save Changes",
             "saving": "Saving...",
             "cancel": "Cancel"
+        }
+    },
+    "super_admin": {
+        "companies": {
+            "title": "Companies",
+            "subtitle": "{count} companies registered on the platform",
+            "count_label": "companies",
+            "empty": "No companies registered yet.",
+            "edit_title": "Edit company — {name}",
+            "info_title": "Company information",
+            "info_description": "Edit the basic data and configuration of this company.",
+            "field_name": "Name",
+            "field_slug": "Slug",
+            "field_slug_help": "Lowercase letters, numbers, and hyphens only. Used in public URLs.",
+            "field_timezone": "Timezone",
+            "field_country": "Country (ISO 2)",
+            "field_plan": "Subscription plan",
+            "field_trial": "Trial ends at",
+            "admins_title": "Administrators",
+            "admins_description": "Users with the admin role assigned to this company.",
+            "admins_empty": "This company has no administrators yet.",
+            "create_admin_title": "Create administrator",
+            "create_admin_description": "Create a new admin user for this company. A password will be generated automatically.",
+            "create_admin_submit": "Create administrator",
+            "admin_created_title": "Administrator created",
+            "admin_created_warning": "Save this password — it will not be shown again."
         }
     }
 }

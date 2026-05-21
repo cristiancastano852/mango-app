@@ -59,15 +59,14 @@ class DashboardControllerTest extends TestCase
         );
     }
 
-    public function test_super_admin_can_view_dashboard(): void
+    public function test_super_admin_is_redirected_to_companies_panel(): void
     {
         $superAdmin = User::factory()->create(['company_id' => null]);
         $superAdmin->assignRole('super-admin');
 
         $response = $this->actingAs($superAdmin)->get(route('dashboard'));
 
-        $response->assertOk();
-        $response->assertInertia(fn ($page) => $page->component('Dashboard'));
+        $response->assertRedirect(route('super-admin.companies.index'));
     }
 
     public function test_employee_is_redirected_to_time_clock(): void

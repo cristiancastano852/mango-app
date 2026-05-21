@@ -22,4 +22,8 @@ return [
     'kiosk_clock_out' => 'Jornada finalizada.',
     'kiosk_break_started' => 'Pausa iniciada.',
     'kiosk_break_ended' => 'Pausa finalizada.',
+    'slug_invalid_format' => 'El slug solo puede contener letras minúsculas, números y guiones.',
+    'slug_already_taken' => 'Este slug ya está en uso por otra empresa.',
+    'company_updated' => 'Empresa actualizada exitosamente.',
+    'admin_user_created' => 'Usuario administrador creado exitosamente.',
 ];
