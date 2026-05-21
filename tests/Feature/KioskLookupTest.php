@@ -1,0 +1,143 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Domain\Company\Models\Company;
+use App\Domain\Employee\Models\Employee;
+use App\Domain\TimeTracking\Models\TimeEntry;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
+use Tests\TestCase;
+
+class KioskLookupTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private Company $company;
+
+    private Employee $employee;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Role::create(['name' => 'employee']);
+
+        $this->company = Company::create([
+            'name' => 'Test Company',
+            'slug' => 'test-company',
+        ]);
+
+        $user = User::factory()->create([
+            'company_id' => $this->company->id,
+            'is_active' => true,
+        ]);
+        $user->assignRole('employee');
+
+        $this->employee = Employee::create([
+            'user_id' => $user->id,
+            'company_id' => $this->company->id,
+            'document_number' => '123456789',
+        ]);
+    }
+
+    public function test_kiosk_index_renders_for_valid_company_slug(): void
+    {
+        $response = $this->get(route('kiosk.index', ['company' => $this->company->slug]));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Kiosk/Index')
+            ->where('company.slug', $this->company->slug)
+            ->where('company.name', $this->company->name)
+        );
+    }
+
+    public function test_kiosk_index_returns_404_for_invalid_slug(): void
+    {
+        $response = $this->get(route('kiosk.index', ['company' => 'no-existe']));
+
+        $response->assertNotFound();
+    }
+
+    public function test_lookup_finds_employee_by_document_number(): void
+    {
+        $response = $this->post(route('kiosk.lookup', ['company' => $this->company->slug]), [
+            'document_number' => '123456789',
+        ]);
+
+        $response->assertRedirect(route('kiosk.index', ['company' => $this->company->slug]));
+
+        $this->assertEquals($this->employee->id, session('kiosk_employee_id'));
+        $this->assertEquals($this->company->id, session('kiosk_company_id'));
+    }
+
+    public function test_lookup_fails_for_nonexistent_document_number(): void
+    {
+        $response = $this->post(route('kiosk.lookup', ['company' => $this->company->slug]), [
+            'document_number' => '999999999',
+        ]);
+
+        $response->assertSessionHasErrors('document_number');
+        $this->assertNull(session('kiosk_employee_id'));
+    }
+
+    public function test_lookup_fails_for_empty_document_number(): void
+    {
+        $response = $this->post(route('kiosk.lookup', ['company' => $this->company->slug]), [
+            'document_number' => '',
+        ]);
+
+        $response->assertSessionHasErrors('document_number');
+    }
+
+    public function test_lookup_does_not_find_employee_from_another_company(): void
+    {
+        $otherCompany = Company::create(['name' => 'Other', 'slug' => 'other-co']);
+        $otherUser = User::factory()->create(['company_id' => $otherCompany->id, 'is_active' => true]);
+        Employee::create([
+            'user_id' => $otherUser->id,
+            'company_id' => $otherCompany->id,
+            'document_number' => '999999999',
+        ]);
+
+        $response = $this->post(route('kiosk.lookup', ['company' => $this->company->slug]), [
+            'document_number' => '999999999',
+        ]);
+
+        $response->assertSessionHasErrors('document_number');
+    }
+
+    public function test_kiosk_index_shows_employee_data_when_session_set(): void
+    {
+        $response = $this->withSession([
+            'kiosk_employee_id' => $this->employee->id,
+            'kiosk_company_id' => $this->company->id,
+        ])->get(route('kiosk.index', ['company' => $this->company->slug]));
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('kioskEmployee.id', $this->employee->id)
+        );
+    }
+
+    public function test_kiosk_index_shows_today_entry_when_exists(): void
+    {
+        TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->toDateString(),
+            'clock_in' => now(),
+            'status' => 'clocked_in',
+        ]);
+
+        $response = $this->withSession([
+            'kiosk_employee_id' => $this->employee->id,
+            'kiosk_company_id' => $this->company->id,
+        ])->get(route('kiosk.index', ['company' => $this->company->slug]));
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('todayEntry.status', 'clocked_in')
+        );
+    }
+}

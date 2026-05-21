@@ -17,4 +17,9 @@ return [
     'schedule_deleted' => 'Turno eliminado exitosamente.',
     'night_start_time' => 'Inicio horario nocturno',
     'night_end_time' => 'Fin horario nocturno',
+    'kiosk_employee_not_found' => 'Número de documento no encontrado.',
+    'kiosk_clock_in' => 'Jornada iniciada.',
+    'kiosk_clock_out' => 'Jornada finalizada.',
+    'kiosk_break_started' => 'Pausa iniciada.',
+    'kiosk_break_ended' => 'Pausa finalizada.',
 ];

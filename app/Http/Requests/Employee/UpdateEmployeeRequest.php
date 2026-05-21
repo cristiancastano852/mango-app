@@ -24,6 +24,7 @@ class UpdateEmployeeRequest extends FormRequest
             'department_id' => ['nullable', 'exists:departments,id'],
             'position_id' => ['nullable', 'exists:positions,id'],
             'employee_code' => ['nullable', 'string', 'max:50'],
+            'document_number' => ['nullable', 'string', 'max:50', Rule::unique('employees')->where('company_id', $this->user()->company_id)->ignore($this->route('employee')->id)],
             'hire_date' => ['nullable', 'date'],
             'hourly_rate' => ['nullable', 'numeric', 'min:0'],
             'salary_type' => ['nullable', 'in:hourly,monthly'],

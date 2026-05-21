@@ -6,6 +6,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CompanyRegistrationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\KioskController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Onboarding\OnboardingBreakTypesController;
 use App\Http\Controllers\Onboarding\OnboardingCompanyController;
@@ -19,6 +20,19 @@ use Illuminate\Support\Facades\Route;
 // Public routes
 Route::get('/', [LandingController::class, 'index'])->name('home');
 Route::get('/pricing', fn () => redirect('/#pricing'))->name('pricing');
+
+// Kiosk (public, no auth required)
+Route::prefix('kiosk/{company:slug}')->name('kiosk.')->group(function () {
+    Route::get('/', [KioskController::class, 'index'])->name('index');
+    Route::post('/reset', [KioskController::class, 'reset'])->name('reset');
+    Route::middleware('throttle:10,1')->group(function () {
+        Route::post('/lookup', [KioskController::class, 'lookup'])->name('lookup');
+        Route::post('/clock-in', [KioskController::class, 'clockIn'])->name('clock-in');
+        Route::post('/clock-out', [KioskController::class, 'clockOut'])->name('clock-out');
+        Route::post('/break/start', [KioskController::class, 'startBreak'])->name('break.start');
+        Route::post('/break/end', [KioskController::class, 'endBreak'])->name('break.end');
+    });
+});
 
 Route::middleware('throttle:60,1')->group(function () {
     Route::get('/register/company', [CompanyRegistrationController::class, 'create'])->name('register.company.create');

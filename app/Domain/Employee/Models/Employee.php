@@ -25,6 +25,7 @@ class Employee extends Model
         'department_id',
         'position_id',
         'employee_code',
+        'document_number',
         'hire_date',
         'hourly_rate',
         'salary_type',

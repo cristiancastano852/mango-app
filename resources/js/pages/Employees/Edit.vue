@@ -33,6 +33,7 @@ const form = useForm({
     department_id: props.employee.department_id ? String(props.employee.department_id) : '',
     position_id: props.employee.position_id ? String(props.employee.position_id) : '',
     employee_code: props.employee.employee_code ?? '',
+    document_number: props.employee.document_number ?? '',
     hire_date: props.employee.hire_date ?? '',
     hourly_rate: props.employee.hourly_rate ?? '',
     salary_type: props.employee.salary_type ?? 'hourly',
