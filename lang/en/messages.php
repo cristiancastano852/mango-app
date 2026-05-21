@@ -22,4 +22,8 @@ return [
     'kiosk_clock_out' => 'Shift ended.',
     'kiosk_break_started' => 'Break started.',
     'kiosk_break_ended' => 'Break ended.',
+    'slug_invalid_format' => 'The slug may only contain lowercase letters, numbers, and hyphens.',
+    'slug_already_taken' => 'This slug is already in use by another company.',
+    'company_updated' => 'Company updated successfully.',
+    'admin_user_created' => 'Admin user created successfully.',
 ];

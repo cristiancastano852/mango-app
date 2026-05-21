@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { CalendarDays, Clock, FileText, LayoutGrid, MapPin, Settings, CreditCard, Sliders, Users } from 'lucide-vue-next';
+import { Building2, CalendarDays, Clock, CreditCard, FileText, LayoutGrid, MapPin, Settings, Sliders, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { index as superAdminCompaniesIndex } from '@/actions/App/Http/Controllers/SuperAdmin/CompanyController';
 import { index as reportsIndex } from '@/actions/App/Http/Controllers/ReportController';
 import { index as schedulesIndex } from '@/actions/App/Http/Controllers/SchedulesController';
 import AppLogo from '@/components/AppLogo.vue';
@@ -25,9 +26,20 @@ import type { NavItem } from '@/types';
 const { t } = useI18n();
 const page = usePage();
 const userRoles = computed(() => (page.props.auth as { user: { roles: string[] } })?.user?.roles ?? []);
-const isAdmin = computed(() => userRoles.value.includes('admin') || userRoles.value.includes('super-admin'));
+const isSuperAdmin = computed(() => userRoles.value.includes('super-admin'));
+const isAdmin = computed(() => userRoles.value.includes('admin') || isSuperAdmin.value);
 
 const mainNavItems = computed<NavItem[]>(() => {
+    if (isSuperAdmin.value) {
+        return [
+            {
+                title: t('nav.companies'),
+                href: superAdminCompaniesIndex(),
+                icon: Building2,
+            },
+        ];
+    }
+
     const items: NavItem[] = [
         {
             title: t('nav.dashboard'),

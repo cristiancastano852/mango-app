@@ -13,6 +13,7 @@ use App\Http\Controllers\Onboarding\OnboardingCompanyController;
 use App\Http\Controllers\Onboarding\OnboardingScheduleController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SchedulesController;
+use App\Http\Controllers\SuperAdmin\CompanyController as SuperAdminCompanyController;
 use App\Http\Controllers\TimeClockController;
 use App\Http\Controllers\TourController;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +38,14 @@ Route::prefix('kiosk/{company:slug}')->name('kiosk.')->group(function () {
 Route::middleware('throttle:60,1')->group(function () {
     Route::get('/register/company', [CompanyRegistrationController::class, 'create'])->name('register.company.create');
     Route::post('/register/company', [CompanyRegistrationController::class, 'store'])->name('register.company.store');
+});
+
+// Super-admin platform management
+Route::middleware(['auth', 'verified', 'role:super-admin'])->prefix('super-admin')->name('super-admin.')->group(function () {
+    Route::get('companies', [SuperAdminCompanyController::class, 'index'])->name('companies.index');
+    Route::get('companies/{company}/edit', [SuperAdminCompanyController::class, 'edit'])->name('companies.edit');
+    Route::put('companies/{company}', [SuperAdminCompanyController::class, 'update'])->name('companies.update');
+    Route::post('companies/{company}/admin-users', [SuperAdminCompanyController::class, 'storeAdminUser'])->name('companies.admin-users.store');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

@@ -38,7 +38,8 @@
         "platform": "Plataforma",
         "schedules": "Turnos",
         "calendar": "Calendario",
-        "time_entries": "Registros"
+        "time_entries": "Registros",
+        "companies": "Empresas"
     },
     "settings_layout": {
         "title": "Configuracion",
@@ -547,6 +548,32 @@
             "save": "Guardar Cambios",
             "saving": "Guardando...",
             "cancel": "Cancelar"
+        }
+    },
+    "super_admin": {
+        "companies": {
+            "title": "Empresas",
+            "subtitle": "{count} empresas registradas en la plataforma",
+            "count_label": "empresas",
+            "empty": "No hay empresas registradas aún.",
+            "edit_title": "Editar empresa — {name}",
+            "info_title": "Información de la empresa",
+            "info_description": "Edita los datos básicos y configuración de esta empresa.",
+            "field_name": "Nombre",
+            "field_slug": "Slug",
+            "field_slug_help": "Solo minúsculas, números y guiones. Usado en URLs públicas.",
+            "field_timezone": "Zona horaria",
+            "field_country": "País (ISO 2)",
+            "field_plan": "Plan de suscripción",
+            "field_trial": "Fin del trial",
+            "admins_title": "Administradores",
+            "admins_description": "Usuarios con rol admin asignados a esta empresa.",
+            "admins_empty": "Esta empresa no tiene administradores aún.",
+            "create_admin_title": "Crear administrador",
+            "create_admin_description": "Crea un nuevo usuario administrador para esta empresa. La contraseña se generará automáticamente.",
+            "create_admin_submit": "Crear administrador",
+            "admin_created_title": "Administrador creado",
+            "admin_created_warning": "Guarda esta contraseña — no volverá a mostrarse."
         }
     }
 }
