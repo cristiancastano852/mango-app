@@ -19,8 +19,8 @@ class UpdateCompanyRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('companies', 'slug')->ignore($companyId)],
             'timezone' => ['required', 'timezone:all'],
-            'country' => ['nullable', 'string', 'size:2'],
-            'subscription_plan' => ['nullable', 'string', 'max:100'],
+            'country' => ['required', 'string', 'size:2'],
+            'subscription_plan' => ['required', 'string', 'max:100'],
             'trial_ends_at' => ['nullable', 'date'],
         ];
     }

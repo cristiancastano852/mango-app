@@ -35,7 +35,7 @@ class CompanyController extends Controller
             ->get();
 
         return Inertia::render('SuperAdmin/Companies/Edit', [
-            'company' => $company,
+            'company' => $company->only('id', 'name', 'slug', 'logo', 'timezone', 'country', 'subscription_plan', 'trial_ends_at', 'onboarding_completed'),
             'admins' => $admins,
         ]);
     }

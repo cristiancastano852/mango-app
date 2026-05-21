@@ -23,7 +23,7 @@ type Props = {
 };
 
 defineProps<Props>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: t('common.dashboard'), href: dashboard() },
@@ -40,7 +40,7 @@ function getInitials(name: string): string {
 }
 
 function formatDate(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString('es-CO', {
+    return new Date(dateStr).toLocaleDateString(locale.value, {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
