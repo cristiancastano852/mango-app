@@ -22,7 +22,7 @@ type Props = {
     companies: Company[];
 };
 
-const props = defineProps<Props>();
+defineProps<Props>();
 const { t } = useI18n();
 
 const breadcrumbs: BreadcrumbItem[] = [
