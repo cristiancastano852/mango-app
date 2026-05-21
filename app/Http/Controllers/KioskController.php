@@ -13,6 +13,7 @@ use App\Domain\TimeTracking\Models\TimeEntry;
 use App\Http\Requests\KioskLookupRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -133,7 +134,12 @@ class KioskController extends Controller
 
     public function startBreak(Request $request, Company $company, StartBreak $action): RedirectResponse
     {
-        $request->validate(['break_type_id' => ['required', 'exists:break_types,id']]);
+        $request->validate([
+            'break_type_id' => [
+                'required',
+                Rule::exists('break_types', 'id')->where('company_id', $company->id)->where('is_active', true),
+            ],
+        ]);
 
         $employee = $this->resolveKioskEmployee($request, $company);
 

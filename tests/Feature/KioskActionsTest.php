@@ -174,4 +174,57 @@ class KioskActionsTest extends TestCase
 
         $response->assertForbidden();
     }
+
+    public function test_start_break_rejects_break_type_from_another_company(): void
+    {
+        TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->toDateString(),
+            'clock_in' => now()->subHour(),
+            'status' => 'clocked_in',
+        ]);
+
+        $otherCompany = Company::create(['name' => 'Other', 'slug' => 'other-co']);
+        $foreignBreakType = BreakType::create([
+            'company_id' => $otherCompany->id,
+            'name' => 'Almuerzo',
+            'slug' => 'almuerzo',
+            'is_active' => true,
+        ]);
+
+        $response = $this->withKioskSession()
+            ->post(route('kiosk.break.start', ['company' => $this->company->slug]), [
+                'break_type_id' => $foreignBreakType->id,
+            ]);
+
+        $response->assertSessionHasErrors('break_type_id');
+        $this->assertDatabaseMissing('breaks', ['employee_id' => $this->employee->id]);
+    }
+
+    public function test_start_break_rejects_inactive_break_type(): void
+    {
+        TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->toDateString(),
+            'clock_in' => now()->subHour(),
+            'status' => 'clocked_in',
+        ]);
+
+        $inactiveBreakType = BreakType::create([
+            'company_id' => $this->company->id,
+            'name' => 'Inactivo',
+            'slug' => 'inactivo',
+            'is_active' => false,
+        ]);
+
+        $response = $this->withKioskSession()
+            ->post(route('kiosk.break.start', ['company' => $this->company->slug]), [
+                'break_type_id' => $inactiveBreakType->id,
+            ]);
+
+        $response->assertSessionHasErrors('break_type_id');
+        $this->assertDatabaseMissing('breaks', ['employee_id' => $this->employee->id]);
+    }
 }

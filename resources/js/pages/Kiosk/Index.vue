@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import KioskLayout from '@/layouts/KioskLayout.vue';
 import KioskController from '@/actions/App/Http/Controllers/KioskController';
 import InputError from '@/components/InputError.vue';
@@ -26,8 +25,6 @@ const props = defineProps<{
     breakTypes: BreakType[];
     kioskAction: KioskAction | null;
 }>();
-
-useI18n();
 
 type Screen = 'document' | 'actions' | 'confirmation';
 
@@ -77,7 +74,7 @@ function resetKiosk() {
         clearInterval(countdownInterval);
         countdownInterval = null;
     }
-    router.post(`/kiosk/${props.company.slug}/reset`);
+    router.post(KioskController.reset(props.company.slug).url);
 }
 
 watch(() => props.kioskAction, (val) => {
