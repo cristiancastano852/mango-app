@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import KioskLayout from '@/layouts/KioskLayout.vue';
 import KioskController from '@/actions/App/Http/Controllers/KioskController';
 import InputError from '@/components/InputError.vue';
+import KioskLayout from '@/layouts/KioskLayout.vue';
 
 defineOptions({ layout: KioskLayout });
 

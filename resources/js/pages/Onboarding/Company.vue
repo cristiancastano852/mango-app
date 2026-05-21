@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import { update } from '@/actions/App/Http/Controllers/Onboarding/OnboardingCompanyController';
 import InputError from '@/components/InputError.vue';
 import OnboardingProgress from '@/components/OnboardingProgress.vue';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import { update } from '@/actions/App/Http/Controllers/Onboarding/OnboardingCompanyController';
 
 defineProps<{
     company: {

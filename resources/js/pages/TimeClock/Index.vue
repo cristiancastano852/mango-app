@@ -7,8 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { formatDecimalHours } from '@/lib/utils';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatDecimalHours } from '@/lib/utils';
 import type { BreadcrumbItem, BreakType, Employee, TimeEntry } from '@/types';
 
 type Props = {
