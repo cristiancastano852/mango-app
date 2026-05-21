@@ -9,6 +9,7 @@ provider:
     XDG_CONFIG_HOME: /tmp
     SQS_QUEUE: !Ref JobsQueue
     QUEUE_FAILED_TABLE: !Ref FailedJobsTable
+    BREF_BINARY_RESPONSES: "1"
 
   iam:
     role:
