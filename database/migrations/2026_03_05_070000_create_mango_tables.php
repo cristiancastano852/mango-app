@@ -46,7 +46,7 @@ return new class extends Migration
             $table->time('start_time');
             $table->time('end_time');
             $table->integer('break_duration')->default(60);
-            $table->jsonb('days_of_week')->default('[1,2,3,4,5]');
+            $table->json('days_of_week')->nullable();
             $table->timestamps();
 
             $table->index('company_id');
