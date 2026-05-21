@@ -232,6 +232,7 @@
             "email": "Email *",
             "phone": "Telefono",
             "employee_code": "Codigo empleado",
+            "document_number": "Número de documento (cédula)",
             "password": "Contraseña (opcional)",
             "password_placeholder": "Dejar vacío para generar automáticamente",
             "show_password": "Mostrar contraseña",
@@ -491,6 +492,39 @@
         "friday": "Viernes",
         "saturday": "Sábado",
         "sunday": "Domingo"
+    },
+    "kiosk": {
+        "head_title": "Kiosko - {company}",
+        "enter_document": "Ingresa tu número de documento",
+        "document_placeholder": "Ej. 1234567890",
+        "continue": "Continuar",
+        "greeting": "¡Hola, {name}!",
+        "status": {
+            "idle": "No has iniciado tu jornada",
+            "working": "Trabajando desde las {time}",
+            "on_break": "En pausa desde las {time}",
+            "done": "Jornada finalizada a las {time}"
+        },
+        "actions": {
+            "clock_in": "Iniciar jornada",
+            "clock_out": "Finalizar jornada",
+            "start_break": "Iniciar pausa",
+            "end_break": "Finalizar pausa"
+        },
+        "confirmation": {
+            "clock_in": "¡Bienvenid@, {name}!",
+            "clock_out": "¡Hasta pronto, {name}!",
+            "break_start": "Disfruta tu descanso, {name}",
+            "break_end": "¡Bienvenid@ de vuelta, {name}!",
+            "time_label": "Registrado a las",
+            "reset": "Nuevo registro",
+            "returning_in": "Regresando en {n}..."
+        },
+        "today": {
+            "entry_time": "Entrada:",
+            "break_active": "Pausa activa:"
+        },
+        "document_number": "Número de documento"
     },
     "time_entries": {
         "breadcrumb": "Registros",

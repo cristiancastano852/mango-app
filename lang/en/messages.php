@@ -17,4 +17,9 @@ return [
     'schedule_deleted' => 'Schedule deleted successfully.',
     'night_start_time' => 'Night start time',
     'night_end_time' => 'Night end time',
+    'kiosk_employee_not_found' => 'Document number not found.',
+    'kiosk_clock_in' => 'Shift started.',
+    'kiosk_clock_out' => 'Shift ended.',
+    'kiosk_break_started' => 'Break started.',
+    'kiosk_break_ended' => 'Break ended.',
 ];

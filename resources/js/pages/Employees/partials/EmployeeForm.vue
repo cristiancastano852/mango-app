@@ -25,6 +25,7 @@ type Props = {
         department_id: string;
         position_id: string;
         employee_code: string;
+        document_number: string;
         hire_date: string;
         hourly_rate: string;
         salary_type: string;
@@ -85,6 +86,11 @@ const filteredPositions = computed(() =>
                 <Label for="employee_code">{{ t('employees.form.employee_code') }}</Label>
                 <Input id="employee_code" v-model="form.employee_code" placeholder="EMP-001" />
                 <InputError :message="form.errors.employee_code" />
+            </div>
+            <div class="space-y-2">
+                <Label for="document_number">{{ t('employees.form.document_number') }}</Label>
+                <Input id="document_number" v-model="form.document_number" placeholder="Ej: 1234567890" />
+                <InputError :message="form.errors.document_number" />
             </div>
             <div v-if="showPassword" class="space-y-2">
                 <Label for="password">{{ t('employees.form.password') }}</Label>

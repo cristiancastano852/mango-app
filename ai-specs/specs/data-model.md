@@ -13,10 +13,11 @@
 ## employees
 - id, user_id → users, company_id → companies
 - department_id (nullable → departments), position_id (nullable → positions)
-- employee_code (nullable), hire_date (date nullable), hourly_rate (decimal 10,2 nullable)
+- employee_code (nullable), document_number (string 50, nullable), hire_date (date nullable), hourly_rate (decimal 10,2 nullable)
 - salary_type (default: hourly), schedule_id (nullable → schedules), location_id (nullable → locations)
 - timestamps
 - indexes: company_id, (company_id, user_id)
+- unique: (document_number, company_id)
 
 ## time_entries
 - id, employee_id → employees, company_id → companies

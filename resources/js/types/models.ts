@@ -52,6 +52,7 @@ export type Employee = {
     department_id: number | null;
     position_id: number | null;
     employee_code: string | null;
+    document_number: string | null;
     hire_date: string | null;
     hourly_rate: string | null;
     salary_type: string;

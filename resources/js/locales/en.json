@@ -232,6 +232,7 @@
             "email": "Email *",
             "phone": "Phone",
             "employee_code": "Employee code",
+            "document_number": "Document number (ID)",
             "password": "Password (optional)",
             "password_placeholder": "Leave empty to auto-generate",
             "show_password": "Show password",
@@ -491,6 +492,39 @@
         "friday": "Friday",
         "saturday": "Saturday",
         "sunday": "Sunday"
+    },
+    "kiosk": {
+        "head_title": "Kiosk - {company}",
+        "enter_document": "Enter your document number",
+        "document_placeholder": "e.g. 1234567890",
+        "continue": "Continue",
+        "greeting": "Hello, {name}!",
+        "status": {
+            "idle": "You haven't started your shift",
+            "working": "Working since {time}",
+            "on_break": "On break since {time}",
+            "done": "Shift ended at {time}"
+        },
+        "actions": {
+            "clock_in": "Start shift",
+            "clock_out": "End shift",
+            "start_break": "Start break",
+            "end_break": "End break"
+        },
+        "confirmation": {
+            "clock_in": "Welcome, {name}!",
+            "clock_out": "See you later, {name}!",
+            "break_start": "Enjoy your break, {name}",
+            "break_end": "Welcome back, {name}!",
+            "time_label": "Recorded at",
+            "reset": "New entry",
+            "returning_in": "Returning in {n}..."
+        },
+        "today": {
+            "entry_time": "Clock in:",
+            "break_active": "Active break:"
+        },
+        "document_number": "Document number"
     },
     "time_entries": {
         "breadcrumb": "Time Entries",
