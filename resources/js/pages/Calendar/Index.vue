@@ -11,8 +11,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatDecimalHours } from '@/lib/utils';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatDecimalHours } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import { index as calendarIndex } from '@/routes/calendar';
 import type { BreadcrumbItem } from '@/types';

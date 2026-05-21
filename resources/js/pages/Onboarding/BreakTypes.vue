@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { update } from '@/actions/App/Http/Controllers/Onboarding/OnboardingBreakTypesController';
 import OnboardingProgress from '@/components/OnboardingProgress.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { update } from '@/actions/App/Http/Controllers/Onboarding/OnboardingBreakTypesController';
-import { ref } from 'vue';
 
 const props = defineProps<{
     breakTypes: {

@@ -18,8 +18,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatDecimalHours } from '@/lib/utils';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatDecimalHours } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem, PaginatedData } from '@/types';
 

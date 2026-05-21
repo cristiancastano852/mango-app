@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { Button } from '@/components/ui/button';
+import { ref } from 'vue';
 import { dismiss } from '@/actions/App/Http/Controllers/TourController';
+import { Button } from '@/components/ui/button';
 
 const props = defineProps<{
     show: boolean;

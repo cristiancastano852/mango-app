@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /* eslint-disable vue/no-mutating-props */
+import { Eye, EyeOff } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Eye, EyeOff } from 'lucide-vue-next';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
