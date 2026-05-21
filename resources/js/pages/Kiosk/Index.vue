@@ -27,7 +27,7 @@ const props = defineProps<{
     kioskAction: KioskAction | null;
 }>();
 
-const { t } = useI18n();
+useI18n();
 
 type Screen = 'document' | 'actions' | 'confirmation';
 
