@@ -14,22 +14,23 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import type { Department, Position, Schedule, Location } from '@/types';
+// TODO: Schedules feature temporarily disabled — restore Schedule import when resuming
+import type { Department, Position, Location } from '@/types';
 
 type Props = {
     form: {
         name: string;
         email: string;
         phone: string;
+        document_number: string;
         password?: string;
         department_id: string;
         position_id: string;
-        employee_code: string;
-        document_number: string;
         hire_date: string;
         hourly_rate: string;
         salary_type: string;
-        schedule_id: string;
+        // TODO: Schedules feature temporarily disabled — restore schedule_id when resuming
+        // schedule_id: string;
         location_id: string;
         is_active?: boolean;
         errors: Record<string, string>;
@@ -37,7 +38,8 @@ type Props = {
     };
     departments: Department[];
     positions: Position[];
-    schedules: Schedule[];
+    // TODO: Schedules feature temporarily disabled — restore schedules prop when resuming
+    // schedules: Schedule[];
     locations: Location[];
     showStatus?: boolean;
     showPassword?: boolean;
@@ -78,23 +80,18 @@ const filteredPositions = computed(() =>
                 <InputError :message="form.errors.email" />
             </div>
             <div class="space-y-2">
+                <Label for="document_number">{{ t('employees.form.document_number') }} *</Label>
+                <Input id="document_number" v-model="form.document_number" placeholder="Ej: 1234567890" required />
+                <InputError :message="form.errors.document_number" />
+            </div>
+            <div class="space-y-2">
                 <Label for="phone">{{ t('employees.form.phone') }}</Label>
                 <Input id="phone" v-model="form.phone" />
                 <InputError :message="form.errors.phone" />
             </div>
-            <div class="space-y-2">
-                <Label for="employee_code">{{ t('employees.form.employee_code') }}</Label>
-                <Input id="employee_code" v-model="form.employee_code" placeholder="EMP-001" />
-                <InputError :message="form.errors.employee_code" />
-            </div>
-            <div class="space-y-2">
-                <Label for="document_number">{{ t('employees.form.document_number') }}</Label>
-                <Input id="document_number" v-model="form.document_number" placeholder="Ej: 1234567890" />
-                <InputError :message="form.errors.document_number" />
-            </div>
-            <div v-if="showPassword" class="space-y-2">
+            <div v-if="showPassword" class="space-y-2 sm:col-span-2">
                 <Label for="password">{{ t('employees.form.password') }}</Label>
-                <div class="relative">
+                <div class="relative sm:max-w-[50%]">
                     <Input
                         id="password"
                         v-model="form.password"
@@ -118,8 +115,8 @@ const filteredPositions = computed(() =>
             </div>
         </div>
 
-        <!-- Organization -->
-        <div class="grid gap-4 sm:grid-cols-2">
+        <!-- Employment -->
+        <div class="grid gap-4 sm:grid-cols-3">
             <div class="space-y-2">
                 <Label>{{ t('employees.form.department') }}</Label>
                 <Select v-model="form.department_id">
@@ -148,24 +145,6 @@ const filteredPositions = computed(() =>
                 </Select>
                 <InputError :message="form.errors.position_id" />
             </div>
-        </div>
-
-        <!-- Schedule & Location -->
-        <div class="grid gap-4 sm:grid-cols-2">
-            <div class="space-y-2">
-                <Label>{{ t('employees.form.schedule') }}</Label>
-                <Select v-model="form.schedule_id">
-                    <SelectTrigger>
-                        <SelectValue :placeholder="t('common.select')" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem v-for="sch in schedules" :key="sch.id" :value="String(sch.id)">
-                            {{ sch.name }}
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
-                <InputError :message="form.errors.schedule_id" />
-            </div>
             <div class="space-y-2">
                 <Label>{{ t('employees.form.location') }}</Label>
                 <Select v-model="form.location_id">
@@ -180,9 +159,10 @@ const filteredPositions = computed(() =>
                 </Select>
                 <InputError :message="form.errors.location_id" />
             </div>
+            <!-- TODO: Schedules feature temporarily disabled — restore schedule selector here when resuming -->
         </div>
 
-        <!-- Salary -->
+        <!-- Contract -->
         <div class="grid gap-4 sm:grid-cols-3">
             <div class="space-y-2">
                 <Label for="hire_date">{{ t('employees.form.hire_date') }}</Label>

@@ -20,8 +20,7 @@ class UpdateEmployee
             $employee->update([
                 'department_id' => $data['department_id'] ?? null,
                 'position_id' => $data['position_id'] ?? null,
-                'employee_code' => $data['employee_code'] ?? null,
-                'document_number' => $data['document_number'] ?? null,
+                'document_number' => $data['document_number'],
                 'hire_date' => $data['hire_date'] ?? null,
                 'hourly_rate' => $data['hourly_rate'] ?? null,
                 'salary_type' => $data['salary_type'] ?? 'hourly',

@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { AlertTriangle, Clock, Coffee, UserCheck, Users } from 'lucide-vue-next';
+// TODO: Schedules feature temporarily disabled — restore AlertTriangle, Users when resuming
+import { Clock, Coffee, UserCheck } from 'lucide-vue-next';
 import { onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { store as manualCheckIn } from '@/actions/App/Http/Controllers/Admin/ManualCheckInController';
 import { edit as editTimeEntry } from '@/actions/App/Http/Controllers/Admin/TimeEntryController';
 import GuidedTour from '@/components/GuidedTour.vue';
-import { Badge } from '@/components/ui/badge';
+// TODO: Schedules feature temporarily disabled — restore Badge when resuming
+// import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -48,11 +50,12 @@ type EmployeeStatus = {
     time_entry_id: number | null;
 };
 
-type LateArrival = {
-    employee: { id: number; name: string };
-    scheduled_at: string;
-    minutes_late: number;
-};
+// TODO: Schedules feature temporarily disabled — restore LateArrival type when resuming
+// type LateArrival = {
+//     employee: { id: number; name: string };
+//     scheduled_at: string;
+//     minutes_late: number;
+// };
 
 type SimpleEmployee = {
     id: number;
@@ -62,7 +65,7 @@ type SimpleEmployee = {
 type Props = {
     kpis: Kpis;
     employeeStatus: EmployeeStatus[];
-    lateArrivals: LateArrival[];
+    // TODO: Schedules feature temporarily disabled — restore lateArrivals prop when resuming
     employees?: SimpleEmployee[];
     showTour?: boolean;
 };
@@ -80,7 +83,8 @@ let secondsInterval: ReturnType<typeof setInterval>;
 
 onMounted(() => {
     pollingInterval = setInterval(() => {
-        router.reload({ only: ['kpis', 'employeeStatus', 'lateArrivals'], preserveScroll: true });
+        // TODO: Schedules feature temporarily disabled — restore 'lateArrivals' to only array when resuming
+        router.reload({ only: ['kpis', 'employeeStatus'], preserveScroll: true });
         secondsSinceUpdate.value = 0;
     }, 60000);
 
@@ -171,17 +175,7 @@ function deltaSign(delta: number) {
                     </CardContent>
                 </Card>
 
-                <!-- Absent -->
-                <Card>
-                    <CardHeader class="flex flex-row items-center justify-between pb-2">
-                        <CardTitle class="text-sm font-medium">{{ t('dashboard.kpi.absent') }}</CardTitle>
-                        <Users class="text-muted-foreground size-4" />
-                    </CardHeader>
-                    <CardContent>
-                        <div class="text-3xl font-bold">{{ kpis.absent }}</div>
-                        <p class="text-muted-foreground mt-1 text-xs">&nbsp;</p>
-                    </CardContent>
-                </Card>
+                <!-- TODO: Schedules feature temporarily disabled — restore Absent KPI card when resuming -->
 
                 <!-- Net Hours -->
                 <Card>
@@ -198,25 +192,7 @@ function deltaSign(delta: number) {
                 </Card>
             </div>
 
-            <!-- Late Arrivals -->
-            <div v-if="lateArrivals.length > 0">
-                <h2 class="mb-3 flex items-center gap-2 text-sm font-semibold">
-                    <AlertTriangle class="size-4 text-amber-500" />
-                    {{ t('dashboard.late_arrivals') }}
-                </h2>
-                <div class="flex flex-wrap gap-2">
-                    <Badge
-                        v-for="late in lateArrivals"
-                        :key="late.employee.id"
-                        variant="outline"
-                        class="border-amber-400 text-amber-600 dark:text-amber-400"
-                    >
-                        {{ late.employee.name }} &mdash;
-                        {{ t('dashboard.minutes_late', { min: late.minutes_late }) }}
-                        ({{ late.scheduled_at }})
-                    </Badge>
-                </div>
-            </div>
+            <!-- TODO: Schedules feature temporarily disabled — restore Late Arrivals section when resuming -->
 
             <!-- Employee Status Table -->
             <div>

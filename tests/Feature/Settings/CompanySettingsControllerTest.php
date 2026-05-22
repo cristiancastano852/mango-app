@@ -58,7 +58,7 @@ class CompanySettingsControllerTest extends TestCase
             ->component('settings/CompanySettings')
             ->where('hasCompany', true)
             ->has('workingDays')
-            ->has('schedules')
+            // TODO: Schedules feature temporarily disabled — restore ->has('schedules') when resuming
         );
     }
 
@@ -96,6 +96,8 @@ class CompanySettingsControllerTest extends TestCase
 
     public function test_admin_can_update_default_schedule(): void
     {
+        // TODO: Schedules feature temporarily disabled — remove this skip when resuming
+        $this->markTestSkipped('Schedules feature is temporarily disabled.');
         $schedule = Schedule::create([
             'company_id' => $this->company->id,
             'name' => 'Default Schedule',
@@ -116,6 +118,8 @@ class CompanySettingsControllerTest extends TestCase
 
     public function test_admin_can_clear_default_schedule(): void
     {
+        // TODO: Schedules feature temporarily disabled — remove this skip when resuming
+        $this->markTestSkipped('Schedules feature is temporarily disabled.');
         $this->company->update([
             'settings' => ['default_schedule_id' => 999, 'working_days' => [1, 2, 3, 4, 5]],
         ]);

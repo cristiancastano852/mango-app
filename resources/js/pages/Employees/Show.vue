@@ -137,11 +137,6 @@ function deleteEmployee() {
                         </div>
                         <Separator />
                         <div class="flex justify-between">
-                            <span class="text-muted-foreground">{{ t('employees.show.code') }}</span>
-                            <Badge variant="outline" class="font-mono">{{ employee.employee_code ?? '—' }}</Badge>
-                        </div>
-                        <Separator />
-                        <div class="flex justify-between">
                             <span class="text-muted-foreground">{{ t('employees.show.hire_date') }}</span>
                             <span>{{ employee.hire_date ?? '—' }}</span>
                         </div>

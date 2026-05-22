@@ -64,20 +64,15 @@ class EmployeeDocumentNumberTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_create_employee_without_document_number(): void
+    public function test_creating_employee_without_document_number_fails(): void
     {
         $response = $this->actingAs($this->adminUser)->post(route('employees.store'), [
             'name' => 'Sin Cedula',
             'email' => 'sincedula@test.com',
         ]);
 
-        $employee = Employee::whereHas('user', fn ($q) => $q->where('email', 'sincedula@test.com'))->first();
-        $response->assertRedirect(route('employees.show', $employee));
-
-        $this->assertDatabaseHas('employees', [
-            'id' => $employee->id,
-            'document_number' => null,
-        ]);
+        $response->assertSessionHasErrors('document_number');
+        $this->assertDatabaseMissing('users', ['email' => 'sincedula@test.com']);
     }
 
     public function test_duplicate_document_number_in_same_company_fails(): void

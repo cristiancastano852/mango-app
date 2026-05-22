@@ -26,7 +26,8 @@ class DashboardController extends Controller
 
         $today = now()->toDateString();
         $yesterday = now()->subDay()->toDateString();
-        $dayOfWeek = (int) now()->dayOfWeek;
+        // TODO: Schedules feature temporarily disabled — restore $dayOfWeek when resuming
+        // $dayOfWeek = (int) now()->dayOfWeek;
 
         $presentCount = TimeEntry::whereDate('date', $today)
             ->whereNotNull('clock_in')
@@ -42,15 +43,7 @@ class DashboardController extends Controller
             ->whereNull('ended_at')
             ->count();
 
-        $scheduledEmployeeIds = Employee::whereHas('schedule', function ($q) use ($dayOfWeek) {
-            $q->whereJsonContains('days_of_week', $dayOfWeek);
-        })->pluck('id');
-
-        $presentEmployeeIds = TimeEntry::whereDate('date', $today)
-            ->whereNotNull('clock_in')
-            ->pluck('employee_id');
-
-        $absentCount = $scheduledEmployeeIds->diff($presentEmployeeIds)->count();
+        // TODO: Schedules feature temporarily disabled — restore scheduledEmployeeIds, presentEmployeeIds, absentCount when resuming
 
         $netHoursToday = (float) TimeEntry::whereDate('date', $today)
             ->whereNotNull('clock_in')
@@ -58,28 +51,8 @@ class DashboardController extends Controller
 
         $avgNetHours = $presentCount > 0 ? round($netHoursToday / $presentCount, 2) : 0;
 
-        $now = now();
-        $lateThreshold = $now->copy()->subMinutes(15)->format('H:i:s');
-
-        $lateArrivals = Employee::with(['user', 'schedule'])
-            ->whereIn('id', $scheduledEmployeeIds)
-            ->whereNotIn('id', $presentEmployeeIds)
-            ->whereHas('schedule', fn ($q) => $q->where('start_time', '<=', $lateThreshold))
-            ->get()
-            ->map(function (Employee $employee) use ($now) {
-                $scheduledAt = $now->copy()->setTimeFromTimeString(
-                    $employee->schedule->getRawOriginal('start_time')
-                );
-
-                return [
-                    'employee' => [
-                        'id' => $employee->id,
-                        'name' => $employee->user->name,
-                    ],
-                    'scheduled_at' => $scheduledAt->format('H:i'),
-                    'minutes_late' => (int) $scheduledAt->diffInMinutes($now),
-                ];
-            });
+        // TODO: Schedules feature temporarily disabled — restore lateArrivals logic when resuming
+        $lateArrivals = collect();
 
         $employees = Employee::with([
             'user',
@@ -125,7 +98,8 @@ class DashboardController extends Controller
                 'present' => $presentCount,
                 'present_delta' => $presentCount - $yesterdayPresentCount,
                 'on_break' => $onBreakCount,
-                'absent' => $absentCount,
+                // TODO: Schedules feature temporarily disabled — restore absent from $absentCount when resuming
+                'absent' => 0,
                 'net_hours_today' => round($netHoursToday, 2),
                 'avg_net_hours' => $avgNetHours,
             ],

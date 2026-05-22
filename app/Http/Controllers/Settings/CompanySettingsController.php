@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Domain\Company\Models\Company;
-use App\Domain\Organization\Models\Schedule;
+// TODO: Schedules feature temporarily disabled — restore Schedule import when resuming
+// use App\Domain\Organization\Models\Schedule;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\UpdateCompanySettingsRequest;
 use Illuminate\Http\RedirectResponse;
@@ -19,20 +20,12 @@ class CompanySettingsController extends Controller
 
         $company = $companyId ? Company::find($companyId) : null;
 
-        $schedules = $companyId
-            ? Schedule::withoutGlobalScopes()
-                ->where('company_id', $companyId)
-                ->select('id', 'name')
-                ->orderBy('name')
-                ->get()
-            : collect();
+        // TODO: Schedules feature temporarily disabled — restore $schedules query + props when resuming
 
         $settings = $company?->settings ?? [];
 
         return Inertia::render('settings/CompanySettings', [
             'workingDays' => $settings['working_days'] ?? [1, 2, 3, 4, 5],
-            'defaultScheduleId' => $settings['default_schedule_id'] ?? null,
-            'schedules' => $schedules,
             'hasCompany' => $company !== null,
         ]);
     }
@@ -53,9 +46,7 @@ class CompanySettingsController extends Controller
 
         $settings = $company->settings ?? [];
         $settings['working_days'] = $workingDays;
-        $settings['default_schedule_id'] = isset($data['default_schedule_id']) && $data['default_schedule_id'] !== ''
-            ? (int) $data['default_schedule_id']
-            : null;
+        // TODO: Schedules feature temporarily disabled — restore default_schedule_id save when resuming
 
         $company->settings = $settings;
         $company->save();

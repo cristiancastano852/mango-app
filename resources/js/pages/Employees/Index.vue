@@ -170,18 +170,6 @@ function deleteEmployee(employee: Employee) {
                             <p class="text-muted-foreground truncate text-sm">{{ employee.position?.name ?? '—' }}</p>
                         </div>
 
-                        <!-- Schedule (hidden on mobile) -->
-                        <div class="hidden min-w-0 lg:block">
-                            <p class="truncate text-sm">{{ employee.schedule?.name ?? '—' }}</p>
-                        </div>
-
-                        <!-- Code -->
-                        <div class="hidden sm:block">
-                            <Badge variant="outline" class="font-mono text-xs">
-                                {{ employee.employee_code ?? '—' }}
-                            </Badge>
-                        </div>
-
                         <!-- Actions -->
                         <DropdownMenu>
                             <DropdownMenuTrigger as-child>
