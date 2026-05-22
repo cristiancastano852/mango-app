@@ -14,7 +14,7 @@ use Illuminate\Database\Seeder;
 class ReportDemoSeeder extends Seeder
 {
     /**
-         * Genera datos de asistencia del último mes para los 5 empleados demo.
+     * Genera datos de asistencia del último mes para los 5 empleados demo.
      *
      * Perfiles y tipos de hora que ejercitan:
      *   - María García  (Chef, turno mañana)    → ordinaria
