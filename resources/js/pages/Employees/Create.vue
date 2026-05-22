@@ -5,13 +5,12 @@ import { useI18n } from 'vue-i18n';
 import { index as employeesIndex } from '@/actions/App/Http/Controllers/EmployeeController';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
-import type { BreadcrumbItem, Department, Position, Schedule, Location } from '@/types';
+import type { BreadcrumbItem, Department, Position, Location } from '@/types';
 import EmployeeForm from './partials/EmployeeForm.vue';
 
 type Props = {
     departments: Department[];
     positions: Position[];
-    schedules: Schedule[];
     locations: Location[];
 };
 
@@ -28,15 +27,13 @@ const form = useForm({
     name: '',
     email: '',
     phone: '',
+    document_number: '',
     password: '',
     department_id: '',
     position_id: '',
-    employee_code: '',
-    document_number: '',
     hire_date: '',
     hourly_rate: '',
     salary_type: 'hourly',
-    schedule_id: '',
     location_id: '',
 });
 
@@ -60,7 +57,6 @@ function submit() {
                         :form="form"
                         :departments="departments"
                         :positions="positions"
-                        :schedules="schedules"
                         :locations="locations"
                         show-password
                         @submit="submit"

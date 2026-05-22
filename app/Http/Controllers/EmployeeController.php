@@ -9,7 +9,8 @@ use App\Domain\Employee\Models\Employee;
 use App\Domain\Organization\Models\Department;
 use App\Domain\Organization\Models\Location;
 use App\Domain\Organization\Models\Position;
-use App\Domain\Organization\Models\Schedule;
+// TODO: Schedules feature temporarily disabled — restore Schedule import when resuming
+// use App\Domain\Organization\Models\Schedule;
 use App\Http\Requests\Employee\IndexEmployeeRequest;
 use App\Http\Requests\Employee\StoreEmployeeRequest;
 use App\Http\Requests\Employee\UpdateEmployeeRequest;
@@ -23,7 +24,8 @@ class EmployeeController extends Controller
     {
         $validated = $request->validated();
 
-        $employees = Employee::with(['user', 'department', 'position', 'schedule', 'location'])
+        // TODO: Schedules feature temporarily disabled — restore 'schedule' to eager load when resuming
+        $employees = Employee::with(['user', 'department', 'position', 'location'])
             ->when($validated['search'] ?? null, function ($q, $search) {
                 $q->whereHas('user', fn ($u) => $u->where('name', 'ilike', "%{$search}%")
                     ->orWhere('email', 'ilike', "%{$search}%"));
@@ -48,7 +50,7 @@ class EmployeeController extends Controller
         return Inertia::render('Employees/Create', [
             'departments' => Department::select('id', 'name')->get(),
             'positions' => Position::select('id', 'name', 'department_id')->get(),
-            'schedules' => Schedule::select('id', 'name')->get(),
+            // TODO: Schedules feature temporarily disabled — restore schedules prop when resuming
             'locations' => Location::select('id', 'name')->get(),
         ]);
     }
@@ -64,7 +66,8 @@ class EmployeeController extends Controller
 
     public function show(Employee $employee): Response
     {
-        $employee->load(['user', 'department', 'position', 'schedule', 'location']);
+        // TODO: Schedules feature temporarily disabled — restore 'schedule' to load when resuming
+        $employee->load(['user', 'department', 'position', 'location']);
 
         return Inertia::render('Employees/Show', [
             'employee' => $employee,
@@ -73,13 +76,13 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee): Response
     {
-        $employee->load(['user', 'department', 'position', 'schedule', 'location']);
+        // TODO: Schedules feature temporarily disabled — restore 'schedule' to load + schedules prop when resuming
+        $employee->load(['user', 'department', 'position', 'location']);
 
         return Inertia::render('Employees/Edit', [
             'employee' => $employee,
             'departments' => Department::select('id', 'name')->get(),
             'positions' => Position::select('id', 'name', 'department_id')->get(),
-            'schedules' => Schedule::select('id', 'name')->get(),
             'locations' => Location::select('id', 'name')->get(),
         ]);
     }

@@ -12,17 +12,12 @@ import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { edit } from '@/routes/company-settings';
 import type { BreadcrumbItem } from '@/types';
 
-type Schedule = {
-    id: number;
-    name: string;
-};
+// TODO: Schedules feature temporarily disabled — restore Schedule type + defaultScheduleId + schedules props when resuming
 
 const { t } = useI18n();
 
 defineProps<{
     workingDays: number[];
-    defaultScheduleId: number | null;
-    schedules: Schedule[];
     hasCompany: boolean;
 }>();
 
@@ -81,21 +76,7 @@ const dayOptions = [
                             <InputError :message="errors.working_days" />
                         </div>
 
-                        <div class="grid gap-2">
-                            <Label for="default_schedule_id">{{ t('settings.default_schedule') }}</Label>
-                            <select
-                                id="default_schedule_id"
-                                name="default_schedule_id"
-                                :value="defaultScheduleId?.toString() ?? ''"
-                                class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full max-w-sm rounded-md border px-3 py-1 text-sm shadow-xs focus-visible:ring-1 focus-visible:outline-none"
-                            >
-                                <option value="">{{ t('common.select') }}</option>
-                                <option v-for="schedule in schedules" :key="schedule.id" :value="schedule.id">
-                                    {{ schedule.name }}
-                                </option>
-                            </select>
-                            <InputError :message="errors.default_schedule_id" />
-                        </div>
+                        <!-- TODO: Schedules feature temporarily disabled — restore default_schedule_id selector when resuming -->
 
                         <div class="flex items-center gap-4">
                             <Button type="submit" :disabled="processing">

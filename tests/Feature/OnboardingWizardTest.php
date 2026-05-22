@@ -50,13 +50,14 @@ class OnboardingWizardTest extends TestCase
 
     public function test_step1_updates_company_and_redirects_to_step2(): void
     {
+        // TODO: Schedules feature temporarily disabled — restore assertRedirect to onboarding.schedule when resuming
         $response = $this->actingAs($this->admin)->post('/onboarding/company', [
             'name' => 'Nueva Empresa SAS',
             'country' => 'CO',
             'timezone' => 'America/Bogota',
         ]);
 
-        $response->assertRedirect(route('onboarding.schedule'));
+        $response->assertRedirect(route('onboarding.break-types'));
         $this->assertDatabaseHas('companies', [
             'id' => $this->company->id,
             'name' => 'Nueva Empresa SAS',

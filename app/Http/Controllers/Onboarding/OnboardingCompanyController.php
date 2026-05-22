@@ -49,6 +49,7 @@ class OnboardingCompanyController extends Controller
         $company->timezone = $data['timezone'];
         $company->save();
 
-        return redirect()->route('onboarding.schedule');
+        // TODO: Schedules feature temporarily disabled — restore redirect to onboarding.schedule when resuming
+        return redirect()->route('onboarding.break-types');
     }
 }

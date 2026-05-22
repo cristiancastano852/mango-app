@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { Building2, CalendarDays, Clock, CreditCard, FileText, LayoutGrid, MapPin, Settings, Sliders, Users } from 'lucide-vue-next';
+// TODO: Schedules feature temporarily disabled — restore Sliders import when resuming
+import { Building2, CalendarDays, Clock, CreditCard, FileText, LayoutGrid, MapPin, Settings, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { index as reportsIndex } from '@/actions/App/Http/Controllers/ReportController';
-import { index as schedulesIndex } from '@/actions/App/Http/Controllers/SchedulesController';
+// TODO: Schedules feature temporarily disabled — restore schedulesIndex import when resuming
+// import { index as schedulesIndex } from '@/actions/App/Http/Controllers/SchedulesController';
 import { index as superAdminCompaniesIndex } from '@/actions/App/Http/Controllers/SuperAdmin/CompanyController';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -64,11 +66,8 @@ const mainNavItems = computed<NavItem[]>(() => {
 
     if (isAdmin.value) {
         items.push(
-            {
-                title: t('nav.schedules'),
-                href: schedulesIndex(),
-                icon: Sliders,
-            },
+            // TODO: Schedules feature temporarily disabled — restore this nav item when resuming
+            // { title: t('nav.schedules'), href: schedulesIndex(), icon: Sliders },
             {
                 title: t('nav.calendar'),
                 href: calendarIndex(),

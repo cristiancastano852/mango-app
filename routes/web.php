@@ -54,6 +54,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Admin-only routes
     Route::middleware('role:admin|super-admin')->group(function () {
         Route::resource('employees', EmployeeController::class);
+        // TODO: Schedules feature temporarily disabled (hidden from UI) — remove this comment when resuming
         Route::resource('schedules', SchedulesController::class);
         Route::get('calendar', [CalendarController::class, 'index'])->name('calendar.index');
 
@@ -91,6 +92,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['role:admin', 'onboarding'])->prefix('onboarding')->name('onboarding.')->group(function () {
         Route::get('company', [OnboardingCompanyController::class, 'show'])->name('company');
         Route::post('company', [OnboardingCompanyController::class, 'update'])->name('company.update');
+        // TODO: Schedules feature temporarily disabled (hidden from UI) — remove this comment when resuming
         Route::get('schedule', [OnboardingScheduleController::class, 'show'])->name('schedule');
         Route::post('schedule', [OnboardingScheduleController::class, 'update'])->name('schedule.update');
         Route::get('break-types', [OnboardingBreakTypesController::class, 'show'])->name('break-types');

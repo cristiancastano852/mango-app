@@ -49,6 +49,7 @@ class EmployeeControllerTest extends TestCase
         $this->employee = Employee::create([
             'user_id' => $this->employeeUser->id,
             'company_id' => $this->company->id,
+            'document_number' => '999999999',
         ]);
     }
 
@@ -169,6 +170,7 @@ class EmployeeControllerTest extends TestCase
         $response = $this->actingAs($this->adminUser)->post(route('employees.store'), [
             'name' => 'New Employee',
             'email' => 'new@test.com',
+            'document_number' => '100000001',
         ]);
 
         $this->assertDatabaseHas('users', ['email' => 'new@test.com']);
@@ -182,6 +184,7 @@ class EmployeeControllerTest extends TestCase
         $response = $this->actingAs($this->adminUser)->post(route('employees.store'), [
             'name' => 'Custom Pass Employee',
             'email' => 'custom@test.com',
+            'document_number' => '100000002',
             'password' => 'MySecret123',
         ]);
 
@@ -200,6 +203,7 @@ class EmployeeControllerTest extends TestCase
         $response = $this->actingAs($this->adminUser)->post(route('employees.store'), [
             'name' => 'Random Pass Employee',
             'email' => 'random@test.com',
+            'document_number' => '100000003',
         ]);
 
         $this->assertDatabaseHas('users', ['email' => 'random@test.com']);
@@ -223,6 +227,7 @@ class EmployeeControllerTest extends TestCase
         $response = $this->actingAs($superAdmin)->post(route('employees.store'), [
             'name' => 'Super Admin Employee',
             'email' => 'superadmin-emp@test.com',
+            'document_number' => '100000004',
             'password' => 'SuperSecret99',
         ]);
 
@@ -254,6 +259,7 @@ class EmployeeControllerTest extends TestCase
         $response = $this->actingAs($this->adminUser)->put(route('employees.update', $this->employee), [
             'name' => 'Updated Name',
             'email' => $this->employeeUser->email,
+            'document_number' => '999999999',
         ]);
 
         $response->assertRedirect(route('employees.index'));
