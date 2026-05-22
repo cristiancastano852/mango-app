@@ -2,7 +2,7 @@
 import { Form, Head } from '@inertiajs/vue3';
 import { ArrowLeft } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
-import { index, store } from '@/actions/App/Http/Controllers/SuperAdmin/CompanyController';
+import { create, index, store } from '@/actions/App/Http/Controllers/SuperAdmin/CompanyController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +18,7 @@ const { t } = useI18n();
 const breadcrumbs: BreadcrumbItem[] = [
     { title: t('common.dashboard'), href: dashboard() },
     { title: t('super_admin.companies.title'), href: index() },
-    { title: t('super_admin.companies.create_title'), href: { url: '/super-admin/companies/create', method: 'get' } },
+    { title: t('super_admin.companies.create_title'), href: create() },
 ];
 </script>
 

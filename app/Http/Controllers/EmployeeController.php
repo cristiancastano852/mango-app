@@ -26,7 +26,7 @@ class EmployeeController extends Controller
         $validated = $request->validated();
 
         // TODO: Schedules feature temporarily disabled — restore 'schedule' to eager load when resuming
-        // LOCATIONS FEATURE DISABLED — remove 'location' from eager load when re-enabling to restore it here.
+        // LOCATIONS FEATURE DISABLED — add 'location' back to this eager load when re-enabling.
         $employees = Employee::with(['user', 'department', 'position'])
             ->when($validated['search'] ?? null, function ($q, $search) {
                 $q->whereHas('user', fn ($u) => $u->where('name', 'ilike', "%{$search}%")
@@ -69,7 +69,7 @@ class EmployeeController extends Controller
     public function show(Employee $employee): Response
     {
         // TODO: Schedules feature temporarily disabled — restore 'schedule' to load when resuming
-        // LOCATIONS FEATURE DISABLED — remove 'location' from load; restore when re-enabling.
+        // LOCATIONS FEATURE DISABLED — add 'location' back to this load when re-enabling.
         $employee->load(['user', 'department', 'position']);
 
         return Inertia::render('Employees/Show', [
@@ -80,7 +80,7 @@ class EmployeeController extends Controller
     public function edit(Employee $employee): Response
     {
         // TODO: Schedules feature temporarily disabled — restore 'schedule' to load + schedules prop when resuming
-        // LOCATIONS FEATURE DISABLED — remove 'location' from load; restore load + prop when re-enabling.
+        // LOCATIONS FEATURE DISABLED — add 'location' back to this load and restore the locations prop when re-enabling.
         $employee->load(['user', 'department', 'position']);
 
         return Inertia::render('Employees/Edit', [
