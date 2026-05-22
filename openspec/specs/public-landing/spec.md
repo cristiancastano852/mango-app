@@ -6,7 +6,7 @@ El sistema SHALL servir una landing page en la ruta `/` accesible sin auth ni te
 #### Scenario: Visitante accede a la landing page
 - **WHEN** cualquier visitante (sin sesión) accede a `GET /`
 - **THEN** la respuesta es 200 con la landing page renderizada
-- **THEN** la página incluye un botón CTA que enlaza a `/register/company`
+- **THEN** la página incluye un botón CTA que enlaza a `https://wa.me/573158978036`
 
 #### Scenario: Usuario autenticado accede a la landing
 - **WHEN** un usuario con sesión activa accede a `GET /`
@@ -20,17 +20,8 @@ La landing SHALL mostrar los 4 planes del SaaS: Free (hasta 5 empleados), Básic
 #### Scenario: Pricing visible en la landing
 - **WHEN** visitante accede a `GET /`
 - **THEN** la página muestra 4 cards de pricing con nombre, precio y límite de empleados de cada plan
-- **THEN** cada card tiene un botón que enlaza a `/register/company`
+- **THEN** cada card tiene un botón que enlaza a `https://wa.me/573158978036` con texto "Contáctame"
 
 #### Scenario: Acceso directo a pricing
 - **WHEN** visitante accede a `GET /pricing`
 - **THEN** la respuesta es 200 con la misma sección de pricing (o redirige a `/#pricing`)
-
----
-
-### Requirement: Rate limiting en rutas públicas
-Las rutas públicas SHALL tener rate limiting de 60 requests/minuto por IP para prevenir abuso.
-
-#### Scenario: Rate limit excedido
-- **WHEN** una IP realiza más de 60 requests en un minuto a rutas públicas
-- **THEN** la respuesta es 429 Too Many Requests
