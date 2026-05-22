@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { Building2, CalendarDays, Clock, CreditCard, FileText, LayoutGrid, MapPin, Settings, Sliders, Users } from 'lucide-vue-next';
+// TODO: Schedules feature temporarily disabled — restore Sliders import when resuming
+import { Building2, CalendarDays, Clock, CreditCard, FileText, LayoutGrid, MapPin, Settings, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { index as reportsIndex } from '@/actions/App/Http/Controllers/ReportController';
