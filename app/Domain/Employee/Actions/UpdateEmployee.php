@@ -24,7 +24,8 @@ class UpdateEmployee
                 'hire_date' => $data['hire_date'] ?? null,
                 'hourly_rate' => $data['hourly_rate'] ?? null,
                 'salary_type' => $data['salary_type'] ?? 'hourly',
-                'schedule_id' => $data['schedule_id'] ?? null,
+                // Only update schedule_id when explicitly present in payload; otherwise preserve existing assignment.
+                'schedule_id' => array_key_exists('schedule_id', $data) ? $data['schedule_id'] : $employee->schedule_id,
                 'location_id' => $data['location_id'] ?? null,
             ]);
 
