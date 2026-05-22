@@ -58,11 +58,13 @@ const mainNavItems = computed<NavItem[]>(() => {
         });
     }
 
-    items.push({
-        title: t('nav.time_clock'),
-        href: { url: '/time-clock', method: 'get' },
-        icon: Clock,
-    });
+    if (!isAdmin.value) {
+        items.push({
+            title: t('nav.time_clock'),
+            href: { url: '/time-clock', method: 'get' },
+            icon: Clock,
+        });
+    }
 
     if (isAdmin.value) {
         items.push(

@@ -50,10 +50,8 @@ const adminNavItems: NavItem[] = [
         title: t('settings.company_profile'),
         href: editCompanyProfile(),
     },
-    {
-        title: t('settings.company_settings'),
-        href: editCompanySettings(),
-    },
+    // WORKING DAYS FEATURE DISABLED — linked to Schedules module. Restore when re-enabling.
+    // { title: t('settings.company_settings'), href: editCompanySettings() },
     {
         title: t('settings.break_types'),
         href: breakTypesIndex(),
