@@ -577,7 +577,14 @@
             "create_admin_description": "Create a new admin user for this company. A password will be generated automatically.",
             "create_admin_submit": "Create administrator",
             "admin_created_title": "Administrator created",
-            "admin_created_warning": "Save this password — it will not be shown again."
+            "admin_created_warning": "Save this password — it will not be shown again.",
+            "new_company": "New company",
+            "create_title": "Create company",
+            "create_description": "Create a new company and its first administrator user.",
+            "field_company_name": "Company name",
+            "field_admin_name": "Administrator name",
+            "field_admin_email": "Administrator email",
+            "create_submit": "Create company"
         }
     }
 }

@@ -7,7 +7,8 @@ use App\Domain\Employee\Actions\DeleteEmployee;
 use App\Domain\Employee\Actions\UpdateEmployee;
 use App\Domain\Employee\Models\Employee;
 use App\Domain\Organization\Models\Department;
-use App\Domain\Organization\Models\Location;
+// LOCATIONS FEATURE DISABLED — Location model exists but is hidden from users. Restore import when re-enabling.
+// use App\Domain\Organization\Models\Location;
 use App\Domain\Organization\Models\Position;
 // TODO: Schedules feature temporarily disabled — restore Schedule import when resuming
 // use App\Domain\Organization\Models\Schedule;
@@ -25,7 +26,8 @@ class EmployeeController extends Controller
         $validated = $request->validated();
 
         // TODO: Schedules feature temporarily disabled — restore 'schedule' to eager load when resuming
-        $employees = Employee::with(['user', 'department', 'position', 'location'])
+        // LOCATIONS FEATURE DISABLED — add 'location' back to this eager load when re-enabling.
+        $employees = Employee::with(['user', 'department', 'position'])
             ->when($validated['search'] ?? null, function ($q, $search) {
                 $q->whereHas('user', fn ($u) => $u->where('name', 'ilike', "%{$search}%")
                     ->orWhere('email', 'ilike', "%{$search}%"));
@@ -51,7 +53,7 @@ class EmployeeController extends Controller
             'departments' => Department::select('id', 'name')->get(),
             'positions' => Position::select('id', 'name', 'department_id')->get(),
             // TODO: Schedules feature temporarily disabled — restore schedules prop when resuming
-            'locations' => Location::select('id', 'name')->get(),
+            // LOCATIONS FEATURE DISABLED — restore this line when re-enabling: 'locations' => Location::select('id', 'name')->get(),
         ]);
     }
 
@@ -67,7 +69,8 @@ class EmployeeController extends Controller
     public function show(Employee $employee): Response
     {
         // TODO: Schedules feature temporarily disabled — restore 'schedule' to load when resuming
-        $employee->load(['user', 'department', 'position', 'location']);
+        // LOCATIONS FEATURE DISABLED — add 'location' back to this load when re-enabling.
+        $employee->load(['user', 'department', 'position']);
 
         return Inertia::render('Employees/Show', [
             'employee' => $employee,
@@ -77,13 +80,14 @@ class EmployeeController extends Controller
     public function edit(Employee $employee): Response
     {
         // TODO: Schedules feature temporarily disabled — restore 'schedule' to load + schedules prop when resuming
-        $employee->load(['user', 'department', 'position', 'location']);
+        // LOCATIONS FEATURE DISABLED — add 'location' back to this load and restore the locations prop when re-enabling.
+        $employee->load(['user', 'department', 'position']);
 
         return Inertia::render('Employees/Edit', [
             'employee' => $employee,
             'departments' => Department::select('id', 'name')->get(),
             'positions' => Position::select('id', 'name', 'department_id')->get(),
-            'locations' => Location::select('id', 'name')->get(),
+            // LOCATIONS FEATURE DISABLED — restore this line when re-enabling: 'locations' => Location::select('id', 'name')->get(),
         ]);
     }
 

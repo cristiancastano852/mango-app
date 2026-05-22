@@ -577,7 +577,14 @@
             "create_admin_description": "Crea un nuevo usuario administrador para esta empresa. La contraseña se generará automáticamente.",
             "create_admin_submit": "Crear administrador",
             "admin_created_title": "Administrador creado",
-            "admin_created_warning": "Guarda esta contraseña — no volverá a mostrarse."
+            "admin_created_warning": "Guarda esta contraseña — no volverá a mostrarse.",
+            "new_company": "Nueva empresa",
+            "create_title": "Crear empresa",
+            "create_description": "Crea una nueva empresa y su primer usuario administrador.",
+            "field_company_name": "Nombre de la empresa",
+            "field_admin_name": "Nombre del administrador",
+            "field_admin_email": "Correo del administrador",
+            "create_submit": "Crear empresa"
         }
     }
 }

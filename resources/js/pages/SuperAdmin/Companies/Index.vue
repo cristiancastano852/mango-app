@@ -2,7 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import { Building2, CalendarDays, Pencil } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
-import { edit } from '@/actions/App/Http/Controllers/SuperAdmin/CompanyController';
+import { create, edit } from '@/actions/App/Http/Controllers/SuperAdmin/CompanyController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -67,9 +67,14 @@ function planVariant(plan: string | null): 'default' | 'secondary' | 'outline' {
                         {{ t('super_admin.companies.subtitle', { count: companies.length }) }}
                     </p>
                 </div>
-                <Badge variant="secondary" class="px-3 py-1 text-sm">
-                    {{ companies.length }} {{ t('super_admin.companies.count_label') }}
-                </Badge>
+                <div class="flex items-center gap-3">
+                    <Badge variant="secondary" class="px-3 py-1 text-sm">
+                        {{ companies.length }} {{ t('super_admin.companies.count_label') }}
+                    </Badge>
+                    <Button size="sm" as-child>
+                        <a :href="create().url">{{ t('super_admin.companies.new_company') }}</a>
+                    </Button>
+                </div>
             </div>
 
             <!-- Company list -->

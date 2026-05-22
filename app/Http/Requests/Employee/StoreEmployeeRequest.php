@@ -25,7 +25,8 @@ class StoreEmployeeRequest extends FormRequest
             'hourly_rate' => ['nullable', 'numeric', 'min:0'],
             'salary_type' => ['nullable', 'in:hourly,monthly'],
             'schedule_id' => ['nullable', 'exists:schedules,id'],
-            'location_id' => ['nullable', 'exists:locations,id'],
+            // LOCATIONS FEATURE DISABLED — restore when the feature is re-enabled.
+            // 'location_id' => ['nullable', 'exists:locations,id'],
             'password' => ['nullable', 'string', 'min:8', 'max:128'],
         ];
     }

@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Landing page pública accesible sin autenticación
 El sistema SHALL servir una landing page en la ruta `/` accesible sin auth ni tenant middleware. La página SHALL incluir: sección hero con tagline y CTA, sección de features clave, sección de pricing con 4 planes, y footer con links básicos.

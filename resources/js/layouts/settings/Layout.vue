@@ -10,7 +10,6 @@ import { toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { index as breakTypesIndex } from '@/routes/break-types';
 import { edit as editCompanyProfile } from '@/routes/company-profile';
-import { edit as editCompanySettings } from '@/routes/company-settings';
 import { index as holidaysIndex } from '@/routes/holidays';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSurchargeRules } from '@/routes/surcharge-rules';
@@ -50,10 +49,8 @@ const adminNavItems: NavItem[] = [
         title: t('settings.company_profile'),
         href: editCompanyProfile(),
     },
-    {
-        title: t('settings.company_settings'),
-        href: editCompanySettings(),
-    },
+    // WORKING DAYS FEATURE DISABLED — linked to Schedules module. Restore when re-enabling.
+    // { title: t('settings.company_settings'), href: editCompanySettings() },
     {
         title: t('settings.break_types'),
         href: breakTypesIndex(),

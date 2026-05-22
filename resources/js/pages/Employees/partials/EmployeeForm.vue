@@ -15,7 +15,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 // TODO: Schedules feature temporarily disabled — restore Schedule import when resuming
-import type { Department, Position, Location } from '@/types';
+// LOCATIONS FEATURE DISABLED — restore Location import when re-enabling.
+import type { Department, Position } from '@/types';
 
 type Props = {
     form: {
@@ -31,7 +32,8 @@ type Props = {
         salary_type: string;
         // TODO: Schedules feature temporarily disabled — restore schedule_id when resuming
         // schedule_id: string;
-        location_id: string;
+        // LOCATIONS FEATURE DISABLED — restore location_id when re-enabling.
+        // location_id: string;
         is_active?: boolean;
         errors: Record<string, string>;
         processing: boolean;
@@ -40,7 +42,8 @@ type Props = {
     positions: Position[];
     // TODO: Schedules feature temporarily disabled — restore schedules prop when resuming
     // schedules: Schedule[];
-    locations: Location[];
+    // LOCATIONS FEATURE DISABLED — restore locations prop when re-enabling.
+    // locations: Location[];
     showStatus?: boolean;
     showPassword?: boolean;
 };
@@ -145,20 +148,7 @@ const filteredPositions = computed(() =>
                 </Select>
                 <InputError :message="form.errors.position_id" />
             </div>
-            <div class="space-y-2">
-                <Label>{{ t('employees.form.location') }}</Label>
-                <Select v-model="form.location_id">
-                    <SelectTrigger>
-                        <SelectValue :placeholder="t('common.select')" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem v-for="loc in locations" :key="loc.id" :value="String(loc.id)">
-                            {{ loc.name }}
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
-                <InputError :message="form.errors.location_id" />
-            </div>
+            <!-- LOCATIONS FEATURE DISABLED — restore location select when re-enabling (location_id field, locations prop, Location type). -->
             <!-- TODO: Schedules feature temporarily disabled — restore schedule selector here when resuming -->
         </div>
 

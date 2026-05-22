@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 // TODO: Schedules feature temporarily disabled — restore Sliders import when resuming
-import { Building2, CalendarDays, Clock, CreditCard, FileText, LayoutGrid, MapPin, Settings, Users } from 'lucide-vue-next';
+import { Building2, CalendarDays, Clock, CreditCard, FileText, LayoutGrid, Settings, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { index as reportsIndex } from '@/actions/App/Http/Controllers/ReportController';
@@ -58,11 +58,13 @@ const mainNavItems = computed<NavItem[]>(() => {
         });
     }
 
-    items.push({
-        title: t('nav.time_clock'),
-        href: { url: '/time-clock', method: 'get' },
-        icon: Clock,
-    });
+    if (!isAdmin.value) {
+        items.push({
+            title: t('nav.time_clock'),
+            href: { url: '/time-clock', method: 'get' },
+            icon: Clock,
+        });
+    }
 
     if (isAdmin.value) {
         items.push(
@@ -78,11 +80,13 @@ const mainNavItems = computed<NavItem[]>(() => {
                 href: reportsIndex(),
                 icon: FileText,
             },
-            {
-                title: t('nav.locations'),
-                href: { url: '/locations', method: 'get' },
-                icon: MapPin,
-            },
+            // LOCATIONS FEATURE DISABLED — backend model/DB exist but UI is hidden until the feature is complete.
+            // Restore this nav item when LocationController and routes are implemented.
+            // {
+            //     title: t('nav.locations'),
+            //     href: { url: '/locations', method: 'get' },
+            //     icon: MapPin,
+            // },
         );
     }
 

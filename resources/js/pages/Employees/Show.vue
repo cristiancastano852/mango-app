@@ -162,11 +162,12 @@ function deleteEmployee() {
                             <span class="text-muted-foreground">{{ t('employees.show.schedule') }}</span>
                             <span>{{ employee.schedule?.name ?? '—' }}</span>
                         </div>
-                        <Separator />
+                        <!-- LOCATIONS FEATURE DISABLED — restore location row when re-enabling. -->
+                        <!-- <Separator />
                         <div class="flex justify-between">
                             <span class="text-muted-foreground">{{ t('employees.show.location') }}</span>
                             <span>{{ employee.location?.name ?? '—' }}</span>
-                        </div>
+                        </div> -->
                     </CardContent>
                 </Card>
 

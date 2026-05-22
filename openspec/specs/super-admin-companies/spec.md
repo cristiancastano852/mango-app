@@ -1,23 +1,11 @@
 ## ADDED Requirements
 
-### Requirement: Super-admin puede listar todas las empresas
-El sistema SHALL mostrar en `GET /super-admin/companies` una lista de todas las empresas registradas en la plataforma, con nombre, slug, plan de suscripción y fecha de creación.
+### Requirement: Super-admin puede navegar al formulario de creación desde el listado
+El listado de empresas SHALL incluir un botón "Nueva empresa" que enlaza a `GET /super-admin/companies/create`.
 
-#### Scenario: Super-admin accede al listado
+#### Scenario: Botón Nueva empresa visible en el listado
 - **WHEN** super-admin accede a `GET /super-admin/companies`
-- **THEN** la respuesta es 200 con todas las empresas registradas en la plataforma
-
-#### Scenario: El listado incluye datos clave de cada empresa
-- **WHEN** existen tres empresas en la plataforma
-- **THEN** cada empresa en la respuesta incluye: `id`, `name`, `slug`, `subscription_plan`, `created_at`
-
-#### Scenario: Admin de empresa no puede acceder al listado
-- **WHEN** usuario con rol `admin` accede a `GET /super-admin/companies`
-- **THEN** la respuesta es 403 Forbidden
-
-#### Scenario: Empleado no puede acceder al listado
-- **WHEN** usuario con rol `employee` accede a `GET /super-admin/companies`
-- **THEN** la respuesta es 403 Forbidden
+- **THEN** la página muestra un botón "Nueva empresa" que apunta a `/super-admin/companies/create`
 
 ---
 
