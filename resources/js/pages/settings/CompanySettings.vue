@@ -1,12 +1,6 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
-import CompanySettingsController from '@/actions/App/Http/Controllers/Settings/CompanySettingsController';
-import Heading from '@/components/Heading.vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { edit } from '@/routes/company-settings';
@@ -28,15 +22,6 @@ const breadcrumbItems: BreadcrumbItem[] = [
     },
 ];
 
-const dayOptions = [
-    { value: 1, label: t('days.monday') },
-    { value: 2, label: t('days.tuesday') },
-    { value: 3, label: t('days.wednesday') },
-    { value: 4, label: t('days.thursday') },
-    { value: 5, label: t('days.friday') },
-    { value: 6, label: t('days.saturday') },
-    { value: 0, label: t('days.sunday') },
-];
 </script>
 
 <template>
