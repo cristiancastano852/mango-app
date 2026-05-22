@@ -78,11 +78,13 @@ const mainNavItems = computed<NavItem[]>(() => {
                 href: reportsIndex(),
                 icon: FileText,
             },
-            {
-                title: t('nav.locations'),
-                href: { url: '/locations', method: 'get' },
-                icon: MapPin,
-            },
+            // LOCATIONS FEATURE DISABLED — backend model/DB exist but UI is hidden until the feature is complete.
+            // Restore this nav item when LocationController and routes are implemented.
+            // {
+            //     title: t('nav.locations'),
+            //     href: { url: '/locations', method: 'get' },
+            //     icon: MapPin,
+            // },
         );
     }
 

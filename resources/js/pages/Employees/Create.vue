@@ -5,13 +5,15 @@ import { useI18n } from 'vue-i18n';
 import { index as employeesIndex } from '@/actions/App/Http/Controllers/EmployeeController';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
-import type { BreadcrumbItem, Department, Position, Location } from '@/types';
+// LOCATIONS FEATURE DISABLED — restore Location import when re-enabling.
+import type { BreadcrumbItem, Department, Position } from '@/types';
 import EmployeeForm from './partials/EmployeeForm.vue';
 
 type Props = {
     departments: Department[];
     positions: Position[];
-    locations: Location[];
+    // LOCATIONS FEATURE DISABLED — restore locations prop when re-enabling.
+    // locations: Location[];
 };
 
 defineProps<Props>();
@@ -34,7 +36,8 @@ const form = useForm({
     hire_date: '',
     hourly_rate: '',
     salary_type: 'hourly',
-    location_id: '',
+    // LOCATIONS FEATURE DISABLED — restore location_id when re-enabling.
+    // location_id: '',
 });
 
 function submit() {
@@ -57,10 +60,10 @@ function submit() {
                         :form="form"
                         :departments="departments"
                         :positions="positions"
-                        :locations="locations"
                         show-password
                         @submit="submit"
                     />
+                    <!-- LOCATIONS FEATURE DISABLED — restore :locations="locations" prop when re-enabling. -->
                 </CardContent>
             </Card>
         </div>
