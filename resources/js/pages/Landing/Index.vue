@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { create as registerCompany } from '@/actions/App/Http/Controllers/CompanyRegistrationController';
 import { login } from '@/routes';
+
+const whatsappUrl = 'https://wa.me/573158978036';
 </script>
 
 <template>
@@ -14,12 +15,14 @@ import { login } from '@/routes';
             <div class="flex items-center gap-4">
                 <a href="#pricing" class="text-sm text-gray-600 hover:text-gray-900">Precios</a>
                 <Link :href="login()" class="text-sm text-gray-600 hover:text-gray-900">Iniciar sesión</Link>
-                <Link
-                    :href="registerCompany()"
+                <a
+                    :href="whatsappUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     class="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
                 >
-                    Registrar empresa
-                </Link>
+                    Contáctame
+                </a>
             </div>
         </nav>
 
@@ -34,12 +37,14 @@ import { login } from '@/routes';
                 según la legislación colombiana. Sin complicaciones.
             </p>
             <div class="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-                <Link
-                    :href="registerCompany()"
+                <a
+                    :href="whatsappUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     class="rounded-xl bg-orange-500 px-8 py-4 text-base font-bold text-white shadow-lg hover:bg-orange-600"
                 >
-                    Empieza gratis — 14 días de prueba
-                </Link>
+                    Contáctame
+                </a>
                 <a href="#features" class="text-sm font-medium text-gray-600 hover:text-gray-900">Ver características →</a>
             </div>
         </section>
@@ -81,18 +86,18 @@ import { login } from '@/routes';
                     <h3 class="font-bold text-gray-900">Free</h3>
                     <p class="mt-2 text-3xl font-extrabold">$0<span class="text-base font-normal text-gray-500">/mes</span></p>
                     <p class="mt-2 text-sm text-gray-600">Hasta 5 empleados</p>
-                    <Link :href="registerCompany()" class="mt-6 block rounded-lg border border-orange-500 px-4 py-2 text-center text-sm font-semibold text-orange-500 hover:bg-orange-50">
-                        Empezar gratis
-                    </Link>
+                    <a :href="whatsappUrl" target="_blank" rel="noopener noreferrer" class="mt-6 block rounded-lg border border-orange-500 px-4 py-2 text-center text-sm font-semibold text-orange-500 hover:bg-orange-50">
+                        Contáctame
+                    </a>
                 </div>
                 <!-- Básico -->
                 <div class="rounded-2xl border border-gray-200 bg-white p-6">
                     <h3 class="font-bold text-gray-900">Básico</h3>
                     <p class="mt-2 text-3xl font-extrabold">$15<span class="text-base font-normal text-gray-500">/mes</span></p>
                     <p class="mt-2 text-sm text-gray-600">Hasta 25 empleados</p>
-                    <Link :href="registerCompany()" class="mt-6 block rounded-lg border border-orange-500 px-4 py-2 text-center text-sm font-semibold text-orange-500 hover:bg-orange-50">
-                        Empezar prueba
-                    </Link>
+                    <a :href="whatsappUrl" target="_blank" rel="noopener noreferrer" class="mt-6 block rounded-lg border border-orange-500 px-4 py-2 text-center text-sm font-semibold text-orange-500 hover:bg-orange-50">
+                        Contáctame
+                    </a>
                 </div>
                 <!-- Pro (destacado) -->
                 <div class="rounded-2xl border-2 border-orange-500 bg-white p-6 shadow-lg">
@@ -100,18 +105,18 @@ import { login } from '@/routes';
                     <h3 class="font-bold text-gray-900">Pro</h3>
                     <p class="mt-2 text-3xl font-extrabold">$35<span class="text-base font-normal text-gray-500">/mes</span></p>
                     <p class="mt-2 text-sm text-gray-600">Hasta 100 empleados</p>
-                    <Link :href="registerCompany()" class="mt-6 block rounded-lg bg-orange-500 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-orange-600">
-                        Empezar prueba
-                    </Link>
+                    <a :href="whatsappUrl" target="_blank" rel="noopener noreferrer" class="mt-6 block rounded-lg bg-orange-500 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-orange-600">
+                        Contáctame
+                    </a>
                 </div>
                 <!-- Enterprise -->
                 <div class="rounded-2xl border border-gray-200 bg-white p-6">
                     <h3 class="font-bold text-gray-900">Enterprise</h3>
                     <p class="mt-2 text-3xl font-extrabold">$75<span class="text-base font-normal text-gray-500">/mes</span></p>
                     <p class="mt-2 text-sm text-gray-600">Empleados ilimitados</p>
-                    <Link :href="registerCompany()" class="mt-6 block rounded-lg border border-orange-500 px-4 py-2 text-center text-sm font-semibold text-orange-500 hover:bg-orange-50">
-                        Contactar
-                    </Link>
+                    <a :href="whatsappUrl" target="_blank" rel="noopener noreferrer" class="mt-6 block rounded-lg border border-orange-500 px-4 py-2 text-center text-sm font-semibold text-orange-500 hover:bg-orange-50">
+                        Contáctame
+                    </a>
                 </div>
             </div>
         </section>

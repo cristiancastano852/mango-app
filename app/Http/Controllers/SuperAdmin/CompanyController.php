@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Domain\Company\Actions\CreateCompanyAdminUser;
+use App\Domain\Company\Actions\CreateCompanyWithAdmin;
 use App\Domain\Company\Models\Company;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SuperAdmin\StoreAdminUserRequest;
+use App\Http\Requests\SuperAdmin\StoreCompanyRequest;
 use App\Http\Requests\SuperAdmin\UpdateCompanyRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -14,6 +16,20 @@ use Inertia\Response;
 
 class CompanyController extends Controller
 {
+    public function create(): Response
+    {
+        return Inertia::render('SuperAdmin/Companies/Create');
+    }
+
+    public function store(StoreCompanyRequest $request, CreateCompanyWithAdmin $action): RedirectResponse
+    {
+        [$company, , $plainPassword] = $action->execute($request->validated());
+
+        return redirect()->route('super-admin.companies.edit', $company)
+            ->with('success', __('messages.company_created'))
+            ->with('created_password', $plainPassword);
+    }
+
     public function index(): Response
     {
         $companies = Company::query()

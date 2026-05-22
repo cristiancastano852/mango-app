@@ -4,13 +4,12 @@ namespace App\Domain\Company\Actions;
 
 use App\Domain\Company\Models\Company;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class RegisterCompany
+class CreateCompanyWithAdmin
 {
-    public function execute(array $data): User
+    public function execute(array $data): array
     {
         return DB::transaction(function () use ($data) {
             $company = Company::create([
@@ -21,18 +20,18 @@ class RegisterCompany
                 'onboarding_completed' => false,
             ]);
 
+            $plainPassword = 'password';
+
             $user = User::create([
                 'company_id' => $company->id,
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'password' => $data['password'],
+                'name' => $data['admin_name'],
+                'email' => $data['admin_email'],
+                'password' => $plainPassword,
             ]);
 
             $user->assignRole('admin');
 
-            Auth::login($user);
-
-            return $user;
+            return [$company, $user, $plainPassword];
         });
     }
 }
