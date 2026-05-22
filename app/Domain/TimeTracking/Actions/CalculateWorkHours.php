@@ -10,8 +10,9 @@ use Carbon\Carbon;
 class CalculateWorkHours
 {
     /**
-     * Clasifica y distribuye los minutos trabajados en un TimeEntry en 4 tipos de hora:
-     * regular, nocturna, dominical/festiva y extra. Luego actualiza el registro en BD.
+     * Clasifica y distribuye los minutos trabajados en un TimeEntry en 8 tipos de hora
+     * mutuamente excluyentes (semana/dom-fest × diurno/nocturno × dentro-límite/extra).
+     * Luego actualiza el registro en BD.
      *
      * Flujo general:
      *   1. Validar que el turno esté completo (tiene clock_out y horas > 0).
@@ -76,7 +77,11 @@ class CalculateWorkHours
             'regular' => 0.0,
             'night' => 0.0,
             'sunday_holiday' => 0.0,
-            'overtime' => 0.0,
+            'night_sunday' => 0.0,
+            'overtime_day' => 0.0,
+            'overtime_night' => 0.0,
+            'overtime_day_sunday' => 0.0,
+            'overtime_night_sunday' => 0.0,
         ];
 
         // Dos acumuladores: semanal (corre toda la semana) y diario (se reinicia en medianoche).
@@ -128,7 +133,11 @@ class CalculateWorkHours
                 || $accumulatedWeeklyNetMinutes >= $weeklyLimitMinutes;
 
             match (true) {
-                $isOvertime => $buckets['overtime'] += $netContrib,
+                $isOvertime && $isSundayOrHoliday && $isNight => $buckets['overtime_night_sunday'] += $netContrib,
+                $isOvertime && $isSundayOrHoliday => $buckets['overtime_day_sunday'] += $netContrib,
+                $isOvertime && $isNight => $buckets['overtime_night'] += $netContrib,
+                $isOvertime => $buckets['overtime_day'] += $netContrib,
+                $isSundayOrHoliday && $isNight => $buckets['night_sunday'] += $netContrib,
                 $isSundayOrHoliday => $buckets['sunday_holiday'] += $netContrib,
                 $isNight => $buckets['night'] += $netContrib,
                 default => $buckets['regular'] += $netContrib,
@@ -142,7 +151,11 @@ class CalculateWorkHours
             'regular_hours' => round($buckets['regular'] / 60, 2),
             'night_hours' => round($buckets['night'] / 60, 2),
             'sunday_holiday_hours' => round($buckets['sunday_holiday'] / 60, 2),
-            'overtime_hours' => round($buckets['overtime'] / 60, 2),
+            'night_sunday_hours' => round($buckets['night_sunday'] / 60, 2),
+            'overtime_day_hours' => round($buckets['overtime_day'] / 60, 2),
+            'overtime_night_hours' => round($buckets['overtime_night'] / 60, 2),
+            'overtime_day_sunday_hours' => round($buckets['overtime_day_sunday'] / 60, 2),
+            'overtime_night_sunday_hours' => round($buckets['overtime_night_sunday'] / 60, 2),
             'status' => 'calculated',
         ]);
 

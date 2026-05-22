@@ -24,9 +24,13 @@ class TimeEntry extends Model
         'break_hours',
         'net_hours',
         'regular_hours',
-        'overtime_hours',
         'night_hours',
         'sunday_holiday_hours',
+        'night_sunday_hours',
+        'overtime_day_hours',
+        'overtime_night_hours',
+        'overtime_day_sunday_hours',
+        'overtime_night_sunday_hours',
         'status',
         'edited_by',
         'edit_reason',
@@ -41,10 +45,22 @@ class TimeEntry extends Model
             'gross_hours' => 'decimal:2',
             'break_hours' => 'decimal:2',
             'net_hours' => 'decimal:2',
+            // Semana + diurno + dentro de límite
             'regular_hours' => 'decimal:2',
-            'overtime_hours' => 'decimal:2',
+            // Semana + nocturno (21:00–06:00) + dentro de límite
             'night_hours' => 'decimal:2',
+            // Dom/festivo + diurno + dentro de límite
             'sunday_holiday_hours' => 'decimal:2',
+            // Dom/festivo + nocturno + dentro de límite
+            'night_sunday_hours' => 'decimal:2',
+            // Semana + diurno + supera límite diario o semanal
+            'overtime_day_hours' => 'decimal:2',
+            // Semana + nocturno + supera límite diario o semanal
+            'overtime_night_hours' => 'decimal:2',
+            // Dom/festivo + diurno + supera límite diario o semanal
+            'overtime_day_sunday_hours' => 'decimal:2',
+            // Dom/festivo + nocturno + supera límite diario o semanal
+            'overtime_night_sunday_hours' => 'decimal:2',
             'pin_verified' => 'boolean',
         ];
     }

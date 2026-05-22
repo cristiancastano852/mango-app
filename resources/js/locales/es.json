@@ -403,15 +403,19 @@
             "total_employees": "Empleados",
             "regular_hours": "Horas ordinarias",
             "night_hours": "Horas nocturnas",
-            "overtime_hours": "Horas extras",
+            "overtime_day_hours": "Horas extra diurnas",
             "sunday_holiday_hours": "Horas dom/festivo"
         },
         "hours": {
             "title": "Desglose de Horas",
             "regular": "Ordinarias",
             "night": "Nocturnas",
-            "overtime": "Extras",
-            "sunday_holiday": "Dom/Festivas"
+            "sunday_holiday": "Dom/Festivas",
+            "night_sunday": "Noc. Dominicales",
+            "overtime_day": "Extra Diurnas",
+            "overtime_night": "Extra Nocturnas",
+            "overtime_day_sunday": "Extra Dom Diurnas",
+            "overtime_night_sunday": "Extra Dom Nocturnas"
         },
         "breaks": {
             "title": "Desglose de Pausas",

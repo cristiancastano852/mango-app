@@ -64,7 +64,7 @@ class GenerateEmployeeReportTest extends TestCase
                 'net_hours' => 8.0,
                 'regular_hours' => 7.0,
                 'night_hours' => 1.0,
-                'overtime_hours' => 0,
+                'overtime_day_hours' => 0,
                 'sunday_holiday_hours' => 0,
                 'status' => 'calculated',
             ]);
@@ -319,7 +319,7 @@ class GenerateEmployeeReportTest extends TestCase
             'net_hours' => 8.0,
             'regular_hours' => 6.0,
             'night_hours' => 2.0,
-            'overtime_hours' => 0,
+            'overtime_day_hours' => 0,
             'sunday_holiday_hours' => 0,
             'status' => 'calculated',
         ]);

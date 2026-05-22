@@ -44,8 +44,12 @@ class GenerateCompanyReport
         $totalCost = [
             'regular' => 0.0,
             'night' => 0.0,
-            'overtime' => 0.0,
             'sunday_holiday' => 0.0,
+            'night_sunday' => 0.0,
+            'overtime_day' => 0.0,
+            'overtime_night' => 0.0,
+            'overtime_day_sunday' => 0.0,
+            'overtime_night_sunday' => 0.0,
             'total' => 0.0,
         ];
 
@@ -55,16 +59,24 @@ class GenerateCompanyReport
                 [
                     'regular_hours' => (float) $emp->total_regular,
                     'night_hours' => (float) $emp->total_night,
-                    'overtime_hours' => (float) $emp->total_overtime,
                     'sunday_holiday_hours' => (float) $emp->total_sunday_holiday,
+                    'night_sunday_hours' => (float) $emp->total_night_sunday,
+                    'overtime_day_hours' => (float) $emp->total_overtime_day,
+                    'overtime_night_hours' => (float) $emp->total_overtime_night,
+                    'overtime_day_sunday_hours' => (float) $emp->total_overtime_day_sunday,
+                    'overtime_night_sunday_hours' => (float) $emp->total_overtime_night_sunday,
                 ],
                 $rules,
             );
 
             $totalCost['regular'] += $cost['regular'];
             $totalCost['night'] += $cost['night'];
-            $totalCost['overtime'] += $cost['overtime'];
             $totalCost['sunday_holiday'] += $cost['sunday_holiday'];
+            $totalCost['night_sunday'] += $cost['night_sunday'];
+            $totalCost['overtime_day'] += $cost['overtime_day'];
+            $totalCost['overtime_night'] += $cost['overtime_night'];
+            $totalCost['overtime_day_sunday'] += $cost['overtime_day_sunday'];
+            $totalCost['overtime_night_sunday'] += $cost['overtime_night_sunday'];
             $totalCost['total'] += $cost['total'];
 
             return [
@@ -77,8 +89,12 @@ class GenerateCompanyReport
                 'net_hours' => round((float) $emp->total_net, 2),
                 'regular_hours' => round((float) $emp->total_regular, 2),
                 'night_hours' => round((float) $emp->total_night, 2),
-                'overtime_hours' => round((float) $emp->total_overtime, 2),
                 'sunday_holiday_hours' => round((float) $emp->total_sunday_holiday, 2),
+                'night_sunday_hours' => round((float) $emp->total_night_sunday, 2),
+                'overtime_day_hours' => round((float) $emp->total_overtime_day, 2),
+                'overtime_night_hours' => round((float) $emp->total_overtime_night, 2),
+                'overtime_day_sunday_hours' => round((float) $emp->total_overtime_day_sunday, 2),
+                'overtime_night_sunday_hours' => round((float) $emp->total_overtime_night_sunday, 2),
                 'cost' => $cost['total'],
             ];
         })->toArray();
@@ -127,9 +143,13 @@ class GenerateCompanyReport
                 COALESCE(SUM(time_entries.break_hours), 0) as total_breaks,
                 COALESCE(SUM(time_entries.net_hours), 0) as total_net,
                 COALESCE(SUM(time_entries.regular_hours), 0) as total_regular,
-                COALESCE(SUM(time_entries.overtime_hours), 0) as total_overtime,
                 COALESCE(SUM(time_entries.night_hours), 0) as total_night,
-                COALESCE(SUM(time_entries.sunday_holiday_hours), 0) as total_sunday_holiday
+                COALESCE(SUM(time_entries.sunday_holiday_hours), 0) as total_sunday_holiday,
+                COALESCE(SUM(time_entries.night_sunday_hours), 0) as total_night_sunday,
+                COALESCE(SUM(time_entries.overtime_day_hours), 0) as total_overtime_day,
+                COALESCE(SUM(time_entries.overtime_night_hours), 0) as total_overtime_night,
+                COALESCE(SUM(time_entries.overtime_day_sunday_hours), 0) as total_overtime_day_sunday,
+                COALESCE(SUM(time_entries.overtime_night_sunday_hours), 0) as total_overtime_night_sunday
             ')
             ->orderByDesc('total_net')
             ->get();
@@ -186,9 +206,13 @@ class GenerateCompanyReport
             'break_hours' => round((float) $employees->sum('total_breaks'), 2),
             'net_hours' => round((float) $employees->sum('total_net'), 2),
             'regular_hours' => round((float) $employees->sum('total_regular'), 2),
-            'overtime_hours' => round((float) $employees->sum('total_overtime'), 2),
             'night_hours' => round((float) $employees->sum('total_night'), 2),
             'sunday_holiday_hours' => round((float) $employees->sum('total_sunday_holiday'), 2),
+            'night_sunday_hours' => round((float) $employees->sum('total_night_sunday'), 2),
+            'overtime_day_hours' => round((float) $employees->sum('total_overtime_day'), 2),
+            'overtime_night_hours' => round((float) $employees->sum('total_overtime_night'), 2),
+            'overtime_day_sunday_hours' => round((float) $employees->sum('total_overtime_day_sunday'), 2),
+            'overtime_night_sunday_hours' => round((float) $employees->sum('total_overtime_night_sunday'), 2),
         ];
     }
 }

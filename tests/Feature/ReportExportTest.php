@@ -63,7 +63,7 @@ class ReportExportTest extends TestCase
             'net_hours' => 8.0,
             'regular_hours' => 8.0,
             'night_hours' => 0,
-            'overtime_hours' => 0,
+            'overtime_day_hours' => 0,
             'sunday_holiday_hours' => 0,
             'status' => 'completed',
             'pin_verified' => true,
