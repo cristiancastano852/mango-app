@@ -20,6 +20,7 @@ class SurchargeRule extends Model
         'overtime_day_sunday',
         'overtime_night_sunday',
         'night_sunday',
+        'pay_overtime_by_default',
         'max_weekly_hours',
         'max_daily_hours',
         'night_start_time',
@@ -36,6 +37,7 @@ class SurchargeRule extends Model
             'overtime_day_sunday' => 'decimal:2',
             'overtime_night_sunday' => 'decimal:2',
             'night_sunday' => 'decimal:2',
+            'pay_overtime_by_default' => 'boolean',
             'max_daily_hours' => 'integer',
         ];
     }

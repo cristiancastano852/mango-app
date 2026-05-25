@@ -29,7 +29,7 @@ class GenerateEmployeeReport
      *     period: array{start: string, end: string}
      * }
      */
-    public function execute(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): array
+    public function execute(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true): array
     {
         $employee = Employee::withoutGlobalScopes()
             ->with('user', 'department', 'position')
@@ -56,6 +56,7 @@ class GenerateEmployeeReport
                 'overtime_night_sunday_hours' => $totals->total_overtime_night_sunday ?? 0,
             ],
             $rules,
+            $payOvertime,
         );
 
         return [

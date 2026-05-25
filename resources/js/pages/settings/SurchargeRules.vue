@@ -4,6 +4,7 @@ import SurchargeRuleController from '@/actions/App/Http/Controllers/Settings/Sur
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -20,6 +21,7 @@ type SurchargeRule = {
     overtime_day_sunday: string;
     overtime_night_sunday: string;
     night_sunday: string;
+    pay_overtime_by_default: boolean;
     max_weekly_hours: number;
     max_daily_hours: number;
     night_start_time: string;
@@ -113,6 +115,25 @@ const fields: { name: keyof SurchargeRule; label: string; isInt?: boolean }[] = 
                         />
                         <InputError :message="errors.night_end_time" />
                     </div>
+
+                    <div class="flex items-start justify-between gap-4 rounded-lg border p-4">
+                        <div class="space-y-1">
+                            <Label for="pay_overtime_by_default" class="text-base">Pagar horas extra por defecto</Label>
+                            <p class="max-w-prose text-sm text-muted-foreground">
+                                Si lo desactivas, las horas extra se seguirán mostrando en los reportes pero se
+                                pagarán en $0 (compensadas con tiempo libre o descanso) por defecto. Podrás
+                                cambiar esta decisión en cada desprendible al momento de exportarlo.
+                            </p>
+                        </div>
+                        <input type="hidden" name="pay_overtime_by_default" value="0" />
+                        <Checkbox
+                            id="pay_overtime_by_default"
+                            name="pay_overtime_by_default"
+                            value="1"
+                            :default-checked="rule.pay_overtime_by_default"
+                        />
+                    </div>
+                    <InputError :message="errors.pay_overtime_by_default" />
 
                     <div class="flex items-center gap-4 pt-2">
                         <Button :disabled="processing">Guardar</Button>

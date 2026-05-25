@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Company\Models\OvertimePaymentDecision;
 use App\Domain\Employee\Models\Employee;
 use App\Domain\Organization\Models\Department;
 use App\Domain\TimeTracking\Actions\GenerateCompanyReport;
 use App\Domain\TimeTracking\Actions\GenerateEmployeeReport;
+use App\Domain\TimeTracking\Actions\ResolveOvertimePaymentDecision;
 use App\Exports\CompanyReportExport;
 use App\Exports\EmployeeReportExport;
 use App\Http\Requests\ReportFilterRequest;
@@ -23,6 +25,7 @@ class ReportController extends Controller
     public function __construct(
         private GenerateEmployeeReport $employeeReport,
         private GenerateCompanyReport $companyReport,
+        private ResolveOvertimePaymentDecision $resolveOvertimeDecision,
     ) {}
 
     /**
@@ -50,7 +53,16 @@ class ReportController extends Controller
         $validated = $request->validated();
         [$startDate, $endDate] = $this->resolveDateRange($validated);
 
-        $report = $this->buildEmployeeReport($request, $startDate, $endDate);
+        $employeeId = (int) $validated['employee_id'];
+        $payOvertime = $this->resolveOvertimeDecision->execute(
+            $this->employeeCompanyId($employeeId),
+            $employeeId,
+            $startDate,
+            $endDate,
+            $this->requestPayOvertime($request),
+        );
+
+        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime);
 
         return Inertia::render('Reports/Employee', [
             'report' => $report,
@@ -58,7 +70,8 @@ class ReportController extends Controller
                 'date_range' => $validated['date_range'],
                 'start_date' => $startDate->toDateString(),
                 'end_date' => $endDate->toDateString(),
-                'employee_id' => (int) $validated['employee_id'],
+                'employee_id' => $employeeId,
+                'pay_overtime' => $payOvertime,
             ],
             'employees' => Employee::with('user')->get()->map(fn ($e) => [
                 'id' => $e->id,
@@ -75,7 +88,18 @@ class ReportController extends Controller
         $validated = $request->validated();
         [$startDate, $endDate] = $this->resolveDateRange($validated);
 
-        $report = $this->buildCompanyReport($request, $startDate, $endDate);
+        $companyId = $request->user()->company_id;
+        abort_if($companyId === null, 403);
+
+        $payOvertime = $this->resolveOvertimeDecision->execute(
+            $companyId,
+            null,
+            $startDate,
+            $endDate,
+            $this->requestPayOvertime($request),
+        );
+
+        $report = $this->buildCompanyReport($request, $startDate, $endDate, $payOvertime);
 
         return Inertia::render('Reports/Company', [
             'report' => $report,
@@ -84,6 +108,7 @@ class ReportController extends Controller
                 'start_date' => $startDate->toDateString(),
                 'end_date' => $endDate->toDateString(),
                 'department_id' => $validated['department_id'] ?? null,
+                'pay_overtime' => $payOvertime,
             ],
             'departments' => Department::all()->map(fn ($d) => [
                 'id' => $d->id,
@@ -99,7 +124,8 @@ class ReportController extends Controller
     {
         $validated = $request->validated();
         [$startDate, $endDate] = $this->resolveDateRange($validated);
-        $report = $this->buildEmployeeReport($request, $startDate, $endDate);
+        $payOvertime = $this->persistEmployeeDecision($request, $startDate, $endDate);
+        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime);
         $name = 'reporte-'.str($report['employee']['name'])->slug().'.xlsx';
 
         return Excel::download(new EmployeeReportExport($report), $name);
@@ -112,7 +138,8 @@ class ReportController extends Controller
     {
         $validated = $request->validated();
         [$startDate, $endDate] = $this->resolveDateRange($validated);
-        $report = $this->buildEmployeeReport($request, $startDate, $endDate);
+        $payOvertime = $this->persistEmployeeDecision($request, $startDate, $endDate);
+        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime);
         $name = 'reporte-'.str($report['employee']['name'])->slug().'.pdf';
 
         return Pdf::loadView('exports.employee-report', compact('report'))
@@ -127,7 +154,8 @@ class ReportController extends Controller
     {
         $validated = $request->validated();
         [$startDate, $endDate] = $this->resolveDateRange($validated);
-        $report = $this->buildCompanyReport($request, $startDate, $endDate);
+        $payOvertime = $this->persistCompanyDecision($request, $startDate, $endDate);
+        $report = $this->buildCompanyReport($request, $startDate, $endDate, $payOvertime);
 
         return Excel::download(new CompanyReportExport($report), 'reporte-empresa.xlsx');
     }
@@ -139,7 +167,8 @@ class ReportController extends Controller
     {
         $validated = $request->validated();
         [$startDate, $endDate] = $this->resolveDateRange($validated);
-        $report = $this->buildCompanyReport($request, $startDate, $endDate);
+        $payOvertime = $this->persistCompanyDecision($request, $startDate, $endDate);
+        $report = $this->buildCompanyReport($request, $startDate, $endDate, $payOvertime);
 
         return Pdf::loadView('exports.company-report', compact('report'))
             ->setPaper('letter', 'landscape')
@@ -149,7 +178,7 @@ class ReportController extends Controller
     /**
      * Genera los datos del reporte de empleado (reutilizado por vista y exports).
      */
-    private function buildEmployeeReport(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate): array
+    private function buildEmployeeReport(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true): array
     {
         $validated = $request->validated();
 
@@ -157,6 +186,7 @@ class ReportController extends Controller
             (int) $validated['employee_id'],
             $startDate,
             $endDate,
+            $payOvertime,
         );
     }
 
@@ -164,7 +194,7 @@ class ReportController extends Controller
      * Genera los datos del reporte de empresa (reutilizado por vista y exports).
      * Super-admin no tiene company_id; no puede acceder al reporte de empresa.
      */
-    private function buildCompanyReport(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate): array
+    private function buildCompanyReport(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true): array
     {
         $companyId = $request->user()->company_id;
 
@@ -177,7 +207,106 @@ class ReportController extends Controller
             $startDate,
             $endDate,
             isset($validated['department_id']) ? (int) $validated['department_id'] : null,
+            $payOvertime,
         );
+    }
+
+    /**
+     * Lee el override explícito de pago de horas extra desde el request (null si no viene).
+     */
+    private function requestPayOvertime(ReportFilterRequest $request): ?bool
+    {
+        return $request->has('pay_overtime') ? $request->boolean('pay_overtime') : null;
+    }
+
+    /**
+     * company_id del empleado (soporta super-admin sin company_id propio).
+     */
+    private function employeeCompanyId(int $employeeId): int
+    {
+        return (int) Employee::withoutGlobalScopes()
+            ->whereKey($employeeId)
+            ->value('company_id');
+    }
+
+    /**
+     * Resuelve y persiste (upsert) la decisión de un empleado al exportar; retorna el flag efectivo.
+     */
+    private function persistEmployeeDecision(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate): bool
+    {
+        $employeeId = (int) $request->validated()['employee_id'];
+        $companyId = $this->employeeCompanyId($employeeId);
+
+        $payOvertime = $this->resolveOvertimeDecision->execute(
+            $companyId,
+            $employeeId,
+            $startDate,
+            $endDate,
+            $this->requestPayOvertime($request),
+        );
+
+        $this->upsertDecision($companyId, $employeeId, $startDate, $endDate, $payOvertime, $request->user()?->id);
+
+        return $payOvertime;
+    }
+
+    /**
+     * Resuelve y persiste (upsert) la decisión del reporte de empresa al exportar; retorna el flag efectivo.
+     */
+    private function persistCompanyDecision(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate): bool
+    {
+        $companyId = $request->user()->company_id;
+
+        abort_if($companyId === null, 403);
+
+        $payOvertime = $this->resolveOvertimeDecision->execute(
+            $companyId,
+            null,
+            $startDate,
+            $endDate,
+            $this->requestPayOvertime($request),
+        );
+
+        $this->upsertDecision($companyId, null, $startDate, $endDate, $payOvertime, $request->user()?->id);
+
+        return $payOvertime;
+    }
+
+    /**
+     * Upsert manual de la decisión. Maneja employee_id null (reporte de empresa) con whereNull,
+     * ya que updateOrCreate no resuelve correctamente la igualdad contra NULL.
+     */
+    private function upsertDecision(int $companyId, ?int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime, ?int $userId): void
+    {
+        $existing = OvertimePaymentDecision::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('start_date', $startDate->toDateString())
+            ->where('end_date', $endDate->toDateString())
+            ->when(
+                $employeeId === null,
+                fn ($query) => $query->whereNull('employee_id'),
+                fn ($query) => $query->where('employee_id', $employeeId),
+            )
+            ->first();
+
+        $payload = [
+            'pay_overtime' => $payOvertime,
+            'exported_by' => $userId,
+            'exported_at' => now(),
+        ];
+
+        if ($existing !== null) {
+            $existing->update($payload);
+
+            return;
+        }
+
+        OvertimePaymentDecision::withoutGlobalScopes()->create(array_merge($payload, [
+            'company_id' => $companyId,
+            'employee_id' => $employeeId,
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+        ]));
     }
 
     /**

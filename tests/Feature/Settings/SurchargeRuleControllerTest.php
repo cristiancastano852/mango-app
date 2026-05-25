@@ -59,6 +59,7 @@ class SurchargeRuleControllerTest extends TestCase
             'overtime_day_sunday' => 100,
             'overtime_night_sunday' => 150,
             'night_sunday' => 110,
+            'pay_overtime_by_default' => true,
             'max_weekly_hours' => 42,
             'max_daily_hours' => 8,
             'night_start_time' => '21:00',
@@ -120,11 +121,37 @@ class SurchargeRuleControllerTest extends TestCase
             'overtime_day_sunday',
             'overtime_night_sunday',
             'night_sunday',
+            'pay_overtime_by_default',
             'max_weekly_hours',
             'max_daily_hours',
             'night_start_time',
             'night_end_time',
         ]);
+    }
+
+    public function test_admin_can_disable_pay_overtime_by_default(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['pay_overtime_by_default' => false]),
+        );
+
+        $response->assertRedirect(route('surcharge-rules.edit'));
+
+        $this->assertDatabaseHas('surcharge_rules', [
+            'company_id' => $this->company->id,
+            'pay_overtime_by_default' => false,
+        ]);
+    }
+
+    public function test_pay_overtime_by_default_must_be_boolean(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['pay_overtime_by_default' => 'maybe']),
+        );
+
+        $response->assertSessionHasErrors('pay_overtime_by_default');
     }
 
     public function test_admin_can_update_night_schedule_times(): void

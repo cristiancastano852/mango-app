@@ -49,6 +49,8 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
         $costs = $this->report['cost_summary'];
 
         $surcharges = collect($costs['details'])->keyBy('type');
+        $payOvertime = $costs['pay_overtime'] ?? true;
+        $overtimeCost = fn (float|int $value) => $payOvertime ? $value : 'Compensado con tiempo';
 
         $rows = [
             ['Días trabajados', $totals['days_worked'], '', ''],
@@ -60,10 +62,10 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
             ['Horas nocturnas', $totals['night_hours'], ($surcharges['night']['surcharge'] ?? 35).'%', $costs['night']],
             ['Horas dom/festivas', $totals['sunday_holiday_hours'], ($surcharges['sunday_holiday']['surcharge'] ?? 75).'%', $costs['sunday_holiday']],
             ['Horas nocturnas dominicales', $totals['night_sunday_hours'], ($surcharges['night_sunday']['surcharge'] ?? 110).'%', $costs['night_sunday']],
-            ['Horas extra diurnas', $totals['overtime_day_hours'], ($surcharges['overtime_day']['surcharge'] ?? 25).'%', $costs['overtime_day']],
-            ['Horas extra nocturnas', $totals['overtime_night_hours'], ($surcharges['overtime_night']['surcharge'] ?? 75).'%', $costs['overtime_night']],
-            ['Horas extra dom/festivas diurnas', $totals['overtime_day_sunday_hours'], ($surcharges['overtime_day_sunday']['surcharge'] ?? 100).'%', $costs['overtime_day_sunday']],
-            ['Horas extra dom/festivas nocturnas', $totals['overtime_night_sunday_hours'], ($surcharges['overtime_night_sunday']['surcharge'] ?? 150).'%', $costs['overtime_night_sunday']],
+            ['Horas extra diurnas', $totals['overtime_day_hours'], ($surcharges['overtime_day']['surcharge'] ?? 25).'%', $overtimeCost($costs['overtime_day'])],
+            ['Horas extra nocturnas', $totals['overtime_night_hours'], ($surcharges['overtime_night']['surcharge'] ?? 75).'%', $overtimeCost($costs['overtime_night'])],
+            ['Horas extra dom/festivas diurnas', $totals['overtime_day_sunday_hours'], ($surcharges['overtime_day_sunday']['surcharge'] ?? 100).'%', $overtimeCost($costs['overtime_day_sunday'])],
+            ['Horas extra dom/festivas nocturnas', $totals['overtime_night_sunday_hours'], ($surcharges['overtime_night_sunday']['surcharge'] ?? 150).'%', $overtimeCost($costs['overtime_night_sunday'])],
             [],
             ['TOTAL', $totals['net_hours'], '', $costs['total']],
         ];

@@ -48,6 +48,9 @@ class CompanyReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadin
         $t = $this->report['totals'];
         $c = $this->report['cost_summary'];
 
+        $payOvertime = $c['pay_overtime'] ?? true;
+        $overtimeCost = fn (float|int $value) => $payOvertime ? $value : 'Compensado con tiempo';
+
         return [
             ['Empleados', $t['total_employees']],
             ['Días trabajados (total)', $t['total_days_worked']],
@@ -65,15 +68,15 @@ class CompanyReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadin
             ['Extra dom diurnas', $t['overtime_day_sunday_hours']],
             ['Extra dom nocturnas', $t['overtime_night_sunday_hours']],
             [],
-            ['--- Costos ---', ''],
+            ['--- Costos ---', $payOvertime ? '' : 'Horas extra compensadas con tiempo (pago $0)'],
             ['Costo ordinarias', $c['regular']],
             ['Costo nocturnas', $c['night']],
             ['Costo dom/festivas', $c['sunday_holiday']],
             ['Costo noc. dominicales', $c['night_sunday']],
-            ['Costo extra diurnas', $c['overtime_day']],
-            ['Costo extra nocturnas', $c['overtime_night']],
-            ['Costo extra dom diurnas', $c['overtime_day_sunday']],
-            ['Costo extra dom nocturnas', $c['overtime_night_sunday']],
+            ['Costo extra diurnas', $overtimeCost($c['overtime_day'])],
+            ['Costo extra nocturnas', $overtimeCost($c['overtime_night'])],
+            ['Costo extra dom diurnas', $overtimeCost($c['overtime_day_sunday'])],
+            ['Costo extra dom nocturnas', $overtimeCost($c['overtime_night_sunday'])],
             ['COSTO TOTAL', $c['total']],
         ];
     }

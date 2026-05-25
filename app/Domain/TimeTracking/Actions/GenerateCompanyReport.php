@@ -28,7 +28,7 @@ class GenerateCompanyReport
      *     period: array
      * }
      */
-    public function execute(int $companyId, CarbonInterface $startDate, CarbonInterface $endDate, ?int $departmentId = null): array
+    public function execute(int $companyId, CarbonInterface $startDate, CarbonInterface $endDate, ?int $departmentId = null, bool $payOvertime = true): array
     {
         $rules = SurchargeRule::withoutGlobalScopes()
             ->where('company_id', $companyId)
@@ -53,7 +53,7 @@ class GenerateCompanyReport
             'total' => 0.0,
         ];
 
-        $employeesWithCosts = $employeeBreakdown->map(function ($emp) use ($rules, &$totalCost) {
+        $employeesWithCosts = $employeeBreakdown->map(function ($emp) use ($rules, $payOvertime, &$totalCost) {
             $cost = $this->costCalculator->execute(
                 (float) $emp->hourly_rate,
                 [
@@ -67,6 +67,7 @@ class GenerateCompanyReport
                     'overtime_night_sunday_hours' => (float) $emp->total_overtime_night_sunday,
                 ],
                 $rules,
+                $payOvertime,
             );
 
             $totalCost['regular'] += $cost['regular'];
@@ -101,6 +102,7 @@ class GenerateCompanyReport
 
         // Redondear costos totales
         $totalCost = array_map(fn ($v) => round($v, 2), $totalCost);
+        $totalCost['pay_overtime'] = $payOvertime;
 
         return [
             'totals' => $totals,

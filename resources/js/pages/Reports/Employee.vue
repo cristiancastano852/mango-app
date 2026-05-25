@@ -18,6 +18,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDecimalHours } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import DateRangeFilter from './partials/DateRangeFilter.vue';
+import OvertimePaymentToggle from './partials/OvertimePaymentToggle.vue';
 
 type BreakByType = {
     name: string;
@@ -48,6 +49,7 @@ type CostDetail = {
     rate: number;
     surcharge: number;
     subtotal: number;
+    compensated: boolean;
 };
 
 type Report = {
@@ -84,6 +86,7 @@ type Report = {
         overtime_day_sunday: number;
         overtime_night_sunday: number;
         total: number;
+        pay_overtime: boolean;
         details: CostDetail[];
     };
     period: { start: string; end: string };
@@ -96,11 +99,14 @@ const props = defineProps<{
         start_date: string;
         end_date: string;
         employee_id: number;
+        pay_overtime: boolean;
     };
     employees: Array<{ id: number; name: string }>;
 }>();
 
 const { t } = useI18n();
+
+const payOvertime = ref(props.filters.pay_overtime);
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: t('reports.breadcrumb'), href: '/reports' },
@@ -121,7 +127,23 @@ function applyFilter() {
         start_date: dateFilter.value.start_date,
         end_date: dateFilter.value.end_date,
         employee_id: selectedEmployee.value,
+        pay_overtime: payOvertime.value ? 1 : 0,
     });
+}
+
+function setPayOvertime(value: boolean) {
+    payOvertime.value = value;
+    router.get(
+        '/reports/employee',
+        {
+            date_range: props.filters.date_range,
+            start_date: props.filters.start_date,
+            end_date: props.filters.end_date,
+            employee_id: props.filters.employee_id,
+            pay_overtime: value ? 1 : 0,
+        },
+        { preserveScroll: true },
+    );
 }
 
 function exportQueryParams(): string {
@@ -130,6 +152,7 @@ function exportQueryParams(): string {
         start_date: props.filters.start_date,
         end_date: props.filters.end_date,
         employee_id: String(props.filters.employee_id),
+        pay_overtime: payOvertime.value ? '1' : '0',
     });
     return '?' + params.toString();
 }
@@ -293,6 +316,15 @@ onMounted(async () => {
             </div>
 
             <template v-else>
+                <!-- Overtime payment toggle -->
+                <div class="flex justify-end">
+                    <OvertimePaymentToggle
+                        :model-value="payOvertime"
+                        class="w-full sm:w-auto sm:min-w-[340px]"
+                        @update:model-value="setPayOvertime"
+                    />
+                </div>
+
                 <!-- KPI Cards -->
                 <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
                     <Card>
@@ -468,7 +500,20 @@ onMounted(async () => {
                                                 <span v-if="detail.surcharge > 0">+{{ detail.surcharge }}%</span>
                                                 <span v-else class="text-muted-foreground">-</span>
                                             </td>
-                                            <td class="py-2 text-right font-medium">{{ formatCurrency(detail.subtotal) }}</td>
+                                            <td class="py-2 text-right font-medium">
+                                                <div class="flex items-center justify-end gap-2">
+                                                    <Badge
+                                                        v-if="detail.compensated && detail.hours > 0"
+                                                        variant="secondary"
+                                                        class="text-[10px] font-normal"
+                                                    >
+                                                        {{ t('reports.overtime_payment.compensated_badge') }}
+                                                    </Badge>
+                                                    <span :class="detail.compensated ? 'text-muted-foreground' : ''">
+                                                        {{ formatCurrency(detail.subtotal) }}
+                                                    </span>
+                                                </div>
+                                            </td>
                                         </tr>
                                     </tbody>
                                     <tfoot>

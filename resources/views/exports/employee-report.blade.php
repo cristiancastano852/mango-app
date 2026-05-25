@@ -82,9 +82,15 @@
         {{-- Desglose de horas --}}
         @php
             $surcharges = collect($report['cost_summary']['details'])->keyBy('type');
+            $payOvertime = $report['cost_summary']['pay_overtime'] ?? true;
         @endphp
         <div class="section">
             <div class="section-title">Desglose de Horas</div>
+            @unless($payOvertime)
+                <p style="font-size: 9px; color: #b45309; margin-bottom: 8px;">
+                    Las horas extra de este período se compensan con tiempo: se muestran las horas trabajadas, pero su pago es $0.
+                </p>
+            @endunless
             <table class="data">
                 <thead>
                     <tr>
@@ -111,13 +117,19 @@
                         <td>Extra Diurnas</td>
                         <td class="text-right">{{ $report['totals']['overtime_day_hours'] }}</td>
                         <td class="text-right">{{ $surcharges['overtime_day']['surcharge'] ?? 25 }}%</td>
-                        <td class="text-right">${{ number_format($report['cost_summary']['overtime_day'], 0, ',', '.') }}</td>
+                        <td class="text-right">
+                            ${{ number_format($report['cost_summary']['overtime_day'], 0, ',', '.') }}
+                            @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
+                        </td>
                     </tr>
                     <tr>
                         <td>Extra Nocturnas</td>
                         <td class="text-right">{{ $report['totals']['overtime_night_hours'] }}</td>
                         <td class="text-right">{{ $surcharges['overtime_night']['surcharge'] ?? 75 }}%</td>
-                        <td class="text-right">${{ number_format($report['cost_summary']['overtime_night'], 0, ',', '.') }}</td>
+                        <td class="text-right">
+                            ${{ number_format($report['cost_summary']['overtime_night'], 0, ',', '.') }}
+                            @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
+                        </td>
                     </tr>
                     <tr>
                         <td>Noc. Dominicales</td>
@@ -129,13 +141,19 @@
                         <td>Extra Dom Diurnas</td>
                         <td class="text-right">{{ $report['totals']['overtime_day_sunday_hours'] }}</td>
                         <td class="text-right">{{ $surcharges['overtime_day_sunday']['surcharge'] ?? 100 }}%</td>
-                        <td class="text-right">${{ number_format($report['cost_summary']['overtime_day_sunday'], 0, ',', '.') }}</td>
+                        <td class="text-right">
+                            ${{ number_format($report['cost_summary']['overtime_day_sunday'], 0, ',', '.') }}
+                            @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
+                        </td>
                     </tr>
                     <tr>
                         <td>Extra Dom Nocturnas</td>
                         <td class="text-right">{{ $report['totals']['overtime_night_sunday_hours'] }}</td>
                         <td class="text-right">{{ $surcharges['overtime_night_sunday']['surcharge'] ?? 150 }}%</td>
-                        <td class="text-right">${{ number_format($report['cost_summary']['overtime_night_sunday'], 0, ',', '.') }}</td>
+                        <td class="text-right">
+                            ${{ number_format($report['cost_summary']['overtime_night_sunday'], 0, ',', '.') }}
+                            @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
+                        </td>
                     </tr>
                     <tr>
                         <td>Dom/Festivas</td>
