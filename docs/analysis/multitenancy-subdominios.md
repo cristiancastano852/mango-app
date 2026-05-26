@@ -430,6 +430,14 @@ IdentifyTenant:  webplena.com/www → central ; otro → Company por slug
 Supabase (misma BD, filtrada por company_id)  ← sin cambios
 ```
 
+### Progreso de infra (2026-05-25)
+
+- ✅ Cert ACM `webplena.com` + `*.webplena.com` (us-east-1) — **Emitido**. Cert ID `546ec7fc…`. Se validó solo: ambos nombres comparten el mismo CNAME de validación, que ya existía en Cloudflare.
+- ✅ CloudFront `d2x9u47fwwnfoi`: alternate domains `webplena.com` + `*.webplena.com`, cert nuevo adjunto.
+- ✅ Cloudflare: CNAME wildcard `*` → `d2x9u47fwwnfoi.cloudfront.net` (DNS only).
+- ✅ Verificado: `prueba.webplena.com` carga la app sin error de SSL → DNS + CloudFront + cert wildcard OK. Sin 403 de API Gateway (CloudFront ya reescribe el `Host` al origen).
+- ⬜ **Pendiente (paso 4):** que Laravel lea el host real del tenant. Hoy `getHost()` ve el dominio interno, no `prueba.webplena.com`. Requiere CloudFront Function + `TrustProxies` + spike. **Es código de app, no consola.**
+
 ### Primera tarea antes de escribir código: SPIKE del Host
 
 Antes de implementar nada, validar el paso 4: desplegar una ruta temporal que vuelque `$request->getHost()` y los headers, entrar por `cualquiercosa.webplena.com` y confirmar que el host del tenant llega a Lambda. Es el único punto con riesgo; se despeja en ~30 min. Si pasa, el resto es código directo sobre la base de aislamiento ya existente.
