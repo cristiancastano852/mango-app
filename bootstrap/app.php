@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Middleware\EnsureAdminHost;
 use App\Http\Middleware\EnsureOnboardingNotCompleted;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\IdentifyTenant;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -23,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [
+            IdentifyTenant::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
@@ -33,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'onboarding' => EnsureOnboardingNotCompleted::class,
+            'admin-host' => EnsureAdminHost::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

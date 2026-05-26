@@ -22,7 +22,9 @@
 
 ## Shared (app/Domain/Shared/)
 - Traits: BelongsToCompany — aplica CompanyScope como global scope
-- Scopes: CompanyScope — filtra por company_id del usuario autenticado
+- Scopes: CompanyScope — prefiere el tenant del subdominio (TenantContext); si no hay, cae a company_id del usuario autenticado
+- Tenancy/TenantContext — binding `scoped` que guarda la Company actual de la petición (set por IdentifyTenant)
+- Tenancy/Tenancy — helpers de host: baseDomain(), adminHost(), isAdminHost(), rootUrl(slug)
 
 ## Controllers HTTP (app/Http/Controllers/)
 - LandingController — GET / landing pública (sin auth ni tenant)
@@ -44,3 +46,6 @@
 
 ## Middleware (app/Http/Middleware/)
 - EnsureOnboardingNotCompleted (alias: onboarding) — redirige a /dashboard si company.onboarding_completed=true
+- IdentifyTenant (en grupo web) — resuelve la Company por el subdominio del host y la fija en TenantContext; host central/reservado → sin tenant; subdominio desconocido → 404
+- EnsureAdminHost (alias: admin-host) — 404 si el host no es admin.{base_domain}; protege las rutas super-admin
+- Login gate (FortifyServiceProvider::authenticateUsing): en subdominio solo usuarios de esa company; en admin host solo super-admin; sin login en host público

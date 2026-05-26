@@ -588,6 +588,8 @@
             "create_title": "Crear empresa",
             "create_description": "Crea una nueva empresa y su primer usuario administrador.",
             "field_company_name": "Nombre de la empresa",
+            "field_subdomain": "Subdominio (opcional)",
+            "field_subdomain_hint": "Minúsculas, números y guiones. Si lo dejas vacío, se genera del nombre.",
             "field_admin_name": "Nombre del administrador",
             "field_admin_email": "Correo del administrador",
             "create_submit": "Crear empresa"

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Domain\Company\Models\Company;
 use App\Domain\Company\Observers\CompanyObserver;
+use App\Domain\Shared\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +18,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->scoped(TenantContext::class);
     }
 
     /**

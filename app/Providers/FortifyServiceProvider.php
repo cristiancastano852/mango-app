@@ -4,8 +4,13 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Domain\Shared\Tenancy\Tenancy;
+use App\Domain\Shared\Tenancy\TenantContext;
+use App\Models\User;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -29,8 +34,54 @@ class FortifyServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureActions();
+        $this->configureAuthentication();
+        $this->configurePasswordResetUrl();
         $this->configureViews();
         $this->configureRateLimiting();
+    }
+
+    /**
+     * Construye el enlace de restablecimiento apuntando al subdominio del tenant
+     * del usuario, para que funcione aunque el correo se procese en una cola sin
+     * contexto de request.
+     */
+    private function configurePasswordResetUrl(): void
+    {
+        ResetPassword::createUrlUsing(function (User $user, string $token): string {
+            $path = route('password.reset', [
+                'token' => $token,
+                'email' => $user->getEmailForPasswordReset(),
+            ], absolute: false);
+
+            return Tenancy::rootUrl($user->company?->slug).$path;
+        });
+    }
+
+    /**
+     * Restringe el login por host: en un subdominio solo usuarios de ese tenant,
+     * en el host de administración solo super-admin, y ningún login en el host público.
+     */
+    private function configureAuthentication(): void
+    {
+        Fortify::authenticateUsing(function (Request $request): ?User {
+            $user = User::where('email', $request->input(Fortify::username()))->first();
+
+            if (! $user || ! Hash::check((string) $request->input('password'), $user->password)) {
+                return null;
+            }
+
+            if (Tenancy::isAdminHost($request->getHost())) {
+                return $user->isSuperAdmin() ? $user : null;
+            }
+
+            $tenant = app(TenantContext::class);
+
+            if ($tenant->check()) {
+                return (int) $user->company_id === $tenant->id() ? $user : null;
+            }
+
+            return null;
+        });
     }
 
     /**

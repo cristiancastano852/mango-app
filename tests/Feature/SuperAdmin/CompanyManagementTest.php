@@ -5,6 +5,7 @@ namespace Tests\Feature\SuperAdmin;
 use App\Domain\Company\Models\Company;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\URL;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -27,6 +28,9 @@ class CompanyManagementTest extends TestCase
         Role::create(['name' => 'super-admin']);
         Role::create(['name' => 'admin']);
         Role::create(['name' => 'employee']);
+
+        config(['tenancy.base_domain' => 'mango-app.test']);
+        URL::forceRootUrl('http://admin.mango-app.test');
 
         $this->company = Company::create([
             'name' => 'Test Company',

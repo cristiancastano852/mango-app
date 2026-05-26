@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Domain\Company\Models\Company;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -68,6 +69,29 @@ class PasswordResetTest extends TestCase
                 ->assertRedirect(route('login'));
 
             return true;
+        });
+    }
+
+    public function test_reset_link_points_to_tenant_subdomain(): void
+    {
+        config(['tenancy.base_domain' => 'mango-app.test']);
+        Notification::fake();
+
+        $company = Company::create([
+            'name' => 'El Mango',
+            'slug' => 'elmango',
+            'timezone' => 'America/Bogota',
+            'country' => 'CO',
+        ]);
+        $user = User::factory()->create(['company_id' => $company->id]);
+
+        $this->post(route('password.email'), ['email' => $user->email]);
+
+        Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $notification) use ($user) {
+            $url = $notification->toMail($user)->actionUrl;
+
+            return str_contains($url, 'elmango.mango-app.test')
+                && ! str_contains($url, 'localhost');
         });
     }
 

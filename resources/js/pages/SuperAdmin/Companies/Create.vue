@@ -58,6 +58,18 @@ const breadcrumbs: BreadcrumbItem[] = [
                         </div>
 
                         <div class="grid gap-2">
+                            <Label for="subdomain">{{ t('super_admin.companies.field_subdomain') }}</Label>
+                            <Input
+                                id="subdomain"
+                                name="subdomain"
+                                type="text"
+                                placeholder="elmango"
+                            />
+                            <p class="text-xs text-muted-foreground">{{ t('super_admin.companies.field_subdomain_hint') }}</p>
+                            <InputError :message="errors.subdomain" />
+                        </div>
+
+                        <div class="grid gap-2">
                             <Label for="admin_name">{{ t('super_admin.companies.field_admin_name') }}</Label>
                             <Input
                                 id="admin_name"

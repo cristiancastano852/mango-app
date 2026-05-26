@@ -17,17 +17,6 @@ use App\Http\Controllers\TimeClockController;
 use App\Http\Controllers\TourController;
 use Illuminate\Support\Facades\Route;
 
-// TEMPORARY — spike de verificación del Host en serverless. Eliminar tras confirmar (tarea 1.4).
-Route::get('__tenant-debug', function (\Illuminate\Http\Request $request) {
-    return response()->json([
-        'getHost' => $request->getHost(),
-        'httpHost' => $request->getHttpHost(),
-        'header_host' => $request->header('host'),
-        'header_x_forwarded_host' => $request->header('x-forwarded-host'),
-        'all_headers' => $request->headers->all(),
-    ]);
-});
-
 // Public routes
 Route::get('/', [LandingController::class, 'index'])->name('home');
 Route::get('/pricing', fn () => redirect('/#pricing'))->name('pricing');
@@ -45,8 +34,8 @@ Route::prefix('kiosk/{company:slug}')->name('kiosk.')->group(function () {
     });
 });
 
-// Super-admin platform management
-Route::middleware(['auth', 'verified', 'role:super-admin'])->prefix('super-admin')->name('super-admin.')->group(function () {
+// Super-admin platform management (solo en el host de administración)
+Route::middleware(['admin-host', 'auth', 'verified', 'role:super-admin'])->prefix('super-admin')->name('super-admin.')->group(function () {
     Route::get('companies', [SuperAdminCompanyController::class, 'index'])->name('companies.index');
     Route::get('companies/create', [SuperAdminCompanyController::class, 'create'])->name('companies.create');
     Route::post('companies', [SuperAdminCompanyController::class, 'store'])->name('companies.store');
