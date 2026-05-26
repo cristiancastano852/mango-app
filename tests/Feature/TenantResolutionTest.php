@@ -75,6 +75,24 @@ class TenantResolutionTest extends TestCase
         $response->assertOk()->assertExactJson(['id' => null]);
     }
 
+    public function test_admin_host_has_no_tenant(): void
+    {
+        $this->company('admin');
+
+        $response = $this->get('http://admin.mango-app.test/__tenant-probe');
+
+        $response->assertOk()->assertExactJson(['id' => null]);
+    }
+
+    public function test_custom_admin_subdomain_is_not_treated_as_tenant(): void
+    {
+        config(['tenancy.admin_subdomain' => 'platform']);
+
+        $response = $this->get('http://platform.mango-app.test/__tenant-probe');
+
+        $response->assertOk()->assertExactJson(['id' => null]);
+    }
+
     public function test_queries_are_scoped_to_subdomain_tenant(): void
     {
         $alpha = $this->company('alpha');

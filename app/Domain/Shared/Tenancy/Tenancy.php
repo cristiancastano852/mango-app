@@ -20,6 +20,20 @@ class Tenancy
     }
 
     /**
+     * Subdominios que nunca son tenant: los reservados de config más el de
+     * administración (que es configurable), para que ambos se mantengan en sync.
+     *
+     * @return list<string>
+     */
+    public static function reservedSubdomains(): array
+    {
+        return array_values(array_unique(array_merge(
+            config('tenancy.reserved_subdomains', []),
+            [config('tenancy.admin_subdomain')],
+        )));
+    }
+
+    /**
      * Raíz de URL (scheme + host) del tenant indicado por su slug. Sin slug,
      * devuelve la del host de administración. El scheme se infiere de app.url.
      */

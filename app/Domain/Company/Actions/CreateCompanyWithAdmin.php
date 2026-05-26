@@ -3,6 +3,7 @@
 namespace App\Domain\Company\Actions;
 
 use App\Domain\Company\Models\Company;
+use App\Domain\Shared\Tenancy\Tenancy;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -46,7 +47,7 @@ class CreateCompanyWithAdmin
             return $explicit;
         }
 
-        $base = Str::limit(Str::slug($companyName), 63, '');
+        $base = trim(Str::limit(Str::slug($companyName), 63, ''), '-');
         $base = $base !== '' ? $base : 'empresa';
 
         $slug = $base;
@@ -54,7 +55,7 @@ class CreateCompanyWithAdmin
 
         while ($this->slugTaken($slug)) {
             $suffix = '-'.$attempt;
-            $slug = Str::limit($base, 63 - strlen($suffix), '').$suffix;
+            $slug = trim(Str::limit($base, 63 - strlen($suffix), ''), '-').$suffix;
             $attempt++;
         }
 
@@ -64,6 +65,6 @@ class CreateCompanyWithAdmin
     private function slugTaken(string $slug): bool
     {
         return Company::where('slug', $slug)->exists()
-            || in_array($slug, config('tenancy.reserved_subdomains', []), true);
+            || in_array($slug, Tenancy::reservedSubdomains(), true);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Domain\Company\Models\Company;
+use App\Domain\Shared\Tenancy\Tenancy;
 use App\Domain\Shared\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -40,13 +41,13 @@ class IdentifyTenant
         $baseDomain = (string) config('tenancy.base_domain');
         $suffix = '.'.$baseDomain;
 
-        if ($host === $baseDomain || ! str_ends_with($host, $suffix)) {
+        if ($host === $baseDomain || Tenancy::isAdminHost($host) || ! str_ends_with($host, $suffix)) {
             return null;
         }
 
         $subdomain = substr($host, 0, -strlen($suffix));
 
-        if (in_array($subdomain, config('tenancy.reserved_subdomains', []), true)) {
+        if (in_array($subdomain, Tenancy::reservedSubdomains(), true)) {
             return null;
         }
 

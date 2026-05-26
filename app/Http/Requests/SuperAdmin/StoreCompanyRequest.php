@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\SuperAdmin;
 
+use App\Domain\Shared\Tenancy\Tenancy;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -22,7 +23,7 @@ class StoreCompanyRequest extends FormRequest
                 'string',
                 'max:63',
                 'regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/',
-                Rule::notIn(config('tenancy.reserved_subdomains', [])),
+                Rule::notIn(Tenancy::reservedSubdomains()),
                 'unique:companies,slug',
             ],
         ];

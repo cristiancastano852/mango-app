@@ -538,6 +538,7 @@ resources:
 | `APP_NAME` | `mango-app` |
 | `APP_URL` | `https://api.tu-dominio.com` |
 | `TENANCY_BASE_DOMAIN` | `webplena.com` (dominio base del SaaS por subdominio) |
+| `TENANCY_ADMIN_SUBDOMAIN` | `admin` (subdominio del panel super-admin: `admin.webplena.com`) |
 | `REDIS_CACHE_DB` | `1` |
 | `REDIS_CLIENT` | `phpredis` |
 | `CACHE_PREFIX` | `mango` |
