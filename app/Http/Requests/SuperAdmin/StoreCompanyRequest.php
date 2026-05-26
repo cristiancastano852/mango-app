@@ -4,6 +4,7 @@ namespace App\Http\Requests\SuperAdmin;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreCompanyRequest extends FormRequest
 {
@@ -16,6 +17,14 @@ class StoreCompanyRequest extends FormRequest
             'company_name' => ['required', 'string', 'max:255'],
             'admin_name' => ['required', 'string', 'max:255'],
             'admin_email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'subdomain' => [
+                'nullable',
+                'string',
+                'max:63',
+                'regex:/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/',
+                Rule::notIn(config('tenancy.reserved_subdomains', [])),
+                'unique:companies,slug',
+            ],
         ];
     }
 
@@ -29,6 +38,10 @@ class StoreCompanyRequest extends FormRequest
             'admin_email.required' => 'El correo electrónico es obligatorio.',
             'admin_email.email' => 'Ingresa un correo electrónico válido.',
             'admin_email.unique' => 'Este correo electrónico ya está registrado.',
+            'subdomain.regex' => 'El subdominio solo puede contener letras minúsculas, números y guiones.',
+            'subdomain.max' => 'El subdominio no puede tener más de 63 caracteres.',
+            'subdomain.not_in' => 'Ese subdominio está reservado.',
+            'subdomain.unique' => 'Ese subdominio ya está en uso.',
         ];
     }
 }

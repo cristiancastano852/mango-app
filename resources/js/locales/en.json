@@ -588,6 +588,8 @@
             "create_title": "Create company",
             "create_description": "Create a new company and its first administrator user.",
             "field_company_name": "Company name",
+            "field_subdomain": "Subdomain (optional)",
+            "field_subdomain_hint": "Lowercase letters, numbers and hyphens. If empty, it's generated from the name.",
             "field_admin_name": "Administrator name",
             "field_admin_email": "Administrator email",
             "create_submit": "Create company"

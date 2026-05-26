@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Domain\Company\Models\Company;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Laravel\Fortify\Features;
 use Tests\TestCase;
 
@@ -19,9 +21,25 @@ class AuthenticationTest extends TestCase
         $response->assertOk();
     }
 
+    private function tenantUser(): User
+    {
+        config(['tenancy.base_domain' => 'mango-app.test']);
+
+        $company = Company::create([
+            'name' => 'Acme',
+            'slug' => 'acme',
+            'timezone' => 'America/Bogota',
+            'country' => 'CO',
+        ]);
+
+        URL::forceRootUrl('http://acme.mango-app.test');
+
+        return User::factory()->create(['company_id' => $company->id]);
+    }
+
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
-        $user = User::factory()->create();
+        $user = $this->tenantUser();
 
         $response = $this->post(route('login.store'), [
             'email' => $user->email,
@@ -43,7 +61,7 @@ class AuthenticationTest extends TestCase
             'confirmPassword' => true,
         ]);
 
-        $user = User::factory()->create();
+        $user = $this->tenantUser();
 
         $user->forceFill([
             'two_factor_secret' => encrypt('test-secret'),

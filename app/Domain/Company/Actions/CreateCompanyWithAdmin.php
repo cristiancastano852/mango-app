@@ -14,7 +14,7 @@ class CreateCompanyWithAdmin
         return DB::transaction(function () use ($data) {
             $company = Company::create([
                 'name' => $data['company_name'],
-                'slug' => Str::limit(Str::slug($data['company_name']), 248, '').'-'.Str::random(6),
+                'slug' => $this->resolveSlug($data['company_name'], $data['subdomain'] ?? null),
                 'timezone' => 'America/Bogota',
                 'country' => 'CO',
                 'onboarding_completed' => false,
@@ -33,5 +33,37 @@ class CreateCompanyWithAdmin
 
             return [$company, $user, $plainPassword];
         });
+    }
+
+    /**
+     * Resuelve el slug que servirá como subdominio del tenant. Usa el subdominio
+     * explícito (ya validado) o autogenera uno limpio desde el nombre, agregando
+     * un sufijo numérico solo en caso de colisión.
+     */
+    private function resolveSlug(string $companyName, ?string $explicit): string
+    {
+        if ($explicit !== null && $explicit !== '') {
+            return $explicit;
+        }
+
+        $base = Str::limit(Str::slug($companyName), 63, '');
+        $base = $base !== '' ? $base : 'empresa';
+
+        $slug = $base;
+        $attempt = 2;
+
+        while ($this->slugTaken($slug)) {
+            $suffix = '-'.$attempt;
+            $slug = Str::limit($base, 63 - strlen($suffix), '').$suffix;
+            $attempt++;
+        }
+
+        return $slug;
+    }
+
+    private function slugTaken(string $slug): bool
+    {
+        return Company::where('slug', $slug)->exists()
+            || in_array($slug, config('tenancy.reserved_subdomains', []), true);
     }
 }

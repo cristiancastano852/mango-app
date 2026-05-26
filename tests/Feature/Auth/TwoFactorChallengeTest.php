@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Domain\Company\Models\Company;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
 use Tests\TestCase;
@@ -34,7 +36,16 @@ class TwoFactorChallengeTest extends TestCase
             'confirmPassword' => true,
         ]);
 
-        $user = User::factory()->create();
+        config(['tenancy.base_domain' => 'mango-app.test']);
+        $company = Company::create([
+            'name' => 'Acme',
+            'slug' => 'acme',
+            'timezone' => 'America/Bogota',
+            'country' => 'CO',
+        ]);
+        URL::forceRootUrl('http://acme.mango-app.test');
+
+        $user = User::factory()->create(['company_id' => $company->id]);
 
         $user->forceFill([
             'two_factor_secret' => encrypt('test-secret'),

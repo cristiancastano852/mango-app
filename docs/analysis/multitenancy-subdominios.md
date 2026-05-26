@@ -436,7 +436,8 @@ Supabase (misma BD, filtrada por company_id)  ← sin cambios
 - ✅ CloudFront `d2x9u47fwwnfoi`: alternate domains `webplena.com` + `*.webplena.com`, cert nuevo adjunto.
 - ✅ Cloudflare: CNAME wildcard `*` → `d2x9u47fwwnfoi.cloudfront.net` (DNS only).
 - ✅ Verificado: `prueba.webplena.com` carga la app sin error de SSL → DNS + CloudFront + cert wildcard OK. Sin 403 de API Gateway (CloudFront ya reescribe el `Host` al origen).
-- ⬜ **Pendiente (paso 4):** que Laravel lea el host real del tenant. Hoy `getHost()` ve el dominio interno, no `prueba.webplena.com`. Requiere CloudFront Function + `TrustProxies` + spike. **Es código de app, no consola.**
+- ✅ **Paso 4 (código):** `getHost()` lee el host real vía `TrustProxies` + CloudFront Function. Verificado en producción (`getHost()=prueba.webplena.com`).
+- ✅ **Implementación de la app:** middleware `IdentifyTenant`, `TenantContext`, `CompanyScope` endurecido, gate de login por host (Fortify), `EnsureAdminHost` para super-admin, slug como subdominio en creación, y URL de reset por tenant. Ver el cambio OpenSpec `openspec/changes/subdomain-multitenancy/`.
 
 ### Primera tarea antes de escribir código: SPIKE del Host
 
