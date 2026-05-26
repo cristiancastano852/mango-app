@@ -7,7 +7,7 @@
 
 ## 2. Configuración de tenancy
 
-- [x] 2.1 Crear `config/tenancy.php` con `base_domain`, `public_hosts` (`webplena.com`/`www`), `admin_host` (`admin.webplena.com`) y `reserved_subdomains` (al menos `www`, `admin`), leyendo de env
+- [x] 2.1 Crear `config/tenancy.php` con `base_domain`, `admin_subdomain` (`admin` → `admin.webplena.com`) y `reserved_subdomains` (al menos `www`; `admin_subdomain` se incluye dinámicamente vía `Tenancy::reservedSubdomains()`), leyendo de env
 - [x] 2.2 Añadir las variables correspondientes a `.env.example` y a la plantilla de deploy (`.env.deployment` / `BREF_DEPLOY_GUIDE.md`)
 
 ## 3. Resolución del tenant (Shared)
