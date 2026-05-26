@@ -213,12 +213,13 @@ class KioskController extends Controller
     {
         $employeeId = session('kiosk_employee_id');
         $companyId = session('kiosk_company_id');
+        $tenantId = $this->tenant->get()->id;
 
-        abort_if(! $employeeId || $companyId !== $this->tenant->get()->id, 403);
+        abort_if(! $employeeId || $companyId !== $tenantId, 403);
 
         return Employee::withoutGlobalScopes()
             ->where('id', $employeeId)
-            ->where('company_id', $this->tenant->get()->id)
+            ->where('company_id', $tenantId)
             ->with('user')
             ->firstOrFail();
     }

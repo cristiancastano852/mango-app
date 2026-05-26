@@ -52,9 +52,9 @@ Request → IdentifyTenant (sets TenantContext) → Route match /kiosk →
 
 ### Decision 4: Regenerate Wayfinder TS via artisan command
 
-**Choice:** Run `php artisan wayfinder:generate` after route changes; commit the regenerated files.
+**Choice:** Run `php artisan wayfinder:generate` after route changes. The generated files are listed in `.gitignore` (`/resources/js/actions`, `/resources/js/routes`, `/resources/js/wayfinder`) and are NOT committed — they are regenerated at dev/build time.
 
-**Rationale:** Wayfinder is the project's established pattern for type-safe route references in Vue. Manually editing the generated TS files is fragile; the command is the canonical way to keep them in sync.
+**Rationale:** Wayfinder is the project's established pattern for type-safe route references in Vue. Manually editing the generated TS files is fragile; the command is the canonical way to keep them in sync. Keeping them gitignored avoids noisy diffs on every route change.
 
 ## Risks / Trade-offs
 

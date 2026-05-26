@@ -56,7 +56,9 @@ class KioskActionsTest extends TestCase
 
     private function tenantUrl(string $routeName, array $parameters = []): string
     {
-        return 'http://test-company.mango-app.test' . route($routeName, $parameters, false);
+        $host = $this->company->slug.'.'.config('tenancy.base_domain');
+
+        return 'http://'.$host.route($routeName, $parameters, false);
     }
 
     private function withKioskSession(array $extra = []): static

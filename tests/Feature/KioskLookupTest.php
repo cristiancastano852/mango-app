@@ -46,7 +46,9 @@ class KioskLookupTest extends TestCase
 
     private function tenantUrl(string $routeName, array $parameters = []): string
     {
-        return 'http://test-company.mango-app.test' . route($routeName, $parameters, false);
+        $host = $this->company->slug.'.'.config('tenancy.base_domain');
+
+        return 'http://'.$host.route($routeName, $parameters, false);
     }
 
     public function test_kiosk_index_renders_for_valid_tenant_subdomain(): void
@@ -63,7 +65,7 @@ class KioskLookupTest extends TestCase
 
     public function test_kiosk_index_returns_404_on_apex_domain(): void
     {
-        $response = $this->get('http://mango-app.test' . route('kiosk.index', [], false));
+        $response = $this->get('http://mango-app.test'.route('kiosk.index', [], false));
 
         $response->assertNotFound();
     }
