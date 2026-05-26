@@ -15,7 +15,7 @@ class CalculateReportCosts
      *
      * @param  float  $hourlyRate  Tarifa base por hora del empleado (COP)
      * @param  array{regular_hours: float, night_hours: float, sunday_holiday_hours: float, night_sunday_hours: float, overtime_day_hours: float, overtime_night_hours: float, overtime_day_sunday_hours: float, overtime_night_sunday_hours: float}  $hourTotals
-     * @return array{regular: float, night: float, sunday_holiday: float, night_sunday: float, overtime_day: float, overtime_night: float, overtime_day_sunday: float, overtime_night_sunday: float, total: float, details: list<array{type: string, hours: float, rate: float, surcharge: float, subtotal: float, compensated: bool}>}
+     * @return array{regular: float, night: float, sunday_holiday: float, night_sunday: float, overtime_day: float, overtime_night: float, overtime_day_sunday: float, overtime_night_sunday: float, total: float, pay_overtime: bool, details: list<array{type: string, hours: float, rate: float, surcharge: float, subtotal: float, compensated: bool}>}
      */
     public function execute(float $hourlyRate, array $hourTotals, SurchargeRule $rules, bool $payOvertime = true): array
     {
