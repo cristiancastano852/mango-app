@@ -17,6 +17,17 @@ use App\Http\Controllers\TimeClockController;
 use App\Http\Controllers\TourController;
 use Illuminate\Support\Facades\Route;
 
+// TEMPORARY — spike de verificación del Host en serverless. Eliminar tras confirmar (tarea 1.4).
+Route::get('__tenant-debug', function (\Illuminate\Http\Request $request) {
+    return response()->json([
+        'getHost' => $request->getHost(),
+        'httpHost' => $request->getHttpHost(),
+        'header_host' => $request->header('host'),
+        'header_x_forwarded_host' => $request->header('x-forwarded-host'),
+        'all_headers' => $request->headers->all(),
+    ]);
+});
+
 // Public routes
 Route::get('/', [LandingController::class, 'index'])->name('home');
 Route::get('/pricing', fn () => redirect('/#pricing'))->name('pricing');
