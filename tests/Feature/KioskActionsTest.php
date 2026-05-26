@@ -25,6 +25,8 @@ class KioskActionsTest extends TestCase
     {
         parent::setUp();
 
+        config(['tenancy.base_domain' => 'mango-app.test']);
+
         Role::create(['name' => 'employee']);
 
         $this->company = Company::create([
@@ -52,6 +54,13 @@ class KioskActionsTest extends TestCase
         ]);
     }
 
+    private function tenantUrl(string $routeName, array $parameters = []): string
+    {
+        $host = $this->company->slug.'.'.config('tenancy.base_domain');
+
+        return 'http://'.$host.route($routeName, $parameters, false);
+    }
+
     private function withKioskSession(array $extra = []): static
     {
         return $this->withSession(array_merge([
@@ -63,9 +72,9 @@ class KioskActionsTest extends TestCase
     public function test_clock_in_registers_entry_and_redirects(): void
     {
         $response = $this->withKioskSession()
-            ->post(route('kiosk.clock-in', ['company' => $this->company->slug]));
+            ->post($this->tenantUrl('kiosk.clock-in'));
 
-        $response->assertRedirect(route('kiosk.index', ['company' => $this->company->slug]));
+        $response->assertRedirect(route('kiosk.index'));
 
         $this->assertDatabaseHas('time_entries', [
             'employee_id' => $this->employee->id,
@@ -76,7 +85,7 @@ class KioskActionsTest extends TestCase
     public function test_clock_in_clears_kiosk_session(): void
     {
         $this->withKioskSession()
-            ->post(route('kiosk.clock-in', ['company' => $this->company->slug]));
+            ->post($this->tenantUrl('kiosk.clock-in'));
 
         $this->assertNull(session('kiosk_employee_id'));
     }
@@ -92,9 +101,9 @@ class KioskActionsTest extends TestCase
         ]);
 
         $response = $this->withKioskSession()
-            ->post(route('kiosk.clock-out', ['company' => $this->company->slug]));
+            ->post($this->tenantUrl('kiosk.clock-out'));
 
-        $response->assertRedirect(route('kiosk.index', ['company' => $this->company->slug]));
+        $response->assertRedirect(route('kiosk.index'));
 
         $this->assertDatabaseHas('time_entries', [
             'employee_id' => $this->employee->id,
@@ -113,11 +122,11 @@ class KioskActionsTest extends TestCase
         ]);
 
         $response = $this->withKioskSession()
-            ->post(route('kiosk.break.start', ['company' => $this->company->slug]), [
+            ->post($this->tenantUrl('kiosk.break.start'), [
                 'break_type_id' => $this->breakType->id,
             ]);
 
-        $response->assertRedirect(route('kiosk.index', ['company' => $this->company->slug]));
+        $response->assertRedirect(route('kiosk.index'));
 
         $this->assertDatabaseHas('breaks', [
             'employee_id' => $this->employee->id,
@@ -143,9 +152,9 @@ class KioskActionsTest extends TestCase
         ]);
 
         $response = $this->withKioskSession()
-            ->post(route('kiosk.break.end', ['company' => $this->company->slug]));
+            ->post($this->tenantUrl('kiosk.break.end'));
 
-        $response->assertRedirect(route('kiosk.index', ['company' => $this->company->slug]));
+        $response->assertRedirect(route('kiosk.index'));
 
         $this->assertDatabaseHas('breaks', [
             'employee_id' => $this->employee->id,
@@ -158,7 +167,7 @@ class KioskActionsTest extends TestCase
 
     public function test_action_without_kiosk_session_returns_403(): void
     {
-        $response = $this->post(route('kiosk.clock-in', ['company' => $this->company->slug]));
+        $response = $this->post($this->tenantUrl('kiosk.clock-in'));
 
         $response->assertForbidden();
     }
@@ -170,7 +179,7 @@ class KioskActionsTest extends TestCase
         $response = $this->withSession([
             'kiosk_employee_id' => $this->employee->id,
             'kiosk_company_id' => $otherCompany->id,
-        ])->post(route('kiosk.clock-in', ['company' => $this->company->slug]));
+        ])->post($this->tenantUrl('kiosk.clock-in'));
 
         $response->assertForbidden();
     }
@@ -194,7 +203,7 @@ class KioskActionsTest extends TestCase
         ]);
 
         $response = $this->withKioskSession()
-            ->post(route('kiosk.break.start', ['company' => $this->company->slug]), [
+            ->post($this->tenantUrl('kiosk.break.start'), [
                 'break_type_id' => $foreignBreakType->id,
             ]);
 
@@ -220,7 +229,7 @@ class KioskActionsTest extends TestCase
         ]);
 
         $response = $this->withKioskSession()
-            ->post(route('kiosk.break.start', ['company' => $this->company->slug]), [
+            ->post($this->tenantUrl('kiosk.break.start'), [
                 'break_type_id' => $inactiveBreakType->id,
             ]);
 

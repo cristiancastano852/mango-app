@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Domain\Company\Models\Company;
 use App\Domain\Employee\Models\Employee;
+use App\Domain\Shared\Tenancy\TenantContext;
 use App\Domain\TimeTracking\Actions\ClockIn;
 use App\Domain\TimeTracking\Actions\ClockOut;
 use App\Domain\TimeTracking\Actions\EndBreak;
@@ -20,8 +20,11 @@ use Inertia\Response;
 
 class KioskController extends Controller
 {
-    public function index(Company $company): Response
+    public function __construct(private TenantContext $tenant) {}
+
+    public function index(): Response
     {
+        $company = $this->tenant->get();
         $kioskEmployee = null;
         $todayEntry = null;
         $breakTypes = collect();
@@ -62,8 +65,10 @@ class KioskController extends Controller
         ]);
     }
 
-    public function lookup(KioskLookupRequest $request, Company $company): RedirectResponse
+    public function lookup(KioskLookupRequest $request): RedirectResponse
     {
+        $company = $this->tenant->get();
+
         $employee = Employee::withoutGlobalScopes()
             ->where('company_id', $company->id)
             ->whereHas('user', fn ($q) => $q->where('is_active', true))
@@ -80,19 +85,19 @@ class KioskController extends Controller
             'kiosk_company_id' => $company->id,
         ]);
 
-        return redirect()->route('kiosk.index', ['company' => $company->slug]);
+        return redirect()->route('kiosk.index');
     }
 
-    public function clockIn(Request $request, Company $company, ClockIn $action): RedirectResponse
+    public function clockIn(Request $request, ClockIn $action): RedirectResponse
     {
-        $employee = $this->resolveKioskEmployee($request, $company);
+        $employee = $this->resolveKioskEmployee($request);
 
         try {
             $action->execute($employee);
         } catch (ValidationException) {
             session()->forget(['kiosk_employee_id', 'kiosk_company_id']);
 
-            return redirect()->route('kiosk.index', ['company' => $company->slug]);
+            return redirect()->route('kiosk.index');
         }
 
         session()->forget(['kiosk_employee_id', 'kiosk_company_id']);
@@ -102,12 +107,12 @@ class KioskController extends Controller
             'name' => $employee->user->name,
         ]]);
 
-        return redirect()->route('kiosk.index', ['company' => $company->slug]);
+        return redirect()->route('kiosk.index');
     }
 
-    public function clockOut(Request $request, Company $company, ClockOut $action): RedirectResponse
+    public function clockOut(Request $request, ClockOut $action): RedirectResponse
     {
-        $employee = $this->resolveKioskEmployee($request, $company);
+        $employee = $this->resolveKioskEmployee($request);
 
         $entry = TimeEntry::withoutGlobalScopes()
             ->where('employee_id', $employee->id)
@@ -119,7 +124,7 @@ class KioskController extends Controller
         } catch (ValidationException) {
             session()->forget(['kiosk_employee_id', 'kiosk_company_id']);
 
-            return redirect()->route('kiosk.index', ['company' => $company->slug]);
+            return redirect()->route('kiosk.index');
         }
 
         session()->forget(['kiosk_employee_id', 'kiosk_company_id']);
@@ -129,11 +134,13 @@ class KioskController extends Controller
             'name' => $employee->user->name,
         ]]);
 
-        return redirect()->route('kiosk.index', ['company' => $company->slug]);
+        return redirect()->route('kiosk.index');
     }
 
-    public function startBreak(Request $request, Company $company, StartBreak $action): RedirectResponse
+    public function startBreak(Request $request, StartBreak $action): RedirectResponse
     {
+        $company = $this->tenant->get();
+
         $request->validate([
             'break_type_id' => [
                 'required',
@@ -141,7 +148,7 @@ class KioskController extends Controller
             ],
         ]);
 
-        $employee = $this->resolveKioskEmployee($request, $company);
+        $employee = $this->resolveKioskEmployee($request);
 
         $entry = TimeEntry::withoutGlobalScopes()
             ->where('employee_id', $employee->id)
@@ -153,7 +160,7 @@ class KioskController extends Controller
         } catch (ValidationException) {
             session()->forget(['kiosk_employee_id', 'kiosk_company_id']);
 
-            return redirect()->route('kiosk.index', ['company' => $company->slug]);
+            return redirect()->route('kiosk.index');
         }
 
         session()->forget(['kiosk_employee_id', 'kiosk_company_id']);
@@ -163,12 +170,12 @@ class KioskController extends Controller
             'name' => $employee->user->name,
         ]]);
 
-        return redirect()->route('kiosk.index', ['company' => $company->slug]);
+        return redirect()->route('kiosk.index');
     }
 
-    public function endBreak(Request $request, Company $company, EndBreak $action): RedirectResponse
+    public function endBreak(Request $request, EndBreak $action): RedirectResponse
     {
-        $employee = $this->resolveKioskEmployee($request, $company);
+        $employee = $this->resolveKioskEmployee($request);
 
         $entry = TimeEntry::withoutGlobalScopes()
             ->where('employee_id', $employee->id)
@@ -182,7 +189,7 @@ class KioskController extends Controller
         } catch (ValidationException) {
             session()->forget(['kiosk_employee_id', 'kiosk_company_id']);
 
-            return redirect()->route('kiosk.index', ['company' => $company->slug]);
+            return redirect()->route('kiosk.index');
         }
 
         session()->forget(['kiosk_employee_id', 'kiosk_company_id']);
@@ -192,26 +199,27 @@ class KioskController extends Controller
             'name' => $employee->user->name,
         ]]);
 
-        return redirect()->route('kiosk.index', ['company' => $company->slug]);
+        return redirect()->route('kiosk.index');
     }
 
-    public function reset(Company $company): RedirectResponse
+    public function reset(): RedirectResponse
     {
         session()->forget(['kiosk_employee_id', 'kiosk_company_id', 'kiosk_action']);
 
-        return redirect()->route('kiosk.index', ['company' => $company->slug]);
+        return redirect()->route('kiosk.index');
     }
 
-    private function resolveKioskEmployee(Request $request, Company $company): Employee
+    private function resolveKioskEmployee(Request $request): Employee
     {
         $employeeId = session('kiosk_employee_id');
         $companyId = session('kiosk_company_id');
+        $tenantId = $this->tenant->get()->id;
 
-        abort_if(! $employeeId || $companyId !== $company->id, 403);
+        abort_if(! $employeeId || $companyId !== $tenantId, 403);
 
         return Employee::withoutGlobalScopes()
             ->where('id', $employeeId)
-            ->where('company_id', $company->id)
+            ->where('company_id', $tenantId)
             ->with('user')
             ->firstOrFail();
     }

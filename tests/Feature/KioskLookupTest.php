@@ -22,6 +22,8 @@ class KioskLookupTest extends TestCase
     {
         parent::setUp();
 
+        config(['tenancy.base_domain' => 'mango-app.test']);
+
         Role::create(['name' => 'employee']);
 
         $this->company = Company::create([
@@ -42,9 +44,16 @@ class KioskLookupTest extends TestCase
         ]);
     }
 
-    public function test_kiosk_index_renders_for_valid_company_slug(): void
+    private function tenantUrl(string $routeName, array $parameters = []): string
     {
-        $response = $this->get(route('kiosk.index', ['company' => $this->company->slug]));
+        $host = $this->company->slug.'.'.config('tenancy.base_domain');
+
+        return 'http://'.$host.route($routeName, $parameters, false);
+    }
+
+    public function test_kiosk_index_renders_for_valid_tenant_subdomain(): void
+    {
+        $response = $this->get($this->tenantUrl('kiosk.index'));
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
@@ -54,20 +63,20 @@ class KioskLookupTest extends TestCase
         );
     }
 
-    public function test_kiosk_index_returns_404_for_invalid_slug(): void
+    public function test_kiosk_index_returns_404_on_apex_domain(): void
     {
-        $response = $this->get(route('kiosk.index', ['company' => 'no-existe']));
+        $response = $this->get('http://mango-app.test'.route('kiosk.index', [], false));
 
         $response->assertNotFound();
     }
 
     public function test_lookup_finds_employee_by_document_number(): void
     {
-        $response = $this->post(route('kiosk.lookup', ['company' => $this->company->slug]), [
+        $response = $this->post($this->tenantUrl('kiosk.lookup'), [
             'document_number' => '123456789',
         ]);
 
-        $response->assertRedirect(route('kiosk.index', ['company' => $this->company->slug]));
+        $response->assertRedirect(route('kiosk.index'));
 
         $this->assertEquals($this->employee->id, session('kiosk_employee_id'));
         $this->assertEquals($this->company->id, session('kiosk_company_id'));
@@ -75,7 +84,7 @@ class KioskLookupTest extends TestCase
 
     public function test_lookup_fails_for_nonexistent_document_number(): void
     {
-        $response = $this->post(route('kiosk.lookup', ['company' => $this->company->slug]), [
+        $response = $this->post($this->tenantUrl('kiosk.lookup'), [
             'document_number' => '999999999',
         ]);
 
@@ -85,7 +94,7 @@ class KioskLookupTest extends TestCase
 
     public function test_lookup_fails_for_empty_document_number(): void
     {
-        $response = $this->post(route('kiosk.lookup', ['company' => $this->company->slug]), [
+        $response = $this->post($this->tenantUrl('kiosk.lookup'), [
             'document_number' => '',
         ]);
 
@@ -102,7 +111,7 @@ class KioskLookupTest extends TestCase
             'document_number' => '999999999',
         ]);
 
-        $response = $this->post(route('kiosk.lookup', ['company' => $this->company->slug]), [
+        $response = $this->post($this->tenantUrl('kiosk.lookup'), [
             'document_number' => '999999999',
         ]);
 
@@ -114,7 +123,7 @@ class KioskLookupTest extends TestCase
         $response = $this->withSession([
             'kiosk_employee_id' => $this->employee->id,
             'kiosk_company_id' => $this->company->id,
-        ])->get(route('kiosk.index', ['company' => $this->company->slug]));
+        ])->get($this->tenantUrl('kiosk.index'));
 
         $response->assertInertia(fn ($page) => $page
             ->where('kioskEmployee.id', $this->employee->id)
@@ -134,7 +143,7 @@ class KioskLookupTest extends TestCase
         $response = $this->withSession([
             'kiosk_employee_id' => $this->employee->id,
             'kiosk_company_id' => $this->company->id,
-        ])->get(route('kiosk.index', ['company' => $this->company->slug]));
+        ])->get($this->tenantUrl('kiosk.index'));
 
         $response->assertInertia(fn ($page) => $page
             ->where('todayEntry.status', 'clocked_in')

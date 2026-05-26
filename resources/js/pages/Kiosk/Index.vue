@@ -41,22 +41,22 @@ let countdownInterval: ReturnType<typeof setInterval> | null = null;
 const lookupForm = useForm({ document_number: '' });
 
 function submitLookup() {
-    lookupForm.post(KioskController.lookup(props.company.slug).url, {
+    lookupForm.post(KioskController.lookup().url, {
         preserveScroll: true,
     });
 }
 
 function doClockIn() {
-    router.post(KioskController.clockIn(props.company.slug).url);
+    router.post(KioskController.clockIn().url);
 }
 function doClockOut() {
-    router.post(KioskController.clockOut(props.company.slug).url);
+    router.post(KioskController.clockOut().url);
 }
 function doStartBreak(breakTypeId: number) {
-    router.post(KioskController.startBreak(props.company.slug).url, { break_type_id: breakTypeId });
+    router.post(KioskController.startBreak().url, { break_type_id: breakTypeId });
 }
 function doEndBreak() {
-    router.post(KioskController.endBreak(props.company.slug).url);
+    router.post(KioskController.endBreak().url);
 }
 
 function startCountdown() {
@@ -74,7 +74,7 @@ function resetKiosk() {
         clearInterval(countdownInterval);
         countdownInterval = null;
     }
-    router.post(KioskController.reset(props.company.slug).url);
+    router.post(KioskController.reset().url);
 }
 
 watch(() => props.kioskAction, (val) => {

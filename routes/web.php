@@ -21,8 +21,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [LandingController::class, 'index'])->name('home');
 Route::get('/pricing', fn () => redirect('/#pricing'))->name('pricing');
 
-// Kiosk (public, no auth required)
-Route::prefix('kiosk/{company:slug}')->name('kiosk.')->group(function () {
+// Kiosk (public, no auth required — tenant resolved from subdomain)
+Route::prefix('kiosk')->name('kiosk.')->middleware('tenant')->group(function () {
     Route::get('/', [KioskController::class, 'index'])->name('index');
     Route::post('/reset', [KioskController::class, 'reset'])->name('reset');
     Route::middleware('throttle:10,1')->group(function () {

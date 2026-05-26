@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureAdminHost;
 use App\Http\Middleware\EnsureOnboardingNotCompleted;
+use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\IdentifyTenant;
@@ -37,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'onboarding' => EnsureOnboardingNotCompleted::class,
             'admin-host' => EnsureAdminHost::class,
+            'tenant' => EnsureTenantContext::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
