@@ -62,7 +62,7 @@ jobs:
           APP_NAME: ${{ vars.APP_NAME }}
           APP_KEY: ${{ secrets.APP_KEY }}
           APP_URL: ${{ vars.APP_URL }}
-          TENANCY_BASE_DOMAIN: ${{ vars.TENANCY_BASE_DOMAIN }}
+          TENANCY_BASE_DOMAIN: ${{ secrets.TENANCY_BASE_DOMAIN }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
