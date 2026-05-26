@@ -28,6 +28,7 @@ class ReportFilterRequest extends FormRequest
                 ? ['required', 'integer', $this->employeeExistsRule()]
                 : ['nullable', 'integer', $this->employeeExistsRule()],
             'department_id' => ['nullable', 'integer', $this->departmentExistsRule()],
+            'pay_overtime' => ['nullable', 'boolean'],
         ];
     }
 

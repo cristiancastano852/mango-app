@@ -1,7 +1,7 @@
 # Domain Model — Mango App
 
 ## Company (app/Domain/Company/)
-- Models: Company (+ campo onboarding_completed boolean), Holiday, SurchargeRule
+- Models: Company (+ campo onboarding_completed boolean), Holiday, SurchargeRule (+ pay_overtime_by_default), OvertimePaymentDecision (decisión de pago de horas extra por empleado/periodo; employee_id NULL = reporte de empresa)
 - Observers: CompanyObserver — auto-seeds SurchargeRule + ColombianHolidays al crear empresa
 - Seeders: ColombianHolidaysSeeder::seedForCompany(int $id) — 6 fijos (recurring) + 12 móviles (2026)
 - Actions: RegisterCompany — crea Company + User admin en DB::transaction, autentica usuario, dispara CompanyObserver automáticamente
@@ -14,7 +14,7 @@
 ## TimeTracking (app/Domain/TimeTracking/)
 - Actions (clock): ClockIn, ClockOut, StartBreak, EndBreak, AdminClockIn
 - Actions (cálculo): CalculateWorkHours — clasificación minuto a minuto en regular/night/sunday_holiday/overtime
-- Actions (reportes): GenerateCompanyReport, GenerateEmployeeReport, CalculateReportCosts
+- Actions (reportes): GenerateCompanyReport, GenerateEmployeeReport, CalculateReportCosts (acepta flag payOvertime), ResolveOvertimePaymentDecision (precedencia request → decisión guardada → default de compañía)
 - Models: TimeEntry, BreakEntry, BreakType
 
 ## Organization (app/Domain/Organization/)

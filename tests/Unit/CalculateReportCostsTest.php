@@ -224,4 +224,72 @@ class CalculateReportCostsTest extends TestCase
         $this->assertEquals(0.0, $result['overtime_night_sunday']);
         $this->assertEquals(50000.0, $result['total']);
     }
+
+    public function test_pay_overtime_defaults_to_true(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'overtime_day_hours' => 2.0,
+        ], $this->rules);
+
+        $this->assertTrue($result['pay_overtime']);
+        $this->assertEquals(25000.0, $result['overtime_day']);
+        $this->assertEquals(25000.0, $result['total']);
+    }
+
+    public function test_unpaid_overtime_zeroes_the_four_overtime_costs_and_excludes_from_total(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'regular_hours' => 8.0,
+            'overtime_day_hours' => 2.0,
+            'overtime_night_hours' => 2.0,
+            'overtime_day_sunday_hours' => 2.0,
+            'overtime_night_sunday_hours' => 2.0,
+        ], $this->rules, payOvertime: false);
+
+        $this->assertFalse($result['pay_overtime']);
+        $this->assertEquals(0.0, $result['overtime_day']);
+        $this->assertEquals(0.0, $result['overtime_night']);
+        $this->assertEquals(0.0, $result['overtime_day_sunday']);
+        $this->assertEquals(0.0, $result['overtime_night_sunday']);
+
+        // Solo las 8 horas ordinarias suman al total.
+        $this->assertEquals(80000.0, $result['total']);
+    }
+
+    public function test_unpaid_overtime_keeps_hours_visible_in_details(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'overtime_night_hours' => 8.0,
+        ], $this->rules, payOvertime: false);
+
+        $byType = collect($result['details'])->keyBy('type');
+
+        // Las horas trabajadas se siguen mostrando aunque el costo sea 0.
+        $this->assertEquals(8.0, $byType['overtime_night']['hours']);
+        $this->assertEquals(75, $byType['overtime_night']['surcharge']);
+        $this->assertEquals(0.0, $byType['overtime_night']['subtotal']);
+        $this->assertTrue($byType['overtime_night']['compensated']);
+    }
+
+    public function test_unpaid_overtime_does_not_affect_non_overtime_costs(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'regular_hours' => 8.0,
+            'night_hours' => 2.0,
+            'sunday_holiday_hours' => 1.0,
+            'night_sunday_hours' => 1.0,
+            'overtime_day_hours' => 5.0,
+        ], $this->rules, payOvertime: false);
+
+        // 80000 + 27000 + 17500 + 21000 = 145500 (sin overtime)
+        $this->assertEquals(80000.0, $result['regular']);
+        $this->assertEquals(27000.0, $result['night']);
+        $this->assertEquals(17500.0, $result['sunday_holiday']);
+        $this->assertEquals(21000.0, $result['night_sunday']);
+        $this->assertEquals(145500.0, $result['total']);
+
+        $byType = collect($result['details'])->keyBy('type');
+        $this->assertFalse($byType['regular']['compensated']);
+        $this->assertFalse($byType['night']['compensated']);
+    }
 }

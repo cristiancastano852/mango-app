@@ -23,8 +23,8 @@
 - id, employee_id → employees, company_id → companies
 - date (date), clock_in (timestamp nullable), clock_out (timestamp nullable)
 - gross_hours (decimal 5,2 default 0), break_hours (decimal 5,2 default 0), net_hours (decimal 5,2 default 0)
-- regular_hours (decimal 5,2 default 0), overtime_hours (decimal 5,2 default 0)
-- night_hours (decimal 5,2 default 0), sunday_holiday_hours (decimal 5,2 default 0)
+- regular_hours, night_hours, sunday_holiday_hours, night_sunday_hours (decimal 5,2 default 0)
+- overtime_day_hours, overtime_night_hours, overtime_day_sunday_hours, overtime_night_sunday_hours (decimal 5,2 default 0)
 - status (string, default: pending) — valores: pending, clocked_in, on_break, clocked_out
 - edited_by (nullable → users), edit_reason (text nullable), pin_verified (boolean default false)
 - timestamps
@@ -66,9 +66,19 @@
 - night_surcharge (decimal 5,2 default 35), overtime_day (decimal 5,2 default 25)
 - overtime_night (decimal 5,2 default 75), sunday_holiday (decimal 5,2 default 75)
 - overtime_day_sunday (decimal 5,2 default 100), overtime_night_sunday (decimal 5,2 default 150)
-- night_sunday (decimal 5,2 default 110), max_weekly_hours (int default 42)
+- night_sunday (decimal 5,2 default 110), max_weekly_hours (int default 42), max_daily_hours (int default 8)
+- pay_overtime_by_default (boolean default true) — criterio general: pagar horas extra en dinero (true) o compensarlas con tiempo (false)
 - night_start_time (time, default '21:00'), night_end_time (time, default '06:00')
 - timestamps
+
+## overtime_payment_decisions
+- id, company_id → companies, employee_id (nullable → employees) — NULL = decisión del reporte de empresa; lleno = decisión por empleado
+- start_date (date), end_date (date) — periodo resuelto del reporte
+- pay_overtime (boolean) — si las horas extra se pagan en ese desprendible
+- exported_by (nullable → users), exported_at (timestamp nullable)
+- timestamps
+- unique: (company_id, employee_id, start_date, end_date) → upsert al exportar (gana la última)
+- indexes: (company_id, employee_id)
 
 ## holidays
 - id, company_id → companies, name, date (date)

@@ -25,6 +25,7 @@ class UpdateSurchargeRuleRequest extends FormRequest
             'overtime_day_sunday' => ['required', 'numeric', 'min:0', 'max:999'],
             'overtime_night_sunday' => ['required', 'numeric', 'min:0', 'max:999'],
             'night_sunday' => ['required', 'numeric', 'min:0', 'max:999'],
+            'pay_overtime_by_default' => ['required', 'boolean'],
             'max_weekly_hours' => ['required', 'integer', 'min:1', 'max:168'],
             'max_daily_hours' => ['required', 'integer', 'min:1', 'max:24'],
             'night_start_time' => ['required', 'date_format:H:i'],
@@ -52,6 +53,8 @@ class UpdateSurchargeRuleRequest extends FormRequest
             'max_daily_hours.integer' => 'El límite diario debe ser un número entero.',
             'max_daily_hours.min' => 'El límite diario debe ser al menos 1 hora.',
             'max_daily_hours.max' => 'El límite diario no puede superar 24 horas.',
+            'pay_overtime_by_default.required' => 'Debes indicar si las horas extra se pagan por defecto.',
+            'pay_overtime_by_default.boolean' => 'El valor de pago de horas extra no es válido.',
             'company_id.in' => 'No puedes modificar la configuración de otra empresa.',
         ];
     }

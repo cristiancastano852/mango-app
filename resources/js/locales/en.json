@@ -434,6 +434,12 @@
             "subtotal": "Subtotal",
             "total": "Total"
         },
+        "overtime_payment": {
+            "label": "Pay overtime",
+            "paid_hint": "Overtime is paid with its surcharge.",
+            "compensated_hint": "Overtime compensated with time off (paid as $0).",
+            "compensated_badge": "Compensated"
+        },
         "charts": {
             "hours_breakdown": "Hours Breakdown",
             "daily_trend": "Daily Trend",

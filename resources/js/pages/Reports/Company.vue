@@ -17,6 +17,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDecimalHours } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import DateRangeFilter from './partials/DateRangeFilter.vue';
+import OvertimePaymentToggle from './partials/OvertimePaymentToggle.vue';
 
 type EmployeeSummary = {
     employee_id: number;
@@ -71,6 +72,7 @@ type Report = {
         overtime_day_sunday: number;
         overtime_night_sunday: number;
         total: number;
+        pay_overtime: boolean;
     };
     period: { start: string; end: string };
 };
@@ -82,11 +84,14 @@ const props = defineProps<{
         start_date: string;
         end_date: string;
         department_id: string | null;
+        pay_overtime: boolean;
     };
     departments: Array<{ id: number; name: string }>;
 }>();
 
 const { t } = useI18n();
+
+const payOvertime = ref(props.filters.pay_overtime);
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: t('reports.breadcrumb'), href: '/reports' },
@@ -107,7 +112,23 @@ function applyFilter() {
         start_date: dateFilter.value.start_date,
         end_date: dateFilter.value.end_date,
         department_id: selectedDepartment.value !== 'all' ? selectedDepartment.value : undefined,
+        pay_overtime: payOvertime.value ? 1 : 0,
     });
+}
+
+function setPayOvertime(value: boolean) {
+    payOvertime.value = value;
+    router.get(
+        '/reports/company',
+        {
+            date_range: props.filters.date_range,
+            start_date: props.filters.start_date,
+            end_date: props.filters.end_date,
+            department_id: props.filters.department_id ?? undefined,
+            pay_overtime: value ? 1 : 0,
+        },
+        { preserveScroll: true },
+    );
 }
 
 function exportQueryParams(): string {
@@ -115,6 +136,7 @@ function exportQueryParams(): string {
         date_range: props.filters.date_range,
         start_date: props.filters.start_date,
         end_date: props.filters.end_date,
+        pay_overtime: payOvertime.value ? '1' : '0',
     });
     if (props.filters.department_id) {
         params.set('department_id', String(props.filters.department_id));
@@ -255,6 +277,15 @@ onMounted(async () => {
             </div>
 
             <template v-else>
+                <!-- Overtime payment toggle -->
+                <div class="flex justify-end">
+                    <OvertimePaymentToggle
+                        :model-value="payOvertime"
+                        class="w-full sm:w-auto sm:min-w-[340px]"
+                        @update:model-value="setPayOvertime"
+                    />
+                </div>
+
                 <!-- KPI Cards -->
                 <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
                     <Card>
