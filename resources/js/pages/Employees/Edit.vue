@@ -6,13 +6,15 @@ import { index as employeesIndex } from '@/actions/App/Http/Controllers/Employee
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
 // LOCATIONS FEATURE DISABLED — restore Location import when re-enabling.
-import type { BreadcrumbItem, Department, Employee, Position } from '@/types';
+// DEPARTMENTS & POSITIONS FEATURE DISABLED — restore Department, Position imports when re-enabling.
+import type { BreadcrumbItem, Employee } from '@/types';
 import EmployeeForm from './partials/EmployeeForm.vue';
 
 type Props = {
     employee: Employee;
-    departments: Department[];
-    positions: Position[];
+    // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore these props when re-enabling.
+    // departments: Department[];
+    // positions: Position[];
     // LOCATIONS FEATURE DISABLED — restore locations prop when re-enabling.
     // locations: Location[];
 };
@@ -32,8 +34,9 @@ const form = useForm({
     phone: props.employee.user.phone ?? '',
     document_number: props.employee.document_number ?? '',
     is_active: props.employee.user.is_active,
-    department_id: props.employee.department_id ? String(props.employee.department_id) : '',
-    position_id: props.employee.position_id ? String(props.employee.position_id) : '',
+    // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore these fields when re-enabling.
+    // department_id: props.employee.department_id ? String(props.employee.department_id) : '',
+    // position_id: props.employee.position_id ? String(props.employee.position_id) : '',
     hire_date: props.employee.hire_date ?? '',
     hourly_rate: props.employee.hourly_rate ?? '',
     salary_type: props.employee.salary_type ?? 'hourly',
@@ -59,11 +62,10 @@ function submit() {
                 <CardContent>
                     <EmployeeForm
                         :form="form"
-                        :departments="departments"
-                        :positions="positions"
                         show-status
                         @submit="submit"
                     />
+                    <!-- DEPARTMENTS & POSITIONS FEATURE DISABLED — restore :departments and :positions props when re-enabling. -->
                     <!-- LOCATIONS FEATURE DISABLED — restore :locations="locations" prop when re-enabling. -->
                 </CardContent>
             </Card>

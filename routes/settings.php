@@ -7,7 +7,6 @@ use App\Http\Controllers\Settings\HolidayController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SurchargeRuleController;
-use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
@@ -28,7 +27,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::inertia('settings/appearance', 'settings/Appearance')->name('appearance.edit');
 
-    Route::get('settings/two-factor', [TwoFactorAuthenticationController::class, 'show'])
+    // TWO_FACTOR_DISABLED: route kept for Wayfinder type generation; redirects to profile
+    Route::get('settings/two-factor', fn () => redirect()->route('profile.edit'))
         ->name('two-factor.show');
 });
 

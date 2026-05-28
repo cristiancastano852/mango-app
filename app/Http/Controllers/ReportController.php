@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Domain\Company\Models\OvertimePaymentDecision;
 use App\Domain\Employee\Models\Employee;
-use App\Domain\Organization\Models\Department;
+// DEPARTMENTS & POSITIONS FEATURE DISABLED — restore import when re-enabling.
+// use App\Domain\Organization\Models\Department;
 use App\Domain\TimeTracking\Actions\GenerateCompanyReport;
 use App\Domain\TimeTracking\Actions\GenerateEmployeeReport;
 use App\Domain\TimeTracking\Actions\ResolveOvertimePaymentDecision;
@@ -38,10 +39,8 @@ class ReportController extends Controller
                 'id' => $e->id,
                 'name' => $e->user->name,
             ]),
-            'departments' => Department::all()->map(fn ($d) => [
-                'id' => $d->id,
-                'name' => $d->name,
-            ]),
+            // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore departments prop when re-enabling.
+            // 'departments' => Department::all()->map(fn ($d) => ['id' => $d->id, 'name' => $d->name]),
         ]);
     }
 
@@ -107,13 +106,12 @@ class ReportController extends Controller
                 'date_range' => $validated['date_range'],
                 'start_date' => $startDate->toDateString(),
                 'end_date' => $endDate->toDateString(),
-                'department_id' => $validated['department_id'] ?? null,
+                // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department_id filter when re-enabling.
+                // 'department_id' => $validated['department_id'] ?? null,
                 'pay_overtime' => $payOvertime,
             ],
-            'departments' => Department::all()->map(fn ($d) => [
-                'id' => $d->id,
-                'name' => $d->name,
-            ]),
+            // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore departments prop when re-enabling.
+            // 'departments' => Department::all()->map(fn ($d) => ['id' => $d->id, 'name' => $d->name]),
         ]);
     }
 
@@ -206,7 +204,9 @@ class ReportController extends Controller
             $companyId,
             $startDate,
             $endDate,
-            isset($validated['department_id']) ? (int) $validated['department_id'] : null,
+            // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department_id filter when re-enabling.
+            // isset($validated['department_id']) ? (int) $validated['department_id'] : null,
+            null,
             $payOvertime,
         );
     }

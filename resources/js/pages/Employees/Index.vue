@@ -22,14 +22,17 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/AppLayout.vue';
-import type { BreadcrumbItem, Department, Employee, PaginatedData } from '@/types';
+// DEPARTMENTS & POSITIONS FEATURE DISABLED — restore Department import when re-enabling.
+import type { BreadcrumbItem, Employee, PaginatedData } from '@/types';
 
 type Props = {
     employees: PaginatedData<Employee>;
-    departments: Department[];
+    // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore departments prop when re-enabling.
+    // departments: Department[];
     filters: {
         search?: string;
-        department?: string;
+        // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department filter when re-enabling.
+        // department?: string;
         status?: string;
     };
 };
@@ -43,7 +46,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const search = ref(props.filters.search ?? '');
-const department = ref(props.filters.department ?? '');
+// DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department filter when re-enabling.
+// const department = ref(props.filters.department ?? '');
 const status = ref(props.filters.status ?? '');
 
 let searchTimeout: ReturnType<typeof setTimeout>;
@@ -56,7 +60,8 @@ watch(search, (value) => {
 function applyFilters(override: Record<string, string> = {}) {
     router.get(employeesIndex.url(), {
         search: search.value || undefined,
-        department: department.value || undefined,
+        // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department filter when re-enabling.
+        // department: department.value || undefined,
         status: status.value || undefined,
         ...override,
     }, {
@@ -65,10 +70,11 @@ function applyFilters(override: Record<string, string> = {}) {
     });
 }
 
-function onDepartmentChange(value: string) {
-    department.value = value === 'all' ? '' : value;
-    applyFilters({ department: department.value });
-}
+// DEPARTMENTS & POSITIONS FEATURE DISABLED — restore onDepartmentChange when re-enabling.
+// function onDepartmentChange(value: string) {
+//     department.value = value === 'all' ? '' : value;
+//     applyFilters({ department: department.value });
+// }
 
 function onStatusChange(value: string) {
     status.value = value === 'all' ? '' : value;
@@ -113,21 +119,16 @@ function deleteEmployee(employee: Employee) {
                         class="pl-9"
                     />
                 </div>
-                <Select :model-value="department || 'all'" @update:model-value="onDepartmentChange">
+                <!-- DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department filter select when re-enabling. -->
+                <!-- <Select :model-value="department || 'all'" @update:model-value="onDepartmentChange">
                     <SelectTrigger class="w-full sm:w-[180px]">
                         <SelectValue :placeholder="t('employees.department')" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">{{ t('common.all') }}</SelectItem>
-                        <SelectItem
-                            v-for="dept in departments"
-                            :key="dept.id"
-                            :value="String(dept.id)"
-                        >
-                            {{ dept.name }}
-                        </SelectItem>
+                        <SelectItem v-for="dept in departments" :key="dept.id" :value="String(dept.id)">{{ dept.name }}</SelectItem>
                     </SelectContent>
-                </Select>
+                </Select> -->
                 <Select :model-value="status || 'all'" @update:model-value="onStatusChange">
                     <SelectTrigger class="w-full sm:w-[140px]">
                         <SelectValue :placeholder="t('employees.status')" />
@@ -162,6 +163,9 @@ function deleteEmployee(employee: Employee) {
                                 </Badge>
                             </div>
                             <p class="text-muted-foreground truncate text-sm">{{ employee.user.email }}</p>
+                            <p v-if="employee.document_number" class="text-muted-foreground truncate text-xs">
+                                CC {{ employee.document_number }}
+                            </p>
                         </div>
 
                         <!-- Department & Position (hidden on mobile) -->
@@ -221,7 +225,7 @@ function deleteEmployee(employee: Employee) {
                     :key="page"
                     :variant="page === employees.current_page ? 'default' : 'outline'"
                     size="sm"
-                    @click="router.get(employeesIndex.url(), { search: search || undefined, department: department || undefined, status: status || undefined, page }, { preserveState: true })"
+                    @click="router.get(employeesIndex.url(), { search: search || undefined, status: status || undefined, page }, { preserveState: true })"
                 >
                     {{ page }}
                 </Button>

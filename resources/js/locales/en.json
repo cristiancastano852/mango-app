@@ -200,7 +200,9 @@
             "breadcrumb": "New",
             "head_title": "New Employee",
             "title": "New Employee",
-            "description": "Enter the new employee details."
+            "description": "Enter the new employee details.",
+            "document_number_banner_title": "The document number is key for time tracking",
+            "document_number_banner_body": "The employee will use their ID to clock in and out at the kiosk. Make sure the number is correct before saving."
         },
         "edit_page": {
             "breadcrumb": "Edit",

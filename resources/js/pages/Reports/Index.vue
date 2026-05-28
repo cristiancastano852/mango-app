@@ -19,7 +19,8 @@ import DateRangeFilter from './partials/DateRangeFilter.vue';
 
 defineProps<{
     employees: Array<{ id: number; name: string }>;
-    departments: Array<{ id: number; name: string }>;
+    // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore departments prop when re-enabling.
+    // departments: Array<{ id: number; name: string }>;
 }>();
 
 const { t } = useI18n();
@@ -30,7 +31,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const dateFilter = ref({ date_range: 'month' as const });
 const selectedEmployee = ref('');
-const selectedDepartment = ref('all');
+// DEPARTMENTS & POSITIONS FEATURE DISABLED — restore selectedDepartment when re-enabling.
+// const selectedDepartment = ref('all');
 
 function goToEmployeeReport() {
     if (!selectedEmployee.value) return;
@@ -47,7 +49,8 @@ function goToCompanyReport() {
         date_range: dateFilter.value.date_range,
         start_date: dateFilter.value.start_date,
         end_date: dateFilter.value.end_date,
-        department_id: selectedDepartment.value !== 'all' ? selectedDepartment.value : undefined,
+        // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department_id filter when re-enabling.
+        // department_id: selectedDepartment.value !== 'all' ? selectedDepartment.value : undefined,
     });
 }
 </script>
@@ -122,24 +125,17 @@ function goToCompanyReport() {
                         </div>
                     </CardHeader>
                     <CardContent class="flex flex-1 flex-col gap-3">
-                        <div>
+                        <!-- DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department selector when re-enabling. -->
+                        <!-- <div>
                             <Label class="text-muted-foreground mb-1 text-xs">{{ t('employees.department') }}</Label>
                             <Select v-model="selectedDepartment">
-                                <SelectTrigger>
-                                    <SelectValue :placeholder="t('reports.all_departments')" />
-                                </SelectTrigger>
+                                <SelectTrigger><SelectValue :placeholder="t('reports.all_departments')" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">{{ t('reports.all_departments') }}</SelectItem>
-                                    <SelectItem
-                                        v-for="dept in departments"
-                                        :key="dept.id"
-                                        :value="String(dept.id)"
-                                    >
-                                        {{ dept.name }}
-                                    </SelectItem>
+                                    <SelectItem v-for="dept in departments" :key="dept.id" :value="String(dept.id)">{{ dept.name }}</SelectItem>
                                 </SelectContent>
                             </Select>
-                        </div>
+                        </div> -->
                         <Button class="mt-auto" @click="goToCompanyReport">
                             {{ t('reports.generate') }}
                         </Button>

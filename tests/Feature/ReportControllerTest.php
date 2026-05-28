@@ -56,7 +56,8 @@ class ReportControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Reports/Index')
             ->has('employees')
-            ->has('departments')
+            // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore departments assertion when re-enabling.
+            // ->has('departments')
         );
     }
 
@@ -132,7 +133,8 @@ class ReportControllerTest extends TestCase
             ->has('report.daily_attendance')
             ->has('report.cost_summary')
             ->has('filters')
-            ->has('departments')
+            // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore departments assertion when re-enabling.
+            // ->has('departments')
         );
     }
 

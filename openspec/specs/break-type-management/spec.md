@@ -99,3 +99,13 @@ Todos los endpoints de break types SHALL requerir rol `admin` o `super-admin`. L
 - **WHEN** admin envía `PATCH /settings/break-types/{id}/toggle` donde el break type pertenece a otra empresa
 - **THEN** la respuesta tiene errores de sesión
 - **THEN** la base de datos no cambia
+
+---
+
+### Requirement: Los tipos de pausa sembrados son editables por el admin
+El sistema SHALL permitir al admin modificar, desactivar o eliminar los tipos de pausa sembrados automáticamente, igual que cualquier otro tipo de pausa. No existe distinción de "protegido" para los tipos sembrados.
+
+#### Scenario: Admin puede editar un tipo sembrado
+- **WHEN** admin accede a `PUT /settings/break-types/{id}` para un tipo de pausa sembrado
+- **THEN** el tipo se actualiza correctamente
+- **THEN** los demás tipos sembrados no se modifican

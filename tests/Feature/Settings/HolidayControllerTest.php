@@ -162,6 +162,24 @@ class HolidayControllerTest extends TestCase
         $response->assertSessionHasErrors(['name', 'date', 'is_recurring']);
     }
 
+    public function test_holiday_date_is_serialized_as_y_m_d_in_index_response(): void
+    {
+        Holiday::create([
+            'company_id' => $this->company->id,
+            'name' => 'Año Nuevo',
+            'date' => '2026-01-01',
+            'is_recurring' => true,
+            'country' => 'CO',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->get(route('holidays.index'));
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('settings/Holidays')
+            ->where('holidays.0.date', '2026-01-01')
+        );
+    }
+
     public function test_company_observer_seeds_holidays_on_company_creation(): void
     {
         $newCompany = Company::create([
