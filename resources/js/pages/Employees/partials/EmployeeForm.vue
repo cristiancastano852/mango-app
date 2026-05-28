@@ -1,7 +1,9 @@
 <script setup lang="ts">
 /* eslint-disable vue/no-mutating-props */
 import { Eye, EyeOff } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+// DEPARTMENTS & POSITIONS FEATURE DISABLED — restore computed when re-enabling.
+// import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -14,9 +16,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+// DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department/position Select usage when re-enabling.
 // TODO: Schedules feature temporarily disabled — restore Schedule import when resuming
 // LOCATIONS FEATURE DISABLED — restore Location import when re-enabling.
-import type { Department, Position } from '@/types';
+// DEPARTMENTS & POSITIONS FEATURE DISABLED — restore Department, Position imports when re-enabling.
+// import type { Department, Position } from '@/types';
 
 type Props = {
     form: {
@@ -25,8 +29,9 @@ type Props = {
         phone: string;
         document_number: string;
         password?: string;
-        department_id: string;
-        position_id: string;
+        // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore these fields when re-enabling.
+        // department_id: string;
+        // position_id: string;
         hire_date: string;
         hourly_rate: string;
         salary_type: string;
@@ -38,8 +43,9 @@ type Props = {
         errors: Record<string, string>;
         processing: boolean;
     };
-    departments: Department[];
-    positions: Position[];
+    // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore these props when re-enabling.
+    // departments: Department[];
+    // positions: Position[];
     // TODO: Schedules feature temporarily disabled — restore schedules prop when resuming
     // schedules: Schedule[];
     // LOCATIONS FEATURE DISABLED — restore locations prop when re-enabling.
@@ -61,11 +67,12 @@ const { t } = useI18n();
 
 const showPasswordText = ref(false);
 
-const filteredPositions = computed(() =>
-    props.form.department_id
-        ? props.positions.filter((p) => p.department_id === Number(props.form.department_id))
-        : props.positions,
-);
+// DEPARTMENTS & POSITIONS FEATURE DISABLED — restore filteredPositions computed when re-enabling.
+// const filteredPositions = computed(() =>
+//     props.form.department_id
+//         ? props.positions.filter((p) => p.department_id === Number(props.form.department_id))
+//         : props.positions,
+// );
 </script>
 
 <template>
@@ -118,18 +125,14 @@ const filteredPositions = computed(() =>
             </div>
         </div>
 
-        <!-- Employment -->
-        <div class="grid gap-4 sm:grid-cols-3">
+        <!-- DEPARTMENTS & POSITIONS FEATURE DISABLED — restore this section when re-enabling. -->
+        <!-- <div class="grid gap-4 sm:grid-cols-3">
             <div class="space-y-2">
                 <Label>{{ t('employees.form.department') }}</Label>
                 <Select v-model="form.department_id">
-                    <SelectTrigger>
-                        <SelectValue :placeholder="t('common.select')" />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue :placeholder="t('common.select')" /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem v-for="dept in departments" :key="dept.id" :value="String(dept.id)">
-                            {{ dept.name }}
-                        </SelectItem>
+                        <SelectItem v-for="dept in departments" :key="dept.id" :value="String(dept.id)">{{ dept.name }}</SelectItem>
                     </SelectContent>
                 </Select>
                 <InputError :message="form.errors.department_id" />
@@ -137,20 +140,16 @@ const filteredPositions = computed(() =>
             <div class="space-y-2">
                 <Label>{{ t('employees.form.position') }}</Label>
                 <Select v-model="form.position_id">
-                    <SelectTrigger>
-                        <SelectValue :placeholder="t('common.select')" />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue :placeholder="t('common.select')" /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem v-for="pos in filteredPositions" :key="pos.id" :value="String(pos.id)">
-                            {{ pos.name }}
-                        </SelectItem>
+                        <SelectItem v-for="pos in filteredPositions" :key="pos.id" :value="String(pos.id)">{{ pos.name }}</SelectItem>
                     </SelectContent>
                 </Select>
                 <InputError :message="form.errors.position_id" />
             </div>
-            <!-- LOCATIONS FEATURE DISABLED — restore location select when re-enabling (location_id field, locations prop, Location type). -->
-            <!-- TODO: Schedules feature temporarily disabled — restore schedule selector here when resuming -->
-        </div>
+            LOCATIONS FEATURE DISABLED — restore location select when re-enabling.
+            TODO: Schedules feature temporarily disabled — restore schedule selector here when resuming.
+        </div> -->
 
         <!-- Contract -->
         <div class="grid gap-4 sm:grid-cols-3">

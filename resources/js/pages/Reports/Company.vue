@@ -83,10 +83,12 @@ const props = defineProps<{
         date_range: string;
         start_date: string;
         end_date: string;
-        department_id: string | null;
+        // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department_id filter when re-enabling.
+        // department_id: string | null;
         pay_overtime: boolean;
     };
-    departments: Array<{ id: number; name: string }>;
+    // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore departments prop when re-enabling.
+    // departments: Array<{ id: number; name: string }>;
 }>();
 
 const { t } = useI18n();
@@ -104,14 +106,16 @@ const dateFilter = ref({
     end_date: props.filters.end_date,
 });
 
-const selectedDepartment = ref(props.filters.department_id ? String(props.filters.department_id) : 'all');
+// DEPARTMENTS & POSITIONS FEATURE DISABLED — restore selectedDepartment when re-enabling.
+// const selectedDepartment = ref(props.filters.department_id ? String(props.filters.department_id) : 'all');
 
 function applyFilter() {
     router.get('/reports/company', {
         date_range: dateFilter.value.date_range,
         start_date: dateFilter.value.start_date,
         end_date: dateFilter.value.end_date,
-        department_id: selectedDepartment.value !== 'all' ? selectedDepartment.value : undefined,
+        // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department_id filter when re-enabling.
+        // department_id: selectedDepartment.value !== 'all' ? selectedDepartment.value : undefined,
         pay_overtime: payOvertime.value ? 1 : 0,
     });
 }
@@ -124,7 +128,8 @@ function setPayOvertime(value: boolean) {
             date_range: props.filters.date_range,
             start_date: props.filters.start_date,
             end_date: props.filters.end_date,
-            department_id: props.filters.department_id ?? undefined,
+            // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department_id when re-enabling.
+            // department_id: props.filters.department_id ?? undefined,
             pay_overtime: value ? 1 : 0,
         },
         { preserveScroll: true },
@@ -138,9 +143,10 @@ function exportQueryParams(): string {
         end_date: props.filters.end_date,
         pay_overtime: payOvertime.value ? '1' : '0',
     });
-    if (props.filters.department_id) {
-        params.set('department_id', String(props.filters.department_id));
-    }
+    // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department_id param when re-enabling.
+    // if (props.filters.department_id) {
+    //     params.set('department_id', String(props.filters.department_id));
+    // }
     return '?' + params.toString();
 }
 
@@ -253,19 +259,16 @@ onMounted(async () => {
                     <div class="flex-1">
                         <DateRangeFilter v-model="dateFilter" />
                     </div>
-                    <div class="w-full sm:w-48">
+                    <!-- DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department selector when re-enabling. -->
+                    <!-- <div class="w-full sm:w-48">
                         <Select v-model="selectedDepartment">
-                            <SelectTrigger>
-                                <SelectValue :placeholder="t('reports.all_departments')" />
-                            </SelectTrigger>
+                            <SelectTrigger><SelectValue :placeholder="t('reports.all_departments')" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">{{ t('reports.all_departments') }}</SelectItem>
-                                <SelectItem v-for="dept in departments" :key="dept.id" :value="String(dept.id)">
-                                    {{ dept.name }}
-                                </SelectItem>
+                                <SelectItem v-for="dept in departments" :key="dept.id" :value="String(dept.id)">{{ dept.name }}</SelectItem>
                             </SelectContent>
                         </Select>
-                    </div>
+                    </div> -->
                     <Button @click="applyFilter">{{ t('reports.filter') }}</Button>
                 </CardContent>
             </Card>

@@ -147,7 +147,11 @@ return [
         Features::registration(),
         Features::resetPasswords(),
         Features::emailVerification(),
-        // TWO_FACTOR_DISABLED: Features::twoFactorAuthentication(['confirm' => true, 'confirmPassword' => true]);
+        Features::twoFactorAuthentication([
+            'confirm' => true,
+            'confirmPassword' => true,
+            // 'window' => 0
+        ]),
     ],
 
 ];

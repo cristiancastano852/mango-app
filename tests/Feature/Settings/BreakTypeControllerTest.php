@@ -51,14 +51,13 @@ class BreakTypeControllerTest extends TestCase
 
     public function test_admin_can_view_break_types(): void
     {
-        BreakType::factory()->create(['company_id' => $this->company->id]);
-
+        // Company creation seeds 5 default break types via CompanyObserver + SeedDefaultBreakTypes.
         $response = $this->actingAs($this->adminUser)->get(route('break-types.index'));
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('settings/BreakTypes')
-            ->has('breakTypes', 1)
+            ->has('breakTypes', 5)
         );
     }
 
@@ -82,7 +81,7 @@ class BreakTypeControllerTest extends TestCase
     public function test_admin_can_create_break_type(): void
     {
         $response = $this->actingAs($this->adminUser)->post(route('break-types.store'), [
-            'name' => 'Almuerzo',
+            'name' => 'Ejercicio',
             'is_paid' => false,
             'max_duration_minutes' => 60,
             'max_per_day' => 1,
@@ -93,8 +92,8 @@ class BreakTypeControllerTest extends TestCase
 
         $this->assertDatabaseHas('break_types', [
             'company_id' => $this->company->id,
-            'name' => 'Almuerzo',
-            'slug' => 'almuerzo',
+            'name' => 'Ejercicio',
+            'slug' => 'ejercicio',
             'is_paid' => false,
             'max_duration_minutes' => 60,
             'max_per_day' => 1,
@@ -333,18 +332,19 @@ class BreakTypeControllerTest extends TestCase
 
     public function test_admin_only_sees_own_company_break_types(): void
     {
+        // Both companies get 5 default break types seeded on creation via CompanyObserver.
         $otherCompany = Company::create([
             'name' => 'Other Co',
             'slug' => 'other-co',
         ]);
 
-        BreakType::factory()->create(['company_id' => $this->company->id]);
         BreakType::factory()->create(['company_id' => $otherCompany->id]);
 
         $response = $this->actingAs($this->adminUser)->get(route('break-types.index'));
 
+        // Admin's company has 5 default break types; other company's break types are not visible.
         $response->assertInertia(fn ($page) => $page
-            ->has('breakTypes', 1)
+            ->has('breakTypes', 5)
         );
     }
 }
