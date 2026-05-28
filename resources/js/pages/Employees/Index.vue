@@ -162,6 +162,9 @@ function deleteEmployee(employee: Employee) {
                                 </Badge>
                             </div>
                             <p class="text-muted-foreground truncate text-sm">{{ employee.user.email }}</p>
+                            <p v-if="employee.document_number" class="text-muted-foreground truncate text-xs">
+                                CC {{ employee.document_number }}
+                            </p>
                         </div>
 
                         <!-- Department & Position (hidden on mobile) -->

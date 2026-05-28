@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
+import { Fingerprint } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { index as employeesIndex } from '@/actions/App/Http/Controllers/EmployeeController';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,7 +50,20 @@ function submit() {
     <Head :title="t('employees.create.head_title')" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto w-full max-w-3xl p-4 md:p-6">
+        <div class="mx-auto w-full max-w-3xl p-4 md:p-6 space-y-4">
+            <!-- Document number banner -->
+            <div class="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/60 dark:bg-amber-950/30">
+                <Fingerprint class="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                <div class="space-y-0.5">
+                    <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                        El número de documento es clave para el registro de tiempo
+                    </p>
+                    <p class="text-sm text-amber-700 dark:text-amber-400/80">
+                        El empleado usará su cédula para marcar entradas y salidas en el kiosco. Verifica que el número sea correcto antes de guardar.
+                    </p>
+                </div>
+            </div>
+
             <Card>
                 <CardHeader>
                     <CardTitle>{{ t('employees.create.title') }}</CardTitle>
