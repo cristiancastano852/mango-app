@@ -177,11 +177,6 @@ function deleteEmployee() {
                     </CardHeader>
                     <CardContent class="grid gap-3 text-sm">
                         <div class="flex justify-between">
-                            <span class="text-muted-foreground">{{ t('employees.show.salary_type') }}</span>
-                            <span>{{ employee.salary_type === 'hourly' ? t('employees.show.salary_hourly') : t('employees.show.salary_monthly') }}</span>
-                        </div>
-                        <Separator />
-                        <div class="flex justify-between">
                             <span class="text-muted-foreground">{{ t('employees.show.hourly_rate') }}</span>
                             <span>{{ employee.hourly_rate ? `$${Number(employee.hourly_rate).toLocaleString(locale)}` : '—' }}</span>
                         </div>

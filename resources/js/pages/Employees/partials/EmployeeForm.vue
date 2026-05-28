@@ -159,19 +159,6 @@ const showPasswordText = ref(false);
                 <InputError :message="form.errors.hire_date" />
             </div>
             <div class="space-y-2">
-                <Label>{{ t('employees.form.salary_type') }}</Label>
-                <Select v-model="form.salary_type">
-                    <SelectTrigger>
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="hourly">{{ t('employees.form.salary_hourly') }}</SelectItem>
-                        <SelectItem value="monthly">{{ t('employees.form.salary_monthly') }}</SelectItem>
-                    </SelectContent>
-                </Select>
-                <InputError :message="form.errors.salary_type" />
-            </div>
-            <div class="space-y-2">
                 <Label for="hourly_rate">{{ t('employees.form.hourly_rate') }}</Label>
                 <Input id="hourly_rate" v-model="form.hourly_rate" type="number" step="0.01" min="0" />
                 <InputError :message="form.errors.hourly_rate" />
