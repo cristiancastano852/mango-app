@@ -9,13 +9,6 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department/position Select usage when re-enabling.
 // TODO: Schedules feature temporarily disabled — restore Schedule import when resuming
 // LOCATIONS FEATURE DISABLED — restore Location import when re-enabling.
@@ -54,7 +47,7 @@ type Props = {
     showPassword?: boolean;
 };
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     showStatus: false,
     showPassword: false,
 });

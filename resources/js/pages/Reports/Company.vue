@@ -6,13 +6,8 @@ import { useI18n } from 'vue-i18n';
 import { exportCompanyExcel, exportCompanyPdf } from '@/actions/App/Http/Controllers/ReportController';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+// DEPARTMENTS & POSITIONS FEATURE DISABLED — restore Select imports when re-enabling department selector.
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDecimalHours } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
