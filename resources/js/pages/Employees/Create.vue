@@ -58,10 +58,10 @@ function submit() {
                 <Fingerprint class="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
                 <div class="space-y-0.5">
                     <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">
-                        El número de documento es clave para el registro de tiempo
+                        {{ t('employees.create.document_number_banner_title') }}
                     </p>
                     <p class="text-sm text-amber-700 dark:text-amber-400/80">
-                        El empleado usará su cédula para marcar entradas y salidas en el kiosco. Verifica que el número sea correcto antes de guardar.
+                        {{ t('employees.create.document_number_banner_body') }}
                     </p>
                 </div>
             </div>

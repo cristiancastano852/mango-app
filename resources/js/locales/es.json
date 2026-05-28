@@ -200,7 +200,9 @@
             "breadcrumb": "Nuevo",
             "head_title": "Nuevo Empleado",
             "title": "Nuevo Empleado",
-            "description": "Ingresa los datos del nuevo empleado."
+            "description": "Ingresa los datos del nuevo empleado.",
+            "document_number_banner_title": "El número de documento es clave para el registro de tiempo",
+            "document_number_banner_body": "El empleado usará su cédula para marcar entradas y salidas en el kiosco. Verifica que el número sea correcto antes de guardar."
         },
         "edit_page": {
             "breadcrumb": "Editar",
