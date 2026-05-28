@@ -7,7 +7,7 @@ use App\Http\Controllers\Settings\HolidayController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SurchargeRuleController;
-use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
+// TWO_FACTOR_DISABLED: use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
@@ -28,8 +28,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::inertia('settings/appearance', 'settings/Appearance')->name('appearance.edit');
 
-    Route::get('settings/two-factor', [TwoFactorAuthenticationController::class, 'show'])
-        ->name('two-factor.show');
+    // TWO_FACTOR_DISABLED: Route::get('settings/two-factor', [TwoFactorAuthenticationController::class, 'show'])->name('two-factor.show');
 });
 
 Route::middleware(['auth', 'verified', 'role:admin|super-admin'])->group(function () {

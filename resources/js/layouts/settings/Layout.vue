@@ -13,7 +13,7 @@ import { edit as editCompanyProfile } from '@/routes/company-profile';
 import { index as holidaysIndex } from '@/routes/holidays';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSurchargeRules } from '@/routes/surcharge-rules';
-import { show } from '@/routes/two-factor';
+// TWO_FACTOR_DISABLED: import { show } from '@/routes/two-factor';
 import { edit as editPassword } from '@/routes/user-password';
 import type { NavItem } from '@/types';
 
@@ -34,10 +34,8 @@ const sidebarNavItems: NavItem[] = [
         title: t('settings_layout.password'),
         href: editPassword(),
     },
-    {
-        title: t('settings_layout.two_factor_auth'),
-        href: show(),
-    },
+    // TWO_FACTOR_DISABLED: hidden until feature is re-enabled
+    // { title: t('settings_layout.two_factor_auth'), href: show() },
     {
         title: t('settings_layout.appearance'),
         href: editAppearance(),
