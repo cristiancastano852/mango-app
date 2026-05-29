@@ -361,4 +361,141 @@ class GenerateEmployeeReportTest extends TestCase
         $this->assertEquals('2026-03-01', $result['period']['start']);
         $this->assertEquals('2026-03-15', $result['period']['end']);
     }
+
+    // ----------------------------------------------------------------------------------
+    // Modo salario mensual (monthly): salario base fijo por quincena + recargos/extras.
+    // Empleado de referencia: base $2.000.000/mes, valor hora $8.000.
+    // ----------------------------------------------------------------------------------
+
+    public function test_monthly_full_first_quincena_ordinary_pays_only_base(): void
+    {
+        $employee = $this->makeMonthlyEmployee(2000000, 8000);
+
+        // Jornada ordinaria pura repartida en varios días (8h diurnas c/u).
+        foreach (['2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05', '2026-03-06'] as $date) {
+            $this->createMonthlyEntry($employee, $date, regular: 8.0);
+        }
+
+        $result = $this->action->execute(
+            $employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        // Primera quincena completa → base = 2.000.000 / 2 = 1.000.000.
+        $this->assertEquals('monthly', $result['employee']['salary_type']);
+        $this->assertEquals(2000000.0, $result['employee']['monthly_base_salary']);
+        $this->assertEquals(1000000.0, $result['cost_summary']['base']);
+        $this->assertEquals(0.0, $result['cost_summary']['regular']);
+        // Solo trabajó ordinario → total es exactamente el salario base de la quincena.
+        $this->assertEquals(1000000.0, $result['cost_summary']['total']);
+    }
+
+    public function test_monthly_quincena_with_night_and_overtime(): void
+    {
+        $employee = $this->makeMonthlyEmployee(2000000, 8000);
+
+        // Día con 10 horas nocturnas dentro de la jornada.
+        $this->createMonthlyEntry($employee, '2026-03-03', regular: 0.0, night: 10.0);
+        // Día con 5 horas extra diurnas.
+        $this->createMonthlyEntry($employee, '2026-03-04', regular: 8.0, overtimeDay: 5.0);
+
+        $result = $this->action->execute(
+            $employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        // base 1.000.000
+        // nocturno (solo 35%): 10 × 8000 × 0.35 = 28.000
+        // extra diurna (completa): 5 × 8000 × 1.25 = 50.000
+        $this->assertEquals(1000000.0, $result['cost_summary']['base']);
+        $this->assertEquals(28000.0, $result['cost_summary']['night']);
+        $this->assertEquals(50000.0, $result['cost_summary']['overtime_day']);
+        $this->assertEquals(1000000.0 + 28000.0 + 50000.0, $result['cost_summary']['total']);
+    }
+
+    public function test_monthly_february_and_october_full_quincena_pay_the_same_base(): void
+    {
+        $employee = $this->makeMonthlyEmployee(2000000, 8000);
+
+        // Febrero: segunda quincena (16–28), trabajó menos días calendario.
+        $this->createMonthlyEntry($employee, '2026-02-16', regular: 8.0);
+        $this->createMonthlyEntry($employee, '2026-02-27', regular: 8.0);
+
+        $february = $this->action->execute(
+            $employee->id,
+            Carbon::parse('2026-02-16'),
+            Carbon::parse('2026-02-28'),
+        );
+
+        // Octubre: segunda quincena (16–31), trabajó más días calendario.
+        $this->createMonthlyEntry($employee, '2026-10-16', regular: 8.0);
+        $this->createMonthlyEntry($employee, '2026-10-30', regular: 8.0);
+
+        $october = $this->action->execute(
+            $employee->id,
+            Carbon::parse('2026-10-16'),
+            Carbon::parse('2026-10-31'),
+        );
+
+        // Mismo salario base pese a distinta cantidad de días calendario.
+        $this->assertEquals(1000000.0, $february['cost_summary']['base']);
+        $this->assertEquals(1000000.0, $october['cost_summary']['base']);
+        $this->assertEquals($february['cost_summary']['total'], $october['cost_summary']['total']);
+    }
+
+    public function test_monthly_employee_who_entered_mid_quincena_gets_prorated_base(): void
+    {
+        $employee = $this->makeMonthlyEmployee(2000000, 8000);
+
+        // Ingresó el 8 de marzo; reporte del 8 al 15 (8 días comerciales).
+        $this->createMonthlyEntry($employee, '2026-03-09', regular: 8.0);
+        $this->createMonthlyEntry($employee, '2026-03-10', regular: 8.0);
+
+        $result = $this->action->execute(
+            $employee->id,
+            Carbon::parse('2026-03-08'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        // base = 2.000.000 × 8/30 = 533.333,33.
+        $this->assertEquals(533333.33, $result['cost_summary']['base']);
+        $this->assertEquals(533333.33, $result['cost_summary']['total']);
+    }
+
+    private function makeMonthlyEmployee(float $monthlyBaseSalary, float $hourlyRate): Employee
+    {
+        $user = User::factory()->create(['company_id' => $this->company->id]);
+        $user->assignRole('employee');
+
+        return Employee::create([
+            'user_id' => $user->id,
+            'company_id' => $this->company->id,
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => $monthlyBaseSalary,
+            'hourly_rate' => $hourlyRate,
+        ]);
+    }
+
+    private function createMonthlyEntry(Employee $employee, string $date, float $regular = 0.0, float $night = 0.0, float $overtimeDay = 0.0): void
+    {
+        $net = $regular + $night + $overtimeDay;
+
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $employee->id,
+            'company_id' => $this->company->id,
+            'date' => $date,
+            'clock_in' => "{$date} 08:00:00",
+            'clock_out' => "{$date} 18:00:00",
+            'gross_hours' => $net,
+            'break_hours' => 0,
+            'net_hours' => $net,
+            'regular_hours' => $regular,
+            'night_hours' => $night,
+            'overtime_day_hours' => $overtimeDay,
+            'sunday_holiday_hours' => 0,
+            'status' => 'calculated',
+        ]);
+    }
 }

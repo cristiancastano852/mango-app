@@ -12,6 +12,7 @@ class GenerateEmployeeReport
 {
     public function __construct(
         private CalculateReportCosts $costCalculator,
+        private CalculatePeriodBaseSalary $baseSalaryCalculator,
     ) {}
 
     /**
@@ -21,7 +22,7 @@ class GenerateEmployeeReport
      * No se itera en PHP sobre registros individuales para sumar.
      *
      * @return array{
-     *     employee: array{id: int, name: string, department: ?string, position: ?string, hourly_rate: float},
+     *     employee: array{id: int, name: string, department: ?string, position: ?string, hourly_rate: float, salary_type: string, monthly_base_salary: ?float},
      *     totals: array{days_worked: int, gross_hours: float, break_hours: float, net_hours: float, regular_hours: float, night_hours: float, sunday_holiday_hours: float, night_sunday_hours: float, overtime_day_hours: float, overtime_night_hours: float, overtime_day_sunday_hours: float, overtime_night_sunday_hours: float},
      *     breaks_by_type: array<int, array{name: string, is_paid: bool, icon: string, color: string, total_minutes: float, count: int}>,
      *     daily_breakdown: array,
@@ -43,6 +44,11 @@ class GenerateEmployeeReport
         $breaksByType = $this->aggregateBreaksByType($employeeId, $startDate, $endDate);
         $dailyBreakdown = $this->getDailyBreakdown($employeeId, $startDate, $endDate);
 
+        $salaryType = $employee->salary_type ?? 'hourly';
+        $baseSalary = $salaryType === 'monthly'
+            ? $this->baseSalaryCalculator->execute((float) $employee->monthly_base_salary, $startDate, $endDate)
+            : 0.0;
+
         $costSummary = $this->costCalculator->execute(
             (float) $employee->hourly_rate,
             [
@@ -57,6 +63,8 @@ class GenerateEmployeeReport
             ],
             $rules,
             $payOvertime,
+            $salaryType,
+            $baseSalary,
         );
 
         return [
@@ -66,6 +74,8 @@ class GenerateEmployeeReport
                 'department' => $employee->department?->name,
                 'position' => $employee->position?->name,
                 'hourly_rate' => (float) $employee->hourly_rate,
+                'salary_type' => $salaryType,
+                'monthly_base_salary' => $employee->monthly_base_salary !== null ? (float) $employee->monthly_base_salary : null,
             ],
             'totals' => [
                 'days_worked' => (int) ($totals->days_worked ?? 0),

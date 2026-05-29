@@ -242,6 +242,46 @@ class GenerateCompanyReportTest extends TestCase
         $this->assertEquals(92000.0, $result['cost_summary']['total']);
     }
 
+    public function test_company_report_mixes_monthly_and_hourly_employees(): void
+    {
+        // employee1 es por horas (rate 10.000): 8h ordinarias = 80.000.
+        $this->createEntry($this->employee1, '2026-03-05', 8.0, 8.0, 0.0);
+
+        // Empleado con salario mensual: base 2.000.000, valor hora 8.000.
+        $user = User::factory()->create(['company_id' => $this->company->id]);
+        $user->assignRole('employee');
+        $monthly = Employee::create([
+            'user_id' => $user->id,
+            'company_id' => $this->company->id,
+            'department_id' => $this->deptA->id,
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => 2000000,
+            'hourly_rate' => 8000,
+        ]);
+
+        // 10 horas nocturnas dentro de la jornada (recargo solo 35%).
+        $this->createEntryForEmployee($monthly, $this->company->id, '2026-03-06', 10.0, 0.0, 10.0);
+
+        $result = $this->action->execute(
+            $this->company->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        // El base agregado proviene SOLO del empleado mensual (primera quincena completa).
+        $this->assertEquals(1000000.0, $result['cost_summary']['base']);
+
+        // Total = por-horas (80.000) + base mensual (1.000.000) + nocturno 35% (10×8000×0.35 = 28.000).
+        $this->assertEquals(80000.0 + 1000000.0 + 28000.0, $result['cost_summary']['total']);
+
+        // El desglose por empleado expone el modo y el base de cada uno.
+        $byId = collect($result['employees'])->keyBy('employee_id');
+        $this->assertEquals('hourly', $byId[$this->employee1->id]['salary_type']);
+        $this->assertEquals(0.0, $byId[$this->employee1->id]['base']);
+        $this->assertEquals('monthly', $byId[$monthly->id]['salary_type']);
+        $this->assertEquals(1000000.0, $byId[$monthly->id]['base']);
+    }
+
     private function createEntry(Employee $employee, string $date, float $netHours, float $regularHours, float $nightHours): void
     {
         $this->createEntryForEmployee($employee, $this->company->id, $date, $netHours, $regularHours, $nightHours);
