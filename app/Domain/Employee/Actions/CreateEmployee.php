@@ -3,6 +3,7 @@
 namespace App\Domain\Employee\Actions;
 
 use App\Domain\Company\Models\Company;
+use App\Domain\Company\Models\SurchargeRule;
 use App\Domain\Employee\Models\Employee;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,9 @@ class CreateEmployee
 
             $user->assignRole('employee');
 
+            $defaults = $this->companyDefaults($companyId);
+            $salaryType = $data['salary_type'] ?? 'hourly';
+
             $employee = Employee::create([
                 'user_id' => $user->id,
                 'company_id' => $companyId,
@@ -37,8 +41,11 @@ class CreateEmployee
                 'position_id' => $data['position_id'] ?? null,
                 'document_number' => $data['document_number'] ?? null,
                 'hire_date' => $data['hire_date'] ?? null,
-                'hourly_rate' => $data['hourly_rate'] ?? null,
-                'salary_type' => $data['salary_type'] ?? 'hourly',
+                'hourly_rate' => $data['hourly_rate'] ?? $defaults?->default_hourly_rate,
+                'monthly_base_salary' => $salaryType === 'monthly'
+                    ? ($data['monthly_base_salary'] ?? $defaults?->default_monthly_salary)
+                    : ($data['monthly_base_salary'] ?? null),
+                'salary_type' => $salaryType,
                 'schedule_id' => $data['schedule_id'] ?? $this->getDefaultScheduleId($companyId),
                 'location_id' => $data['location_id'] ?? null,
             ]);
@@ -52,5 +59,12 @@ class CreateEmployee
         $company = Company::find($companyId);
 
         return $company?->settings['default_schedule_id'] ?? null;
+    }
+
+    private function companyDefaults(int $companyId): ?SurchargeRule
+    {
+        return SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->first();
     }
 }

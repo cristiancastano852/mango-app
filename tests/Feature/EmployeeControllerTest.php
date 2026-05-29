@@ -179,6 +179,56 @@ class EmployeeControllerTest extends TestCase
         $response->assertRedirect(route('employees.show', $employee));
     }
 
+    public function test_admin_can_store_monthly_salary_employee(): void
+    {
+        $response = $this->actingAs($this->adminUser)->post(route('employees.store'), [
+            'name' => 'Monthly Employee',
+            'email' => 'monthly@test.com',
+            'document_number' => '100000010',
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => 2000000,
+            'hourly_rate' => 8000,
+        ]);
+
+        $employee = Employee::whereHas('user', fn ($q) => $q->where('email', 'monthly@test.com'))->first();
+        $response->assertRedirect(route('employees.show', $employee));
+
+        $this->assertDatabaseHas('employees', [
+            'id' => $employee->id,
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => 2000000,
+            'hourly_rate' => 8000,
+        ]);
+    }
+
+    public function test_monthly_employee_requires_base_salary(): void
+    {
+        $response = $this->actingAs($this->adminUser)->post(route('employees.store'), [
+            'name' => 'Missing Base',
+            'email' => 'missingbase@test.com',
+            'document_number' => '100000011',
+            'salary_type' => 'monthly',
+        ]);
+
+        $response->assertSessionHasErrors(['monthly_base_salary']);
+        $this->assertDatabaseMissing('users', ['email' => 'missingbase@test.com']);
+    }
+
+    public function test_store_prefills_hourly_rate_from_company_default(): void
+    {
+        // Sin hourly_rate explícito → toma el default sembrado de la empresa (SMLV/220 = 7958.66).
+        $response = $this->actingAs($this->adminUser)->post(route('employees.store'), [
+            'name' => 'Default Rate',
+            'email' => 'defaultrate@test.com',
+            'document_number' => '100000012',
+        ]);
+
+        $employee = Employee::whereHas('user', fn ($q) => $q->where('email', 'defaultrate@test.com'))->first();
+        $response->assertRedirect(route('employees.show', $employee));
+
+        $this->assertEquals(7958.66, (float) $employee->hourly_rate);
+    }
+
     public function test_admin_can_create_employee_with_custom_password(): void
     {
         $response = $this->actingAs($this->adminUser)->post(route('employees.store'), [
@@ -274,6 +324,42 @@ class EmployeeControllerTest extends TestCase
         $response = $this->actingAs($this->adminUser)->delete(route('employees.destroy', $this->employee));
 
         $response->assertRedirect(route('employees.index'));
+    }
+
+    public function test_admin_cannot_update_salary_of_employee_from_another_company(): void
+    {
+        // Empresa B con su propio empleado de salario mensual.
+        $companyB = Company::create(['name' => 'Otra Empresa', 'slug' => 'otra-empresa']);
+        $userB = User::factory()->create(['company_id' => $companyB->id]);
+        $userB->assignRole('employee');
+        $employeeB = Employee::create([
+            'user_id' => $userB->id,
+            'company_id' => $companyB->id,
+            'document_number' => '200000001',
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => 2000000,
+            'hourly_rate' => 8000,
+        ]);
+
+        // El admin de la empresa A intenta modificar el salario del empleado de la empresa B.
+        $response = $this->actingAs($this->adminUser)->put(route('employees.update', $employeeB), [
+            'name' => 'Hackeado',
+            'email' => $userB->email,
+            'document_number' => '200000001',
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => 9999999,
+            'hourly_rate' => 1,
+        ]);
+
+        // El CompanyScope excluye al empleado de otra empresa del route-model binding → 404.
+        $response->assertNotFound();
+
+        // El salario del empleado de la empresa B no se modificó.
+        $this->assertDatabaseHas('employees', [
+            'id' => $employeeB->id,
+            'monthly_base_salary' => 2000000,
+            'hourly_rate' => 8000,
+        ]);
     }
 
     // --- Super admin access ---

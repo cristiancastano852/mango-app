@@ -25,6 +25,7 @@ class UpdateEmployee
                 'hire_date' => $data['hire_date'] ?? null,
                 'hourly_rate' => $data['hourly_rate'] ?? null,
                 'salary_type' => $data['salary_type'] ?? 'hourly',
+                'monthly_base_salary' => array_key_exists('monthly_base_salary', $data) ? $data['monthly_base_salary'] : $employee->monthly_base_salary,
                 'schedule_id' => array_key_exists('schedule_id', $data) ? $data['schedule_id'] : $employee->schedule_id,
                 'location_id' => array_key_exists('location_id', $data) ? $data['location_id'] : $employee->location_id,
             ]);
