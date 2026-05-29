@@ -52,11 +52,11 @@
     "appearance": {
         "light": "Claro",
         "dark": "Oscuro",
-                "system": "Sistema",
-                "title": "Configuración de apariencia",
-                "description": "Actualiza la apariencia de tu cuenta"
-            },
-            "auth": {
+        "system": "Sistema",
+        "title": "Configuración de apariencia",
+        "description": "Actualiza la apariencia de tu cuenta"
+    },
+    "auth": {
         "login": {
             "title": "Inicia sesion en tu cuenta",
             "description": "Ingresa tu correo y contrasena para iniciar sesion",
@@ -251,7 +251,9 @@
             "hourly_rate": "Valor hora (COP)",
             "cancel": "Cancelar",
             "save": "Guardar",
-            "saving": "Guardando..."
+            "saving": "Guardando...",
+            "monthly_base_salary": "Salario base mensual (COP)",
+            "hourly_rate_hint": "Usado para recargos y horas extra en ambos modos."
         }
     },
     "time_clock": {
@@ -434,7 +436,9 @@
             "rate": "Tarifa/hora",
             "surcharge": "Recargo %",
             "subtotal": "Subtotal",
-            "total": "Total"
+            "total": "Total",
+            "base_salary": "Salario base del periodo",
+            "base_salary_hint": "Cubre las horas ordinarias"
         },
         "overtime_payment": {
             "label": "Pagar horas extra",

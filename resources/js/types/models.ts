@@ -55,6 +55,7 @@ export type Employee = {
     document_number: string | null;
     hire_date: string | null;
     hourly_rate: string | null;
+    monthly_base_salary: string | null;
     salary_type: string;
     schedule_id: number | null;
     location_id: number | null;
