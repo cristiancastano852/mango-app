@@ -59,6 +59,8 @@ type Report = {
         department: string | null;
         position: string | null;
         hourly_rate: number;
+        salary_type: string;
+        monthly_base_salary: number | null;
     };
     totals: {
         days_worked: number;
@@ -85,7 +87,9 @@ type Report = {
         overtime_night: number;
         overtime_day_sunday: number;
         overtime_night_sunday: number;
+        base: number;
         total: number;
+        salary_type: string;
         pay_overtime: boolean;
         details: CostDetail[];
     };
@@ -107,6 +111,13 @@ const props = defineProps<{
 const { t } = useI18n();
 
 const payOvertime = ref(props.filters.pay_overtime);
+
+const isMonthly = computed(() => props.report.cost_summary.salary_type === 'monthly');
+
+// Hay algo que mostrar si trabajó días o si tiene salario base (mensual con 0 turnos igual cobra base).
+const hasReportData = computed(
+    () => props.report.totals.days_worked > 0 || (props.report.cost_summary.base ?? 0) > 0,
+);
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: t('reports.breadcrumb'), href: '/reports' },
@@ -276,11 +287,11 @@ onMounted(async () => {
                     <span class="text-muted-foreground mr-2 text-sm">
                         {{ report.period.start }} &rarr; {{ report.period.end }}
                     </span>
-                    <Button v-if="report.totals.days_worked > 0" variant="outline" size="sm" @click="downloadExcel">
+                    <Button v-if="hasReportData" variant="outline" size="sm" @click="downloadExcel">
                         <Download class="mr-1 size-3.5" />
                         {{ t('reports.export_excel') }}
                     </Button>
-                    <Button v-if="report.totals.days_worked > 0" variant="outline" size="sm" @click="downloadPdf">
+                    <Button v-if="hasReportData" variant="outline" size="sm" @click="downloadPdf">
                         <Download class="mr-1 size-3.5" />
                         {{ t('reports.export_pdf') }}
                     </Button>
@@ -310,7 +321,7 @@ onMounted(async () => {
             </Card>
 
             <!-- Empty state -->
-            <div v-if="report.totals.days_worked === 0" class="text-muted-foreground py-16 text-center">
+            <div v-if="!hasReportData" class="text-muted-foreground py-16 text-center">
                 <Calendar class="mx-auto mb-3 size-12 opacity-30" />
                 <p class="text-lg font-medium">{{ t('reports.no_data') }}</p>
             </div>
@@ -428,7 +439,7 @@ onMounted(async () => {
                 </div>
 
                 <!-- Charts Row -->
-                <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div v-if="report.totals.days_worked > 0" class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <!-- Hours Breakdown Chart -->
                     <Card>
                         <CardHeader class="pb-2">
@@ -493,6 +504,20 @@ onMounted(async () => {
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y">
+                                        <tr v-if="isMonthly" class="bg-emerald-50/60 dark:bg-emerald-950/20">
+                                            <td class="py-2 font-medium">
+                                                <div class="flex items-center gap-2">
+                                                    <DollarSign class="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                                                    {{ t('reports.costs.base_salary') }}
+                                                </div>
+                                                <span class="text-muted-foreground text-xs font-normal">{{ t('reports.costs.base_salary_hint') }}</span>
+                                            </td>
+                                            <td class="py-2 text-right text-muted-foreground">—</td>
+                                            <td class="hidden py-2 text-right text-muted-foreground sm:table-cell">—</td>
+                                            <td class="py-2 text-right font-medium text-emerald-700 dark:text-emerald-400">
+                                                {{ formatCurrency(report.cost_summary.base) }}
+                                            </td>
+                                        </tr>
                                         <tr v-for="detail in report.cost_summary.details" :key="detail.type">
                                             <td class="py-2">{{ hourTypeLabel(detail.type) }}</td>
                                             <td class="py-2 text-right">{{ formatDecimalHours(detail.hours) }}</td>

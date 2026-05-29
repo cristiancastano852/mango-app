@@ -13,8 +13,9 @@
 ## employees
 - id, user_id → users, company_id → companies
 - department_id (nullable → departments), position_id (nullable → positions)
-- employee_code (nullable), document_number (string 50, nullable), hire_date (date nullable), hourly_rate (decimal 10,2 nullable)
-- salary_type (default: hourly), schedule_id (nullable → schedules), location_id (nullable → locations)
+- employee_code (nullable), document_number (string 50, nullable), hire_date (date nullable), hourly_rate (decimal 10,2 nullable) — valor hora usado para recargos y extras en ambos modos
+- monthly_base_salary (decimal 10,2 nullable) — salario base mensual; obligatorio cuando salary_type = monthly
+- salary_type (default: hourly) — `hourly` (cálculo por horas) | `monthly` (salario base fijo), schedule_id (nullable → schedules), location_id (nullable → locations)
 - timestamps
 - indexes: company_id, (company_id, user_id)
 - unique: (document_number, company_id)
@@ -69,6 +70,8 @@
 - night_sunday (decimal 5,2 default 110), max_weekly_hours (int default 42), max_daily_hours (int default 8)
 - pay_overtime_by_default (boolean default true) — criterio general: pagar horas extra en dinero (true) o compensarlas con tiempo (false)
 - night_start_time (time, default '21:00'), night_end_time (time, default '06:00')
+- default_monthly_salary (decimal 10,2, default SMLV) — salario base mensual por defecto para empleados nuevos; sembrado con el SMLV vigente, editable por admin
+- default_hourly_rate (decimal 10,2, default round(SMLV/220)) — valor hora por defecto para empleados nuevos; derivado del SMLV con divisor 220 al sembrar, editable por admin
 - timestamps
 
 ## overtime_payment_decisions

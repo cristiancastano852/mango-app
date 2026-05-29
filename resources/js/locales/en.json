@@ -251,7 +251,9 @@
             "hourly_rate": "Hourly rate (COP)",
             "cancel": "Cancel",
             "save": "Save",
-            "saving": "Saving..."
+            "saving": "Saving...",
+            "monthly_base_salary": "Monthly base salary (COP)",
+            "hourly_rate_hint": "Used for surcharges and overtime in both modes."
         }
     },
     "time_clock": {
@@ -434,7 +436,9 @@
             "rate": "Rate/hour",
             "surcharge": "Surcharge %",
             "subtotal": "Subtotal",
-            "total": "Total"
+            "total": "Total",
+            "base_salary": "Base salary for the period",
+            "base_salary_hint": "Covers ordinary hours"
         },
         "overtime_payment": {
             "label": "Pay overtime",

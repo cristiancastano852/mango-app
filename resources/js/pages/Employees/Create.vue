@@ -39,6 +39,7 @@ const form = useForm({
     hire_date: '',
     hourly_rate: '',
     salary_type: 'hourly',
+    monthly_base_salary: '',
     // LOCATIONS FEATURE DISABLED — restore location_id when re-enabling.
     // location_id: '',
 });

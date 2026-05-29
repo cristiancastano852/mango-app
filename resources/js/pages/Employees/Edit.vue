@@ -40,6 +40,7 @@ const form = useForm({
     hire_date: props.employee.hire_date ?? '',
     hourly_rate: props.employee.hourly_rate ?? '',
     salary_type: props.employee.salary_type ?? 'hourly',
+    monthly_base_salary: props.employee.monthly_base_salary ?? '',
     // LOCATIONS FEATURE DISABLED — restore location_id when re-enabling.
     // location_id: props.employee.location_id ? String(props.employee.location_id) : '',
 });

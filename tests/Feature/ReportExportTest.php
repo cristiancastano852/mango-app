@@ -85,6 +85,50 @@ class ReportExportTest extends TestCase
         $this->assertStringContainsString('.xlsx', $contentDisposition);
     }
 
+    public function test_admin_can_export_monthly_salary_employee_report(): void
+    {
+        $user = User::factory()->create(['company_id' => $this->company->id]);
+        $user->assignRole('employee');
+        $monthly = Employee::create([
+            'user_id' => $user->id,
+            'company_id' => $this->company->id,
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => 2000000,
+            'hourly_rate' => 8000,
+        ]);
+
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $monthly->id,
+            'company_id' => $this->company->id,
+            'date' => now()->toDateString(),
+            'clock_in' => now()->setTime(8, 0),
+            'clock_out' => now()->setTime(18, 0),
+            'gross_hours' => 10.0,
+            'break_hours' => 0,
+            'net_hours' => 10.0,
+            'regular_hours' => 0,
+            'night_hours' => 10.0,
+            'overtime_day_hours' => 0,
+            'sunday_holiday_hours' => 0,
+            'status' => 'completed',
+            'pin_verified' => true,
+        ]);
+
+        $excel = $this->actingAs($this->adminUser)->get(route('reports.employee.excel', [
+            'date_range' => 'month',
+            'employee_id' => $monthly->id,
+        ]));
+        $excel->assertOk();
+        $excel->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+        $pdf = $this->actingAs($this->adminUser)->get(route('reports.employee.pdf', [
+            'date_range' => 'month',
+            'employee_id' => $monthly->id,
+        ]));
+        $pdf->assertOk();
+        $pdf->assertHeader('content-type', 'application/pdf');
+    }
+
     // --- Employee PDF ---
 
     public function test_admin_can_export_employee_report_as_pdf(): void

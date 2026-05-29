@@ -26,6 +26,8 @@ type SurchargeRule = {
     max_daily_hours: number;
     night_start_time: string;
     night_end_time: string;
+    default_monthly_salary: string;
+    default_hourly_rate: string;
 };
 
 defineProps<{ rule: SurchargeRule }>();
@@ -74,6 +76,44 @@ const fields: { name: keyof SurchargeRule; label: string; isInt?: boolean }[] = 
                     class="space-y-4"
                     v-slot="{ errors, processing, recentlySuccessful }"
                 >
+                    <div class="space-y-4 rounded-lg border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+                        <div class="space-y-0.5">
+                            <Label class="text-base">Salario base por defecto</Label>
+                            <p class="max-w-prose text-sm text-muted-foreground">
+                                Valores con los que se precargan los empleados nuevos con salario mensual.
+                                Por defecto, el salario mínimo legal vigente y su valor hora (salario ÷ 220).
+                            </p>
+                        </div>
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <div class="grid gap-2">
+                                <Label for="default_monthly_salary">Salario base mensual ($)</Label>
+                                <Input
+                                    id="default_monthly_salary"
+                                    name="default_monthly_salary"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    :default-value="rule.default_monthly_salary"
+                                    class="mt-1 block w-full"
+                                />
+                                <InputError :message="errors.default_monthly_salary" />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="default_hourly_rate">Valor hora por defecto ($)</Label>
+                                <Input
+                                    id="default_hourly_rate"
+                                    name="default_hourly_rate"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    :default-value="rule.default_hourly_rate"
+                                    class="mt-1 block w-full"
+                                />
+                                <InputError :message="errors.default_hourly_rate" />
+                            </div>
+                        </div>
+                    </div>
+
                     <div
                         v-for="field in fields"
                         :key="field.name"

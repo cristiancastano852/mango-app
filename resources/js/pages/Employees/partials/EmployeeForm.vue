@@ -9,6 +9,13 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore department/position Select usage when re-enabling.
 // TODO: Schedules feature temporarily disabled — restore Schedule import when resuming
 // LOCATIONS FEATURE DISABLED — restore Location import when re-enabling.
@@ -28,6 +35,7 @@ type Props = {
         hire_date: string;
         hourly_rate: string;
         salary_type: string;
+        monthly_base_salary?: string;
         // TODO: Schedules feature temporarily disabled — restore schedule_id when resuming
         // schedule_id: string;
         // LOCATIONS FEATURE DISABLED — restore location_id when re-enabling.
@@ -152,8 +160,27 @@ const showPasswordText = ref(false);
                 <InputError :message="form.errors.hire_date" />
             </div>
             <div class="space-y-2">
+                <Label for="salary_type">{{ t('employees.form.salary_type') }}</Label>
+                <Select v-model="form.salary_type">
+                    <SelectTrigger id="salary_type">
+                        <SelectValue :placeholder="t('common.select')" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="monthly">{{ t('employees.form.salary_monthly') }}</SelectItem>
+                        <SelectItem value="hourly">{{ t('employees.form.salary_hourly') }}</SelectItem>
+                    </SelectContent>
+                </Select>
+                <InputError :message="form.errors.salary_type" />
+            </div>
+            <div v-if="form.salary_type === 'monthly'" class="space-y-2">
+                <Label for="monthly_base_salary">{{ t('employees.form.monthly_base_salary') }}</Label>
+                <Input id="monthly_base_salary" v-model="form.monthly_base_salary" type="number" step="0.01" min="0" />
+                <InputError :message="form.errors.monthly_base_salary" />
+            </div>
+            <div class="space-y-2">
                 <Label for="hourly_rate">{{ t('employees.form.hourly_rate') }}</Label>
                 <Input id="hourly_rate" v-model="form.hourly_rate" type="number" step="0.01" min="0" />
+                <p class="text-muted-foreground text-xs">{{ t('employees.form.hourly_rate_hint') }}</p>
                 <InputError :message="form.errors.hourly_rate" />
             </div>
         </div>

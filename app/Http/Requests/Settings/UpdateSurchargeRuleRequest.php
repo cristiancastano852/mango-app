@@ -30,6 +30,8 @@ class UpdateSurchargeRuleRequest extends FormRequest
             'max_daily_hours' => ['required', 'integer', 'min:1', 'max:24'],
             'night_start_time' => ['required', 'date_format:H:i'],
             'night_end_time' => ['required', 'date_format:H:i'],
+            'default_monthly_salary' => ['required', 'numeric', 'min:0'],
+            'default_hourly_rate' => ['required', 'numeric', 'min:0'],
         ];
 
         // Admin can only target their own company; super-admin must explicitly supply which company.
@@ -55,6 +57,10 @@ class UpdateSurchargeRuleRequest extends FormRequest
             'max_daily_hours.max' => 'El límite diario no puede superar 24 horas.',
             'pay_overtime_by_default.required' => 'Debes indicar si las horas extra se pagan por defecto.',
             'pay_overtime_by_default.boolean' => 'El valor de pago de horas extra no es válido.',
+            'default_monthly_salary.required' => 'El salario base mensual por defecto es obligatorio.',
+            'default_monthly_salary.numeric' => 'El salario base mensual por defecto debe ser numérico.',
+            'default_hourly_rate.required' => 'El valor hora por defecto es obligatorio.',
+            'default_hourly_rate.numeric' => 'El valor hora por defecto debe ser numérico.',
             'company_id.in' => 'No puedes modificar la configuración de otra empresa.',
         ];
     }

@@ -69,6 +69,7 @@ class CompanyReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadin
             ['Extra dom nocturnas', $t['overtime_night_sunday_hours']],
             [],
             ['--- Costos ---', $payOvertime ? '' : 'Horas extra compensadas con tiempo (pago $0)'],
+            ['Salario base (total)', $c['base'] ?? 0],
             ['Costo ordinarias', $c['regular']],
             ['Costo nocturnas', $c['night']],
             ['Costo dom/festivas', $c['sunday_holiday']],
@@ -105,7 +106,9 @@ class CompanyReportEmployeesSheet implements FromArray, ShouldAutoSize, WithHead
         return [
             'Empleado',
             'Departamento',
-            'Tarifa/hora',
+            'Tipo salario',
+            'Valor hora',
+            'Salario base',
             'Días',
             'Horas brutas',
             'Horas netas',
@@ -126,7 +129,9 @@ class CompanyReportEmployeesSheet implements FromArray, ShouldAutoSize, WithHead
         return array_map(fn (array $emp) => [
             $emp['name'],
             $emp['department'] ?? 'N/A',
+            ($emp['salary_type'] ?? 'hourly') === 'monthly' ? 'Mensual' : 'Por hora',
             $emp['hourly_rate'],
+            $emp['base'] ?? 0,
             $emp['days_worked'],
             $emp['gross_hours'],
             $emp['net_hours'],

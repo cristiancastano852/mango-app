@@ -101,6 +101,14 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @if (($report['cost_summary']['salary_type'] ?? 'hourly') === 'monthly')
+                    <tr>
+                        <td>Salario base del periodo</td>
+                        <td class="text-right">&mdash;</td>
+                        <td class="text-right">&mdash;</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['base'] ?? 0, 0, ',', '.') }}</td>
+                    </tr>
+                    @endif
                     <tr>
                         <td>Ordinarias</td>
                         <td class="text-right">{{ $report['totals']['regular_hours'] }}</td>

@@ -30,6 +30,8 @@ type EmployeeSummary = {
     overtime_night_hours: number;
     overtime_day_sunday_hours: number;
     overtime_night_sunday_hours: number;
+    salary_type: string;
+    base: number;
     cost: number;
 };
 
@@ -66,6 +68,7 @@ type Report = {
         overtime_night: number;
         overtime_day_sunday: number;
         overtime_night_sunday: number;
+        base: number;
         total: number;
         pay_overtime: boolean;
     };
@@ -191,6 +194,7 @@ onMounted(async () => {
     if (costChartEl.value) {
         const cs = props.report.cost_summary;
         const allCosts = [
+            { value: cs.base, label: t('reports.costs.base_salary'), color: '#10b981' },
             { value: cs.regular, label: t('reports.hours.regular'), color: '#3b82f6' },
             { value: cs.night, label: t('reports.hours.night'), color: '#6366f1' },
             { value: cs.sunday_holiday, label: t('reports.hours.sunday_holiday'), color: '#ef4444' },

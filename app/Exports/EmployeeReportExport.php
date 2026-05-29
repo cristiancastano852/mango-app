@@ -51,6 +51,7 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
         $surcharges = collect($costs['details'])->keyBy('type');
         $payOvertime = $costs['pay_overtime'] ?? true;
         $overtimeCost = fn (float|int $value) => $payOvertime ? $value : 'Compensado con tiempo';
+        $isMonthly = ($costs['salary_type'] ?? 'hourly') === 'monthly';
 
         $rows = [
             ['Días trabajados', $totals['days_worked'], '', ''],
@@ -58,6 +59,13 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
             ['Horas en pausas', $totals['break_hours'], '', ''],
             ['Horas netas', $totals['net_hours'], '', ''],
             [],
+        ];
+
+        if ($isMonthly) {
+            $rows[] = ['Salario base del periodo', '', '', $costs['base'] ?? 0];
+        }
+
+        $rows = array_merge($rows, [
             ['Horas ordinarias', $totals['regular_hours'], ($surcharges['regular']['surcharge'] ?? 0).'%', $costs['regular']],
             ['Horas nocturnas', $totals['night_hours'], ($surcharges['night']['surcharge'] ?? 35).'%', $costs['night']],
             ['Horas dom/festivas', $totals['sunday_holiday_hours'], ($surcharges['sunday_holiday']['surcharge'] ?? 75).'%', $costs['sunday_holiday']],
@@ -68,7 +76,7 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
             ['Horas extra dom/festivas nocturnas', $totals['overtime_night_sunday_hours'], ($surcharges['overtime_night_sunday']['surcharge'] ?? 150).'%', $overtimeCost($costs['overtime_night_sunday'])],
             [],
             ['TOTAL', $totals['net_hours'], '', $costs['total']],
-        ];
+        ]);
 
         if (! empty($this->report['breaks_by_type'])) {
             $rows[] = [];

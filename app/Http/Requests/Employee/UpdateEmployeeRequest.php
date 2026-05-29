@@ -27,9 +27,23 @@ class UpdateEmployeeRequest extends FormRequest
             'hire_date' => ['nullable', 'date'],
             'hourly_rate' => ['nullable', 'numeric', 'min:0'],
             'salary_type' => ['nullable', 'in:hourly,monthly'],
+            'monthly_base_salary' => ['nullable', 'numeric', 'min:0', 'required_if:salary_type,monthly'],
             'schedule_id' => ['nullable', 'exists:schedules,id'],
             // LOCATIONS FEATURE DISABLED — restore when the feature is re-enabled.
             // 'location_id' => ['nullable', 'exists:locations,id'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'salary_type.in' => 'El tipo de salario debe ser por hora o mensual.',
+            'monthly_base_salary.required_if' => 'El salario base mensual es obligatorio para empleados con salario mensual.',
+            'monthly_base_salary.numeric' => 'El salario base mensual debe ser un valor numérico.',
+            'monthly_base_salary.min' => 'El salario base mensual no puede ser negativo.',
         ];
     }
 }

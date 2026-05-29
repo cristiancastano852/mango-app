@@ -64,7 +64,36 @@ class SurchargeRuleControllerTest extends TestCase
             'max_daily_hours' => 8,
             'night_start_time' => '21:00',
             'night_end_time' => '06:00',
+            'default_monthly_salary' => 1750905,
+            'default_hourly_rate' => 7958.66,
         ], $overrides);
+    }
+
+    public function test_admin_can_update_salary_defaults(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['default_monthly_salary' => 2500000, 'default_hourly_rate' => 11363.64]),
+        );
+
+        $response->assertRedirect(route('surcharge-rules.edit'));
+
+        $rule = \App\Domain\Company\Models\SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->first();
+
+        $this->assertEquals(2500000.0, (float) $rule->default_monthly_salary);
+        $this->assertEquals(11363.64, (float) $rule->default_hourly_rate);
+    }
+
+    public function test_salary_defaults_must_be_numeric_and_present(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['default_monthly_salary' => 'abc', 'default_hourly_rate' => null]),
+        );
+
+        $response->assertSessionHasErrors(['default_monthly_salary', 'default_hourly_rate']);
     }
 
     public function test_admin_can_view_surcharge_rules(): void

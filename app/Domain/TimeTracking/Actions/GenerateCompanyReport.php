@@ -10,6 +10,7 @@ class GenerateCompanyReport
 {
     public function __construct(
         private CalculateReportCosts $costCalculator,
+        private CalculatePeriodBaseSalary $baseSalaryCalculator,
     ) {}
 
     /**
@@ -35,6 +36,12 @@ class GenerateCompanyReport
             ->firstOrFail();
 
         $employeeBreakdown = $this->getEmployeeBreakdown($companyId, $startDate, $endDate, $departmentId);
+
+        // Los empleados con salario mensual cobran su base aunque no tengan turnos en el periodo.
+        // El breakdown anterior parte de time_entries (inner join), así que se agregan aquí los
+        // empleados monthly sin registros para que su base entre al total de la empresa.
+        $employeeBreakdown = $this->includeMonthlyEmployeesWithoutEntries($companyId, $departmentId, $employeeBreakdown);
+
         $dailyAttendance = $this->getDailyAttendance($companyId, $startDate, $endDate, $departmentId);
 
         // Calcular totales sumando los datos de empleados (ya agregados por BD)
@@ -50,10 +57,16 @@ class GenerateCompanyReport
             'overtime_night' => 0.0,
             'overtime_day_sunday' => 0.0,
             'overtime_night_sunday' => 0.0,
+            'base' => 0.0,
             'total' => 0.0,
         ];
 
-        $employeesWithCosts = $employeeBreakdown->map(function ($emp) use ($rules, $payOvertime, &$totalCost) {
+        $employeesWithCosts = $employeeBreakdown->map(function ($emp) use ($rules, $payOvertime, $startDate, $endDate, &$totalCost) {
+            $salaryType = $emp->salary_type ?? 'hourly';
+            $baseSalary = $salaryType === 'monthly'
+                ? $this->baseSalaryCalculator->execute((float) $emp->monthly_base_salary, $startDate, $endDate)
+                : 0.0;
+
             $cost = $this->costCalculator->execute(
                 (float) $emp->hourly_rate,
                 [
@@ -68,6 +81,8 @@ class GenerateCompanyReport
                 ],
                 $rules,
                 $payOvertime,
+                $salaryType,
+                $baseSalary,
             );
 
             $totalCost['regular'] += $cost['regular'];
@@ -78,6 +93,7 @@ class GenerateCompanyReport
             $totalCost['overtime_night'] += $cost['overtime_night'];
             $totalCost['overtime_day_sunday'] += $cost['overtime_day_sunday'];
             $totalCost['overtime_night_sunday'] += $cost['overtime_night_sunday'];
+            $totalCost['base'] += $cost['base'];
             $totalCost['total'] += $cost['total'];
 
             return [
@@ -85,6 +101,9 @@ class GenerateCompanyReport
                 'name' => $emp->employee_name,
                 'department' => $emp->department_name,
                 'hourly_rate' => (float) $emp->hourly_rate,
+                'salary_type' => $salaryType,
+                'monthly_base_salary' => $emp->monthly_base_salary !== null ? (float) $emp->monthly_base_salary : null,
+                'base' => $cost['base'],
                 'days_worked' => (int) $emp->days_worked,
                 'gross_hours' => round((float) $emp->total_gross, 2),
                 'net_hours' => round((float) $emp->total_net, 2),
@@ -134,12 +153,14 @@ class GenerateCompanyReport
             ->whereBetween('time_entries.date', [$startDate->toDateString(), $endDate->toDateString()])
             ->whereNotNull('time_entries.clock_out')
             ->when($departmentId, fn ($q) => $q->where('employees.department_id', $departmentId))
-            ->groupBy('employees.id', 'users.name', 'employees.hourly_rate', 'departments.name')
+            ->groupBy('employees.id', 'users.name', 'employees.hourly_rate', 'employees.salary_type', 'employees.monthly_base_salary', 'departments.name')
             ->selectRaw('
                 employees.id as employee_id,
                 users.name as employee_name,
                 departments.name as department_name,
                 employees.hourly_rate,
+                employees.salary_type,
+                employees.monthly_base_salary,
                 COUNT(*) as days_worked,
                 COALESCE(SUM(time_entries.gross_hours), 0) as total_gross,
                 COALESCE(SUM(time_entries.break_hours), 0) as total_breaks,
@@ -155,6 +176,58 @@ class GenerateCompanyReport
             ')
             ->orderByDesc('total_net')
             ->get();
+    }
+
+    /**
+     * Agrega los empleados con salario mensual que no tienen turnos en el periodo, con totales de
+     * horas en cero. Así su salario base prorrateado se incluye en el reporte de empresa, igual que
+     * lo haría el reporte individual. Los empleados por hora sin turnos no se agregan (no tienen base).
+     */
+    private function includeMonthlyEmployeesWithoutEntries(
+        int $companyId,
+        ?int $departmentId,
+        \Illuminate\Support\Collection $breakdown,
+    ): \Illuminate\Support\Collection {
+        $existingIds = $breakdown->pluck('employee_id')->all();
+
+        $missing = DB::table('employees')
+            ->join('users', 'employees.user_id', '=', 'users.id')
+            ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
+            ->where('employees.company_id', $companyId)
+            ->where('employees.salary_type', 'monthly')
+            ->when($departmentId, fn ($q) => $q->where('employees.department_id', $departmentId))
+            ->when($existingIds !== [], fn ($q) => $q->whereNotIn('employees.id', $existingIds))
+            ->selectRaw('
+                employees.id as employee_id,
+                users.name as employee_name,
+                departments.name as department_name,
+                employees.hourly_rate,
+                employees.salary_type,
+                employees.monthly_base_salary
+            ')
+            ->get()
+            ->map(fn ($e) => (object) [
+                'employee_id' => $e->employee_id,
+                'employee_name' => $e->employee_name,
+                'department_name' => $e->department_name,
+                'hourly_rate' => $e->hourly_rate,
+                'salary_type' => $e->salary_type,
+                'monthly_base_salary' => $e->monthly_base_salary,
+                'days_worked' => 0,
+                'total_gross' => 0,
+                'total_breaks' => 0,
+                'total_net' => 0,
+                'total_regular' => 0,
+                'total_night' => 0,
+                'total_sunday_holiday' => 0,
+                'total_night_sunday' => 0,
+                'total_overtime_day' => 0,
+                'total_overtime_night' => 0,
+                'total_overtime_day_sunday' => 0,
+                'total_overtime_night_sunday' => 0,
+            ]);
+
+        return $breakdown->concat($missing);
     }
 
     /**
