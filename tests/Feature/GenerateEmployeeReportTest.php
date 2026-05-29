@@ -464,6 +464,22 @@ class GenerateEmployeeReportTest extends TestCase
         $this->assertEquals(533333.33, $result['cost_summary']['total']);
     }
 
+    public function test_monthly_employee_without_entries_still_returns_base(): void
+    {
+        // Empleada mensual sin turnos en el mes: el reporte individual debe pagar el base completo.
+        $employee = $this->makeMonthlyEmployee(2000000, 8000);
+
+        $result = $this->action->execute(
+            $employee->id,
+            Carbon::parse('2026-05-01'),
+            Carbon::parse('2026-05-31'),
+        );
+
+        $this->assertEquals(0, $result['totals']['days_worked']);
+        $this->assertEquals(2000000.0, $result['cost_summary']['base']);
+        $this->assertEquals(2000000.0, $result['cost_summary']['total']);
+    }
+
     private function makeMonthlyEmployee(float $monthlyBaseSalary, float $hourlyRate): Employee
     {
         $user = User::factory()->create(['company_id' => $this->company->id]);
