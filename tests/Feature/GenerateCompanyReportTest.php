@@ -282,6 +282,60 @@ class GenerateCompanyReportTest extends TestCase
         $this->assertEquals(1000000.0, $byId[$monthly->id]['base']);
     }
 
+    public function test_monthly_employee_without_entries_still_gets_base_in_company_total(): void
+    {
+        // Empleado mensual que NO registró turnos en la quincena (p. ej. de licencia/sin marcas).
+        $user = User::factory()->create(['company_id' => $this->company->id]);
+        $user->assignRole('employee');
+        $monthly = Employee::create([
+            'user_id' => $user->id,
+            'company_id' => $this->company->id,
+            'department_id' => $this->deptA->id,
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => 2000000,
+            'hourly_rate' => 8000,
+        ]);
+
+        $result = $this->action->execute(
+            $this->company->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        // Aparece en el desglose con horas en 0 y su salario base de la quincena (2.000.000 / 2).
+        $byId = collect($result['employees'])->keyBy('employee_id');
+        $this->assertArrayHasKey($monthly->id, $byId->all());
+        $this->assertEquals(0, $byId[$monthly->id]['days_worked']);
+        $this->assertEquals(1000000.0, $byId[$monthly->id]['base']);
+        $this->assertEquals(1000000.0, $byId[$monthly->id]['cost']);
+
+        // El total de la empresa incluye ese salario base aunque no haya turnos.
+        $this->assertEquals(1000000.0, $result['cost_summary']['base']);
+        $this->assertEquals(1000000.0, $result['cost_summary']['total']);
+    }
+
+    public function test_hourly_employee_without_entries_is_not_added_to_company_report(): void
+    {
+        // Un empleado por hora sin turnos NO debe aparecer (no tiene base que pagar).
+        $user = User::factory()->create(['company_id' => $this->company->id]);
+        $user->assignRole('employee');
+        Employee::create([
+            'user_id' => $user->id,
+            'company_id' => $this->company->id,
+            'salary_type' => 'hourly',
+            'hourly_rate' => 12000,
+        ]);
+
+        $result = $this->action->execute(
+            $this->company->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        $this->assertCount(0, $result['employees']);
+        $this->assertEquals(0.0, $result['cost_summary']['total']);
+    }
+
     private function createEntry(Employee $employee, string $date, float $netHours, float $regularHours, float $nightHours): void
     {
         $this->createEntryForEmployee($employee, $this->company->id, $date, $netHours, $regularHours, $nightHours);
