@@ -440,6 +440,28 @@
             "base_salary": "Salario base del periodo",
             "base_salary_hint": "Cubre las horas ordinarias"
         },
+        "deductions": {
+            "title": "Novedades / Descuentos",
+            "add": "Agregar descuento",
+            "line_label": "Descuento por novedad",
+            "line_hint": "{days} día(s) descontado(s) del salario base",
+            "date": "Fecha",
+            "days": "Días",
+            "days_unit": "día(s)",
+            "reason": "Motivo",
+            "notes": "Notas",
+            "notes_placeholder": "Opcional",
+            "save": "Guardar",
+            "cancel": "Cancelar",
+            "empty": "Sin descuentos en este periodo.",
+            "capped_warning": "Los días descontados superan los días pagables del periodo: el salario base quedó en $0.",
+            "reasons": {
+                "FaltaInjustificada": "Falta injustificada",
+                "LicenciaNoRemunerada": "Licencia no remunerada",
+                "PermisoNoRemunerado": "Permiso no remunerado",
+                "Otro": "Otro"
+            }
+        },
         "overtime_payment": {
             "label": "Pagar horas extra",
             "paid_hint": "Las horas extra se pagan con su recargo.",

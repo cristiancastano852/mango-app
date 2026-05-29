@@ -19,14 +19,15 @@ class CalculatePeriodBaseSalary
      *   - Quincena completa (16–fin)  → 15 días comerciales → mitad (febrero y octubre por igual).
      *   - Rango parcial (ej. 1–8)     → 8 días comerciales  → salario × 8/30.
      *
-     * En esta fase los días pagables son los del rango (cubre ingreso/retiro/rango parcial);
-     * el descuento por ausencias queda fuera de alcance (ver docs/novedades-y-prorrateo-por-ausencias.md).
+     * Los días pagables son los del rango (cubre ingreso/retiro/rango parcial) menos los días de
+     * descuento por novedad del periodo. Cada día descontado vale salario/30; el resultado nunca es
+     * negativo (clamp en 0). Ver docs/novedades-y-prorrateo-por-ausencias.md.
      */
-    public function execute(float $monthlySalary, CarbonInterface $start, CarbonInterface $end): float
+    public function execute(float $monthlySalary, CarbonInterface $start, CarbonInterface $end, float $deductedDays = 0): float
     {
-        $commercialDays = $this->commercialDaysBetween($start, $end);
+        $payableDays = $this->commercialDaysBetween($start, $end) - $deductedDays;
 
-        return round($monthlySalary * $commercialDays / 30, 2);
+        return round($monthlySalary * max(0, $payableDays) / 30, 2);
     }
 
     /**

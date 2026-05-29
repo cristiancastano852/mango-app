@@ -27,4 +27,6 @@ return [
     'company_created' => 'Empresa creada exitosamente.',
     'company_updated' => 'Empresa actualizada exitosamente.',
     'admin_user_created' => 'Usuario administrador creado exitosamente.',
+    'payroll_deduction_employee_invalid' => 'El empleado seleccionado no es válido o no tiene salario mensual.',
+    'payroll_deduction_days_min' => 'El descuento debe ser de al menos medio día.',
 ];

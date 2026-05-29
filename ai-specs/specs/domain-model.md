@@ -13,9 +13,11 @@
 
 ## TimeTracking (app/Domain/TimeTracking/)
 - Actions (clock): ClockIn, ClockOut, StartBreak, EndBreak, AdminClockIn
-- Actions (cálculo): CalculateWorkHours — clasificación minuto a minuto en regular/night/sunday_holiday/overtime
+- Actions (cálculo): CalculateWorkHours — clasificación minuto a minuto en regular/night/sunday_holiday/overtime; CalculatePeriodBaseSalary (prorrateo del salario base por mes comercial de 30 días, acepta días de descuento por novedad)
 - Actions (reportes): GenerateCompanyReport, GenerateEmployeeReport, CalculateReportCosts (acepta flag payOvertime), ResolveOvertimePaymentDecision (precedencia request → decisión guardada → default de compañía)
-- Models: TimeEntry, BreakEntry, BreakType
+- Actions (novedades): CreatePayrollDeduction, DeletePayrollDeduction — descuentos del salario base por periodo (admin-driven, solo empleados monthly)
+- Models: TimeEntry, BreakEntry, BreakType, PayrollDeduction (descuento por novedad: days + reason + effective_date)
+- Enums: PayrollDeductionReason (FaltaInjustificada | LicenciaNoRemunerada | PermisoNoRemunerado | Otro)
 
 ## Organization (app/Domain/Organization/)
 - Models: Department, Location, Position, Schedule
@@ -35,6 +37,7 @@
 - Admin/TimeEntryController — index (filterable) + edit + update (llama CalculateWorkHours)
 - SchedulesController — CRUD completo /schedules (admin + super-admin)
 - CalendarController — GET /calendar?month=Y-m&employee_id=optional
+- PayrollDeductionController — store/destroy /payroll-deductions (admin + super-admin); registra/elimina descuentos del salario base por novedad
 - Settings/HolidayController — CRUD holidays (admin + super-admin)
 - Settings/SurchargeRuleController — read/update surcharge rules (admin + super-admin)
 - Settings/CompanyProfileController — edit/update company name, logo, country, timezone (admin + super-admin)

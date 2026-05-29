@@ -88,6 +88,17 @@
 - is_recurring (boolean default false), country (default: CO)
 - timestamps
 
+## payroll_deductions
+- id, company_id → companies, employee_id → employees
+- effective_date (date) — ubica el descuento dentro del rango de un reporte de quincena
+- days (decimal 4,1) — número de días a descontar (admite medios días); cada día vale monthly_base_salary / 30
+- reason (string) — enum PayrollDeductionReason: FaltaInjustificada | LicenciaNoRemunerada | PermisoNoRemunerado | Otro
+- notes (text nullable) — observaciones del admin (recomendado cuando reason = Otro)
+- created_by (nullable → users) — quién registró el descuento (auditoría)
+- timestamps
+- indexes: (company_id, employee_id, effective_date)
+- Solo aplica a empleados salary_type = monthly; descuenta del salario base prorrateado del periodo (admin-driven)
+
 ## Multi-tenancy
 Todas las tablas tienen `company_id` excepto `companies`.
 Users de `super-admin` tienen `company_id = null`.

@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Domain\Company\Models\Company;
 use App\Domain\Employee\Models\Employee;
 use App\Domain\TimeTracking\Actions\GenerateEmployeeReport;
+use App\Domain\TimeTracking\Enums\PayrollDeductionReason;
 use App\Domain\TimeTracking\Models\BreakEntry;
 use App\Domain\TimeTracking\Models\BreakType;
+use App\Domain\TimeTracking\Models\PayrollDeduction;
 use App\Domain\TimeTracking\Models\TimeEntry;
 use App\Models\User;
 use Carbon\Carbon;
@@ -462,6 +464,85 @@ class GenerateEmployeeReportTest extends TestCase
         // base = 2.000.000 × 8/30 = 533.333,33.
         $this->assertEquals(533333.33, $result['cost_summary']['base']);
         $this->assertEquals(533333.33, $result['cost_summary']['total']);
+    }
+
+    public function test_monthly_deduction_reduces_the_period_base(): void
+    {
+        $employee = $this->makeMonthlyEmployee(3000000, 8000);
+        $this->createDeduction($employee, '2026-03-10', 2);
+
+        $result = $this->action->execute(
+            $employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        // base = 3.000.000 × (15 − 2)/30.
+        $this->assertEquals(round(3000000 * 13 / 30, 2), $result['cost_summary']['base']);
+        $this->assertEquals(2.0, $result['deductions']['days']);
+        $this->assertEquals(round(3000000 * 2 / 30, 2), $result['deductions']['amount']);
+        $this->assertFalse($result['deductions']['capped']);
+        $this->assertCount(1, $result['deductions']['items']);
+    }
+
+    public function test_deduction_outside_range_does_not_apply(): void
+    {
+        $employee = $this->makeMonthlyEmployee(3000000, 8000);
+        // Descuento con fecha en la segunda quincena: no aplica al reporte de la primera.
+        $this->createDeduction($employee, '2026-03-20', 2);
+
+        $result = $this->action->execute(
+            $employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        $this->assertEquals(1500000.0, $result['cost_summary']['base']);
+        $this->assertEquals(0.0, $result['deductions']['days']);
+        $this->assertEquals(0.0, $result['deductions']['amount']);
+    }
+
+    public function test_hourly_employee_ignores_deductions(): void
+    {
+        // $this->employee es por horas. Un descuento registrado no debe afectar el costo.
+        $this->createDeduction($this->employee, '2026-03-05', 3);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        $this->assertEquals(0.0, $result['cost_summary']['base']);
+        $this->assertEquals(0.0, $result['deductions']['days']);
+        $this->assertEmpty($result['deductions']['items']);
+    }
+
+    public function test_deduction_greater_than_payable_days_caps_base_at_zero(): void
+    {
+        $employee = $this->makeMonthlyEmployee(2000000, 8000);
+        $this->createDeduction($employee, '2026-03-10', 20);
+
+        $result = $this->action->execute(
+            $employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        $this->assertEquals(0.0, $result['cost_summary']['base']);
+        $this->assertEquals(0.0, $result['cost_summary']['total']);
+        $this->assertTrue($result['deductions']['capped']);
+    }
+
+    private function createDeduction(Employee $employee, string $effectiveDate, float $days, PayrollDeductionReason $reason = PayrollDeductionReason::FaltaInjustificada): void
+    {
+        PayrollDeduction::withoutGlobalScopes()->create([
+            'company_id' => $this->company->id,
+            'employee_id' => $employee->id,
+            'effective_date' => $effectiveDate,
+            'days' => $days,
+            'reason' => $reason->value,
+        ]);
     }
 
     private function makeMonthlyEmployee(float $monthlyBaseSalary, float $hourlyRate): Employee

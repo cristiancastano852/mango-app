@@ -102,12 +102,21 @@
                 </thead>
                 <tbody>
                     @if (($report['cost_summary']['salary_type'] ?? 'hourly') === 'monthly')
+                    @php($deduction = $report['deductions'] ?? ['amount' => 0, 'days' => 0, 'capped' => false])
                     <tr>
                         <td>Salario base del periodo</td>
                         <td class="text-right">&mdash;</td>
                         <td class="text-right">&mdash;</td>
-                        <td class="text-right">${{ number_format($report['cost_summary']['base'] ?? 0, 0, ',', '.') }}</td>
+                        <td class="text-right">${{ number_format(($report['cost_summary']['base'] ?? 0) + ($deduction['amount'] ?? 0), 0, ',', '.') }}</td>
                     </tr>
+                    @if (($deduction['amount'] ?? 0) > 0)
+                    <tr>
+                        <td>Descuento por novedad ({{ $deduction['days'] }} día(s){{ ($deduction['capped'] ?? false) ? ', topado' : '' }})</td>
+                        <td class="text-right">&mdash;</td>
+                        <td class="text-right">&mdash;</td>
+                        <td class="text-right">&minus;${{ number_format($deduction['amount'], 0, ',', '.') }}</td>
+                    </tr>
+                    @endif
                     @endif
                     <tr>
                         <td>Ordinarias</td>

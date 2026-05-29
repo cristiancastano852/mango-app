@@ -126,6 +126,13 @@
                         <td class="text-right">{{ $report['totals']['sunday_holiday_hours'] }}</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['sunday_holiday'], 0, ',', '.') }}</td>
                     </tr>
+                    @if (($report['cost_summary']['deductions'] ?? 0) > 0)
+                    <tr>
+                        <td>Descuentos por novedad</td>
+                        <td class="text-right">&mdash;</td>
+                        <td class="text-right">&minus;${{ number_format($report['cost_summary']['deductions'], 0, ',', '.') }}</td>
+                    </tr>
+                    @endif
                     <tr class="total-row">
                         <td>TOTAL</td>
                         <td class="text-right">{{ $report['totals']['net_hours'] }}</td>
@@ -151,6 +158,7 @@
                         <th class="text-right">Nocturnas</th>
                         <th class="text-right">Dom/Fest.</th>
                         <th class="text-right">Extra Diurnas</th>
+                        <th class="text-right">Descuento</th>
                         <th class="text-right">Costo</th>
                     </tr>
                 </thead>
@@ -167,6 +175,7 @@
                         <td class="text-right">{{ $emp['night_hours'] }}</td>
                         <td class="text-right">{{ $emp['sunday_holiday_hours'] }}</td>
                         <td class="text-right">{{ $emp['overtime_day_hours'] }}</td>
+                        <td class="text-right">@if (($emp['deduction_amount'] ?? 0) > 0)&minus;${{ number_format($emp['deduction_amount'], 0, ',', '.') }}@else&mdash;@endif</td>
                         <td class="text-right">${{ number_format($emp['cost'], 0, ',', '.') }}</td>
                     </tr>
                     @endforeach
@@ -178,6 +187,7 @@
                         <td class="text-right">{{ $report['totals']['night_hours'] }}</td>
                         <td class="text-right">{{ $report['totals']['overtime_day_hours'] }}</td>
                         <td class="text-right">{{ $report['totals']['sunday_holiday_hours'] }}</td>
+                        <td class="text-right">@if (($report['cost_summary']['deductions'] ?? 0) > 0)&minus;${{ number_format($report['cost_summary']['deductions'], 0, ',', '.') }}@else&mdash;@endif</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['total'], 0, ',', '.') }}</td>
                     </tr>
                 </tbody>

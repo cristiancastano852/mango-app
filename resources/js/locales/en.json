@@ -440,6 +440,28 @@
             "base_salary": "Base salary for the period",
             "base_salary_hint": "Covers ordinary hours"
         },
+        "deductions": {
+            "title": "Deductions",
+            "add": "Add deduction",
+            "line_label": "Absence deduction",
+            "line_hint": "{days} day(s) deducted from base salary",
+            "date": "Date",
+            "days": "Days",
+            "days_unit": "day(s)",
+            "reason": "Reason",
+            "notes": "Notes",
+            "notes_placeholder": "Optional",
+            "save": "Save",
+            "cancel": "Cancel",
+            "empty": "No deductions for this period.",
+            "capped_warning": "Deducted days exceed the period's payable days: base salary was capped at $0.",
+            "reasons": {
+                "FaltaInjustificada": "Unjustified absence",
+                "LicenciaNoRemunerada": "Unpaid leave",
+                "PermisoNoRemunerado": "Unpaid permit",
+                "Otro": "Other"
+            }
+        },
         "overtime_payment": {
             "label": "Pay overtime",
             "paid_hint": "Overtime is paid with its surcharge.",

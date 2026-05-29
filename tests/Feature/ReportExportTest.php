@@ -5,7 +5,14 @@ namespace Tests\Feature;
 use App\Domain\Company\Models\Company;
 use App\Domain\Employee\Models\Employee;
 use App\Domain\Organization\Models\Department;
+use App\Domain\TimeTracking\Actions\GenerateCompanyReport;
+use App\Domain\TimeTracking\Actions\GenerateEmployeeReport;
+use App\Domain\TimeTracking\Enums\PayrollDeductionReason;
+use App\Domain\TimeTracking\Models\PayrollDeduction;
 use App\Domain\TimeTracking\Models\TimeEntry;
+use App\Exports\CompanyReportEmployeesSheet;
+use App\Exports\CompanyReportSummarySheet;
+use App\Exports\EmployeeReportSummarySheet;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -334,5 +341,92 @@ class ReportExportTest extends TestCase
 
         $response->assertOk();
         $response->assertHeader('content-type', 'application/pdf');
+    }
+
+    // --- Descuentos por novedad en exports ---
+
+    public function test_employee_excel_includes_deduction_line_and_gross_base(): void
+    {
+        $report = $this->monthlyReportWithDeduction();
+
+        $rows = (new EmployeeReportSummarySheet($report))->array();
+
+        $labels = collect($rows)->map(fn ($r) => (string) ($r[0] ?? ''));
+        $this->assertTrue($labels->contains(fn ($l) => str_contains($l, 'Descuento por novedad')));
+
+        // El base mostrado es el BRUTO (neto + descuento), no el ya descontado.
+        $baseRow = collect($rows)->firstWhere(0, 'Salario base del periodo');
+        $this->assertEquals(
+            $report['cost_summary']['base'] + $report['deductions']['amount'],
+            $baseRow[3],
+        );
+    }
+
+    public function test_employee_pdf_html_shows_deduction_and_gross_base(): void
+    {
+        $report = $this->monthlyReportWithDeduction();
+
+        $html = view('exports.employee-report', ['report' => $report])->render();
+
+        $this->assertStringContainsString('Descuento por novedad', $html);
+        $gross = $report['cost_summary']['base'] + $report['deductions']['amount'];
+        $this->assertStringContainsString(number_format($gross, 0, ',', '.'), $html);
+    }
+
+    public function test_company_exports_include_deduction(): void
+    {
+        $report = $this->companyReportWithDeduction();
+
+        // Excel resumen: fila de descuentos total (negativa).
+        $summary = (new CompanyReportSummarySheet($report))->array();
+        $deductionRow = collect($summary)->firstWhere(0, 'Descuentos por novedad (total)');
+        $this->assertNotNull($deductionRow);
+        $this->assertLessThan(0, $deductionRow[1]);
+
+        // Excel empleados: columna Descuento (índice 5, tras el Salario base) negativa para el empleado con novedad.
+        $employeeRows = (new CompanyReportEmployeesSheet($report))->array();
+        $this->assertTrue(collect($employeeRows)->contains(fn ($r) => ($r[5] ?? 0) < 0));
+
+        // PDF: el HTML menciona la columna/fila de descuento.
+        $html = view('exports.company-report', ['report' => $report])->render();
+        $this->assertStringContainsString('Descuento', $html);
+    }
+
+    private function monthlyReportWithDeduction(): array
+    {
+        $user = User::factory()->create(['company_id' => $this->company->id]);
+        $user->assignRole('employee');
+        $monthly = Employee::create([
+            'user_id' => $user->id,
+            'company_id' => $this->company->id,
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => 3000000,
+            'hourly_rate' => 8000,
+        ]);
+
+        PayrollDeduction::withoutGlobalScopes()->create([
+            'company_id' => $this->company->id,
+            'employee_id' => $monthly->id,
+            'effective_date' => now()->toDateString(),
+            'days' => 2,
+            'reason' => PayrollDeductionReason::FaltaInjustificada->value,
+        ]);
+
+        return app(GenerateEmployeeReport::class)->execute(
+            $monthly->id,
+            now()->startOfMonth(),
+            now()->endOfMonth(),
+        );
+    }
+
+    private function companyReportWithDeduction(): array
+    {
+        $this->monthlyReportWithDeduction();
+
+        return app(GenerateCompanyReport::class)->execute(
+            $this->company->id,
+            now()->startOfMonth(),
+            now()->endOfMonth(),
+        );
     }
 }

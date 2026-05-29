@@ -27,4 +27,6 @@ return [
     'company_created' => 'Company created successfully.',
     'company_updated' => 'Company updated successfully.',
     'admin_user_created' => 'Admin user created successfully.',
+    'payroll_deduction_employee_invalid' => 'The selected employee is invalid or is not on a monthly salary.',
+    'payroll_deduction_days_min' => 'The deduction must be at least half a day.',
 ];

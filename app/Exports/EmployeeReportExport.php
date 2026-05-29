@@ -62,7 +62,13 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
         ];
 
         if ($isMonthly) {
-            $rows[] = ['Salario base del periodo', '', '', $costs['base'] ?? 0];
+            $deduction = $this->report['deductions'] ?? ['amount' => 0, 'days' => 0];
+            $grossBase = ($costs['base'] ?? 0) + ($deduction['amount'] ?? 0);
+            $rows[] = ['Salario base del periodo', '', '', $grossBase];
+
+            if (($deduction['amount'] ?? 0) > 0) {
+                $rows[] = ['Descuento por novedad ('.$deduction['days'].' día(s))', '', '', -$deduction['amount']];
+            }
         }
 
         $rows = array_merge($rows, [

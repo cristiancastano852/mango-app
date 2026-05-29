@@ -4,6 +4,7 @@ namespace App\Domain\TimeTracking\Actions;
 
 use App\Domain\Company\Models\SurchargeRule;
 use App\Domain\Employee\Models\Employee;
+use App\Domain\TimeTracking\Models\PayrollDeduction;
 use App\Domain\TimeTracking\Models\TimeEntry;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,7 @@ class GenerateEmployeeReport
      *     breaks_by_type: array<int, array{name: string, is_paid: bool, icon: string, color: string, total_minutes: float, count: int}>,
      *     daily_breakdown: array,
      *     cost_summary: array,
+     *     deductions: array{days: float, amount: float, capped: bool, items: array},
      *     period: array{start: string, end: string}
      * }
      */
@@ -45,8 +47,9 @@ class GenerateEmployeeReport
         $dailyBreakdown = $this->getDailyBreakdown($employeeId, $startDate, $endDate);
 
         $salaryType = $employee->salary_type ?? 'hourly';
+        $deductions = $this->buildDeductions($employee, $salaryType, $startDate, $endDate);
         $baseSalary = $salaryType === 'monthly'
-            ? $this->baseSalaryCalculator->execute((float) $employee->monthly_base_salary, $startDate, $endDate)
+            ? $this->baseSalaryCalculator->execute((float) $employee->monthly_base_salary, $startDate, $endDate, $deductions['days'])
             : 0.0;
 
         $costSummary = $this->costCalculator->execute(
@@ -94,10 +97,53 @@ class GenerateEmployeeReport
             'breaks_by_type' => $breaksByType,
             'daily_breakdown' => $dailyBreakdown,
             'cost_summary' => $costSummary,
+            'deductions' => $deductions,
             'period' => [
                 'start' => $startDate->toDateString(),
                 'end' => $endDate->toDateString(),
             ],
+        ];
+    }
+
+    /**
+     * Construye el desglose de descuentos por novedad del periodo para un empleado `monthly`.
+     * En modo `hourly` no hay base que prorratear, así que no se descuenta nada.
+     *
+     * `amount` es el monto realmente restado del base (acotado al base bruto del periodo);
+     * `capped` indica que los días solicitados superaron los días pagables del periodo.
+     *
+     * @return array{days: float, amount: float, capped: bool, items: array<int, array{id: int, effective_date: string, days: float, reason: string, notes: ?string}>}
+     */
+    private function buildDeductions(Employee $employee, string $salaryType, CarbonInterface $startDate, CarbonInterface $endDate): array
+    {
+        if ($salaryType !== 'monthly') {
+            return ['days' => 0.0, 'amount' => 0.0, 'capped' => false, 'items' => []];
+        }
+
+        $records = PayrollDeduction::withoutGlobalScopes()
+            ->where('employee_id', $employee->id)
+            ->whereBetween('effective_date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->orderBy('effective_date')
+            ->get();
+
+        $days = (float) $records->sum('days');
+        $monthlySalary = (float) $employee->monthly_base_salary;
+
+        $grossBase = $this->baseSalaryCalculator->execute($monthlySalary, $startDate, $endDate);
+        $netBase = $this->baseSalaryCalculator->execute($monthlySalary, $startDate, $endDate, $days);
+        $commercialDays = $this->baseSalaryCalculator->commercialDaysBetween($startDate, $endDate);
+
+        return [
+            'days' => round($days, 1),
+            'amount' => round($grossBase - $netBase, 2),
+            'capped' => $days > $commercialDays,
+            'items' => $records->map(fn (PayrollDeduction $d) => [
+                'id' => $d->id,
+                'effective_date' => $d->effective_date->toDateString(),
+                'days' => (float) $d->days,
+                'reason' => $d->reason->value,
+                'notes' => $d->notes,
+            ])->toArray(),
         ];
     }
 

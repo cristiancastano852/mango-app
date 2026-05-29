@@ -10,6 +10,7 @@ use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Onboarding\OnboardingBreakTypesController;
 use App\Http\Controllers\Onboarding\OnboardingCompanyController;
 use App\Http\Controllers\Onboarding\OnboardingScheduleController;
+use App\Http\Controllers\PayrollDeductionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SchedulesController;
 use App\Http\Controllers\SuperAdmin\CompanyController as SuperAdminCompanyController;
@@ -72,6 +73,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/company/excel', [ReportController::class, 'exportCompanyExcel'])->name('company.excel');
             Route::get('/company/pdf', [ReportController::class, 'exportCompanyPdf'])->name('company.pdf');
         });
+
+        // Payroll deductions (novedades) — descuentos del salario base por periodo
+        Route::post('payroll-deductions', [PayrollDeductionController::class, 'store'])->name('payroll-deductions.store');
+        Route::delete('payroll-deductions/{payrollDeduction}', [PayrollDeductionController::class, 'destroy'])->name('payroll-deductions.destroy');
     });
 
     // Time Clock (all authenticated employees)

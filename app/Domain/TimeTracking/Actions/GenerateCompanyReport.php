@@ -44,6 +44,9 @@ class GenerateCompanyReport
 
         $dailyAttendance = $this->getDailyAttendance($companyId, $startDate, $endDate, $departmentId);
 
+        // Días de descuento por novedad agregados por empleado en el rango (una sola query).
+        $deductionsByEmployee = $this->getDeductionDaysByEmployee($companyId, $startDate, $endDate);
+
         // Calcular totales sumando los datos de empleados (ya agregados por BD)
         $totals = $this->sumEmployeeTotals($employeeBreakdown);
 
@@ -58,13 +61,18 @@ class GenerateCompanyReport
             'overtime_day_sunday' => 0.0,
             'overtime_night_sunday' => 0.0,
             'base' => 0.0,
+            'deductions' => 0.0,
             'total' => 0.0,
         ];
 
-        $employeesWithCosts = $employeeBreakdown->map(function ($emp) use ($rules, $payOvertime, $startDate, $endDate, &$totalCost) {
+        $employeesWithCosts = $employeeBreakdown->map(function ($emp) use ($rules, $payOvertime, $startDate, $endDate, $deductionsByEmployee, &$totalCost) {
             $salaryType = $emp->salary_type ?? 'hourly';
+            $deductedDays = $salaryType === 'monthly' ? (float) ($deductionsByEmployee[$emp->employee_id] ?? 0) : 0.0;
             $baseSalary = $salaryType === 'monthly'
-                ? $this->baseSalaryCalculator->execute((float) $emp->monthly_base_salary, $startDate, $endDate)
+                ? $this->baseSalaryCalculator->execute((float) $emp->monthly_base_salary, $startDate, $endDate, $deductedDays)
+                : 0.0;
+            $deductionAmount = $salaryType === 'monthly' && $deductedDays > 0
+                ? round($this->baseSalaryCalculator->execute((float) $emp->monthly_base_salary, $startDate, $endDate) - $baseSalary, 2)
                 : 0.0;
 
             $cost = $this->costCalculator->execute(
@@ -94,6 +102,7 @@ class GenerateCompanyReport
             $totalCost['overtime_day_sunday'] += $cost['overtime_day_sunday'];
             $totalCost['overtime_night_sunday'] += $cost['overtime_night_sunday'];
             $totalCost['base'] += $cost['base'];
+            $totalCost['deductions'] += $deductionAmount;
             $totalCost['total'] += $cost['total'];
 
             return [
@@ -104,6 +113,8 @@ class GenerateCompanyReport
                 'salary_type' => $salaryType,
                 'monthly_base_salary' => $emp->monthly_base_salary !== null ? (float) $emp->monthly_base_salary : null,
                 'base' => $cost['base'],
+                'deduction_days' => round($deductedDays, 1),
+                'deduction_amount' => $deductionAmount,
                 'days_worked' => (int) $emp->days_worked,
                 'gross_hours' => round((float) $emp->total_gross, 2),
                 'net_hours' => round((float) $emp->total_net, 2),
@@ -228,6 +239,23 @@ class GenerateCompanyReport
             ]);
 
         return $breakdown->concat($missing);
+    }
+
+    /**
+     * Suma los días de descuento por novedad de cada empleado en el rango, en una sola query.
+     *
+     * @return array<int, float> mapa employee_id => total días descontados
+     */
+    private function getDeductionDaysByEmployee(int $companyId, CarbonInterface $startDate, CarbonInterface $endDate): array
+    {
+        return DB::table('payroll_deductions')
+            ->where('company_id', $companyId)
+            ->whereBetween('effective_date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->groupBy('employee_id')
+            ->selectRaw('employee_id, COALESCE(SUM(days), 0) as total_days')
+            ->get()
+            ->mapWithKeys(fn ($row) => [(int) $row->employee_id => (float) $row->total_days])
+            ->toArray();
     }
 
     /**

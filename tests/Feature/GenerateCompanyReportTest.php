@@ -314,6 +314,42 @@ class GenerateCompanyReportTest extends TestCase
         $this->assertEquals(1000000.0, $result['cost_summary']['total']);
     }
 
+    public function test_monthly_employee_deduction_reduces_base_in_company_report(): void
+    {
+        $user = User::factory()->create(['company_id' => $this->company->id]);
+        $user->assignRole('employee');
+        $monthly = Employee::create([
+            'user_id' => $user->id,
+            'company_id' => $this->company->id,
+            'department_id' => $this->deptA->id,
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => 3000000,
+            'hourly_rate' => 8000,
+        ]);
+
+        \App\Domain\TimeTracking\Models\PayrollDeduction::withoutGlobalScopes()->create([
+            'company_id' => $this->company->id,
+            'employee_id' => $monthly->id,
+            'effective_date' => '2026-03-10',
+            'days' => 2,
+            'reason' => \App\Domain\TimeTracking\Enums\PayrollDeductionReason::FaltaInjustificada->value,
+        ]);
+
+        $result = $this->action->execute(
+            $this->company->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        $byId = collect($result['employees'])->keyBy('employee_id');
+        // base = 3.000.000 × (15 − 2)/30 = 1.300.000.
+        $this->assertEquals(round(3000000 * 13 / 30, 2), $byId[$monthly->id]['base']);
+        $this->assertEquals(2.0, $byId[$monthly->id]['deduction_days']);
+        $this->assertEquals(round(3000000 * 2 / 30, 2), $byId[$monthly->id]['deduction_amount']);
+        // El total de descuentos de la empresa refleja el monto.
+        $this->assertEquals(round(3000000 * 2 / 30, 2), $result['cost_summary']['deductions']);
+    }
+
     public function test_hourly_employee_without_entries_is_not_added_to_company_report(): void
     {
         // Un empleado por hora sin turnos NO debe aparecer (no tiene base que pagar).

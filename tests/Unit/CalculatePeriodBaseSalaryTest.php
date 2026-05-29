@@ -103,6 +103,50 @@ class CalculatePeriodBaseSalaryTest extends TestCase
         $this->assertEquals(0.0, $base);
     }
 
+    public function test_quincena_with_two_deducted_days_pays_thirteen_thirtieths(): void
+    {
+        // Quincena completa (15 días comerciales) con 2 días de descuento → salario × 13/30.
+        $base = $this->action->execute(3000000, Carbon::parse('2026-03-01'), Carbon::parse('2026-03-15'), 2);
+
+        $this->assertEquals(round(3000000 * 13 / 30, 2), $base);
+    }
+
+    public function test_one_deducted_day_costs_the_same_in_february_and_october(): void
+    {
+        $february = $this->action->execute(3000000, Carbon::parse('2026-02-16'), Carbon::parse('2026-02-28'), 1);
+        $october = $this->action->execute(3000000, Carbon::parse('2026-10-16'), Carbon::parse('2026-10-31'), 1);
+
+        $this->assertEquals($february, $october);
+        // Cada día descontado vale salario/30 sin importar los días calendario del mes.
+        $full = $this->action->execute(3000000, Carbon::parse('2026-02-16'), Carbon::parse('2026-02-28'));
+        $this->assertEquals(round($full - 3000000 / 30, 2), $february);
+    }
+
+    public function test_deduction_greater_than_payable_days_clamps_to_zero(): void
+    {
+        // Quincena de 15 días con 20 días de descuento → no hay base negativo.
+        $base = $this->action->execute(2000000, Carbon::parse('2026-03-01'), Carbon::parse('2026-03-15'), 20);
+
+        $this->assertEquals(0.0, $base);
+    }
+
+    public function test_half_day_deduction_is_supported(): void
+    {
+        // Medio día de descuento en mes completo: 2.000.000 × 29.5/30.
+        $base = $this->action->execute(2000000, Carbon::parse('2026-03-01'), Carbon::parse('2026-03-31'), 0.5);
+
+        $this->assertEquals(round(2000000 * 29.5 / 30, 2), $base);
+    }
+
+    public function test_zero_deducted_days_matches_legacy_behavior(): void
+    {
+        $withArg = $this->action->execute(2000000, Carbon::parse('2026-03-01'), Carbon::parse('2026-03-15'), 0);
+        $withoutArg = $this->action->execute(2000000, Carbon::parse('2026-03-01'), Carbon::parse('2026-03-15'));
+
+        $this->assertEquals($withoutArg, $withArg);
+        $this->assertEquals(1000000.0, $withArg);
+    }
+
     /**
      * Regresión: la app usa Date::use(CarbonImmutable), donde addMonth() NO muta.
      * El loop debe avanzar igual (no colgarse) y dar el resultado correcto.

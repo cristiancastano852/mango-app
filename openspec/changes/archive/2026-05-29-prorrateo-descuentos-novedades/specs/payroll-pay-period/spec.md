@@ -1,31 +1,4 @@
-# payroll-pay-period Specification
-
-## Purpose
-Define la selección de periodo de pago (quincena/mes) y el rango libre en los reportes, y el prorrateo del salario base usando el mes comercial de 30 días (15 por quincena) para que el monto no dependa de los días calendario reales, restando los días de descuento por novedad del periodo.
-## Requirements
-### Requirement: Selección de periodo de pago en reportes
-
-El sistema SHALL permitir, en los reportes de empleado y de empresa, elegir entre presets de periodo de pago — **1ª quincena**, **2ª quincena** y **mes completo** — además del rango de fechas libre existente.
-
-**Business Rules:**
-- 1ª quincena resuelve el rango del día 1 al 15 del mes; 2ª quincena del día 16 al último día del mes; mes completo del día 1 al último día.
-- El rango de fechas libre se conserva para casos como retiro a mitad de quincena o anticipos.
-- La selección de periodo determina el divisor del salario base (ver requirement de prorrateo).
-
-**Authorization:**
-- El acceso a los reportes mantiene las reglas de rol existentes; la selección de periodo no cambia quién puede ver qué.
-
-#### Scenario: Admin selecciona la primera quincena
-- **WHEN** un admin elige el preset "1ª quincena" para un mes
-- **THEN** el reporte se calcula sobre el rango día 1 a día 15 de ese mes
-
-#### Scenario: Admin selecciona la segunda quincena de febrero
-- **WHEN** un admin elige el preset "2ª quincena" para febrero
-- **THEN** el reporte se calcula sobre el rango día 16 al día 28 (o 29) de febrero
-
-#### Scenario: Admin usa un rango libre
-- **WHEN** un admin selecciona un rango de fechas personalizado
-- **THEN** el reporte se calcula sobre ese rango exacto
+## MODIFIED Requirements
 
 ### Requirement: Prorrateo del salario base por mes comercial de 30 días
 
