@@ -114,6 +114,11 @@ const payOvertime = ref(props.filters.pay_overtime);
 
 const isMonthly = computed(() => props.report.cost_summary.salary_type === 'monthly');
 
+// Hay algo que mostrar si trabajó días o si tiene salario base (mensual con 0 turnos igual cobra base).
+const hasReportData = computed(
+    () => props.report.totals.days_worked > 0 || (props.report.cost_summary.base ?? 0) > 0,
+);
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: t('reports.breadcrumb'), href: '/reports' },
     { title: t('reports.employee_report'), href: '#' },
@@ -282,11 +287,11 @@ onMounted(async () => {
                     <span class="text-muted-foreground mr-2 text-sm">
                         {{ report.period.start }} &rarr; {{ report.period.end }}
                     </span>
-                    <Button v-if="report.totals.days_worked > 0" variant="outline" size="sm" @click="downloadExcel">
+                    <Button v-if="hasReportData" variant="outline" size="sm" @click="downloadExcel">
                         <Download class="mr-1 size-3.5" />
                         {{ t('reports.export_excel') }}
                     </Button>
-                    <Button v-if="report.totals.days_worked > 0" variant="outline" size="sm" @click="downloadPdf">
+                    <Button v-if="hasReportData" variant="outline" size="sm" @click="downloadPdf">
                         <Download class="mr-1 size-3.5" />
                         {{ t('reports.export_pdf') }}
                     </Button>
@@ -316,7 +321,7 @@ onMounted(async () => {
             </Card>
 
             <!-- Empty state -->
-            <div v-if="report.totals.days_worked === 0" class="text-muted-foreground py-16 text-center">
+            <div v-if="!hasReportData" class="text-muted-foreground py-16 text-center">
                 <Calendar class="mx-auto mb-3 size-12 opacity-30" />
                 <p class="text-lg font-medium">{{ t('reports.no_data') }}</p>
             </div>
@@ -434,7 +439,7 @@ onMounted(async () => {
                 </div>
 
                 <!-- Charts Row -->
-                <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div v-if="report.totals.days_worked > 0" class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <!-- Hours Breakdown Chart -->
                     <Card>
                         <CardHeader class="pb-2">
