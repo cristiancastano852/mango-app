@@ -11,7 +11,14 @@ class CompanyObserver
 {
     public function created(Company $company): void
     {
-        SurchargeRule::create(['company_id' => $company->id]);
+        $smlv = (float) config('payroll.smlv_monthly');
+        $divisor = max((int) config('payroll.hourly_divisor'), 1);
+
+        SurchargeRule::create([
+            'company_id' => $company->id,
+            'default_monthly_salary' => $smlv,
+            'default_hourly_rate' => round($smlv / $divisor, 2),
+        ]);
         (new ColombianHolidaysSeeder)->seedForCompany($company->id);
         (new SeedDefaultBreakTypes)->execute($company);
     }

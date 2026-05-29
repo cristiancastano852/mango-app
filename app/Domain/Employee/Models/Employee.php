@@ -28,6 +28,7 @@ class Employee extends Model
         'document_number',
         'hire_date',
         'hourly_rate',
+        'monthly_base_salary',
         'salary_type',
         'schedule_id',
         'location_id',
@@ -38,6 +39,7 @@ class Employee extends Model
         return [
             'hire_date' => 'date',
             'hourly_rate' => 'decimal:2',
+            'monthly_base_salary' => 'decimal:2',
         ];
     }
 

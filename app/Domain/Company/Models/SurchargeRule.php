@@ -25,6 +25,8 @@ class SurchargeRule extends Model
         'max_daily_hours',
         'night_start_time',
         'night_end_time',
+        'default_monthly_salary',
+        'default_hourly_rate',
     ];
 
     protected function casts(): array
@@ -39,6 +41,8 @@ class SurchargeRule extends Model
             'night_sunday' => 'decimal:2',
             'pay_overtime_by_default' => 'boolean',
             'max_daily_hours' => 'integer',
+            'default_monthly_salary' => 'decimal:2',
+            'default_hourly_rate' => 'decimal:2',
         ];
     }
 
