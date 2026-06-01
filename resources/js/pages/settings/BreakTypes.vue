@@ -70,7 +70,7 @@ function toggleActive(breakType: BreakType) {
                     :description="t('break_type.description')"
                 />
 
-                <div class="overflow-hidden rounded-md border">
+                <div class="overflow-x-auto rounded-md border">
                     <table class="w-full text-sm">
                         <thead class="bg-muted/50">
                             <tr>
@@ -118,7 +118,7 @@ function toggleActive(breakType: BreakType) {
                                     <td class="px-4 py-3">
                                         <div class="flex justify-end">
                                             <Button
-                                                variant="ghost"
+                                                variant="outline"
                                                 size="sm"
                                                 @click="startEdit(breakType)"
                                             >
@@ -178,7 +178,7 @@ function toggleActive(breakType: BreakType) {
                                                         :id="`edit-paid-${breakType.id}`"
                                                         name="is_paid"
                                                         value="1"
-                                                        :default-checked="breakType.is_paid"
+                                                        :default-value="breakType.is_paid"
                                                     />
                                                     <Label :for="`edit-paid-${breakType.id}`">{{ t('break_type.paid') }}</Label>
                                                 </div>
@@ -187,7 +187,7 @@ function toggleActive(breakType: BreakType) {
                                                         :id="`edit-default-${breakType.id}`"
                                                         name="is_default"
                                                         value="1"
-                                                        :default-checked="breakType.is_default"
+                                                        :default-value="breakType.is_default"
                                                     />
                                                     <Label :for="`edit-default-${breakType.id}`">{{ t('break_type.default') }}</Label>
                                                 </div>
