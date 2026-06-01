@@ -484,6 +484,8 @@
         "status": "Status",
         "active": "Active",
         "inactive": "Inactive",
+        "activate": "Activate",
+        "deactivate": "Deactivate",
         "actions": "Actions",
         "create": "Add break type",
         "edit": "Edit",

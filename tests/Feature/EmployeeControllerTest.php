@@ -3,11 +3,13 @@
 namespace Tests\Feature;
 
 use App\Domain\Company\Models\Company;
+use App\Domain\Company\Models\SurchargeRule;
 use App\Domain\Employee\Models\Employee;
 use App\Domain\Organization\Models\Department;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Inertia\Testing\AssertableInertia;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -163,6 +165,22 @@ class EmployeeControllerTest extends TestCase
         $response = $this->actingAs($this->adminUser)->get(route('employees.create'));
 
         $response->assertOk();
+    }
+
+    public function test_employee_create_exposes_company_salary_defaults(): void
+    {
+        SurchargeRule::query()->where('company_id', $this->company->id)->update([
+            'default_monthly_salary' => 1500000,
+            'default_hourly_rate' => 6250,
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->get(route('employees.create'));
+
+        $response->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Employees/Create')
+            ->where('defaultMonthlySalary', '1500000.00')
+            ->where('defaultHourlyRate', '6250.00')
+        );
     }
 
     public function test_admin_can_store_employee(): void

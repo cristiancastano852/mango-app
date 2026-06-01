@@ -11,14 +11,12 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import EmployeeForm from './partials/EmployeeForm.vue';
 
-// DEPARTMENTS & POSITIONS FEATURE DISABLED — restore Props type and defineProps when re-enabling.
-// type Props = {
-//     departments: Department[];
-//     positions: Position[];
-//     // LOCATIONS FEATURE DISABLED — restore locations prop when re-enabling.
-//     // locations: Location[];
-// };
-// defineProps<Props>();
+// DEPARTMENTS & POSITIONS FEATURE DISABLED — restore departments/positions/locations props when re-enabling.
+type Props = {
+    defaultMonthlySalary: string | null;
+    defaultHourlyRate: string | null;
+};
+const props = defineProps<Props>();
 const { t } = useI18n();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -37,9 +35,9 @@ const form = useForm({
     // department_id: '',
     // position_id: '',
     hire_date: '',
-    hourly_rate: '',
-    salary_type: 'hourly',
-    monthly_base_salary: '',
+    hourly_rate: props.defaultHourlyRate ?? '',
+    salary_type: 'monthly',
+    monthly_base_salary: props.defaultMonthlySalary ?? '',
     // LOCATIONS FEATURE DISABLED — restore location_id when re-enabling.
     // location_id: '',
 });
