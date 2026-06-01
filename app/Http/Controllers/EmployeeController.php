@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Company\Models\SurchargeRule;
 use App\Domain\Employee\Actions\CreateEmployee;
 use App\Domain\Employee\Actions\DeleteEmployee;
 use App\Domain\Employee\Actions\UpdateEmployee;
@@ -54,7 +55,11 @@ class EmployeeController extends Controller
 
     public function create(): Response
     {
+        $surchargeRule = SurchargeRule::first();
+
         return Inertia::render('Employees/Create', [
+            'defaultMonthlySalary' => $surchargeRule?->default_monthly_salary,
+            'defaultHourlyRate' => $surchargeRule?->default_hourly_rate,
             // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore these props when re-enabling.
             // 'departments' => Department::select('id', 'name')->get(),
             // 'positions' => Position::select('id', 'name', 'department_id')->get(),
