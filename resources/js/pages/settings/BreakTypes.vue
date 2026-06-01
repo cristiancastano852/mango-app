@@ -194,6 +194,15 @@ function toggleActive(breakType: BreakType) {
                                             </div>
                                             <div class="flex gap-2">
                                                 <Button type="submit" size="sm" :disabled="processing">{{ t('break_type.save') }}</Button>
+                                                <Button
+                                                    v-if="!breakType.is_default"
+                                                    type="button"
+                                                    :variant="breakType.is_active ? 'destructive' : 'secondary'"
+                                                    size="sm"
+                                                    @click="toggleActive(breakType)"
+                                                >
+                                                    {{ breakType.is_active ? t('break_type.deactivate') : t('break_type.activate') }}
+                                                </Button>
                                                 <Button type="button" variant="ghost" size="sm" @click="cancelEdit">{{ t('break_type.cancel') }}</Button>
                                             </div>
                                         </Form>
