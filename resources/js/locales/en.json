@@ -566,6 +566,50 @@
             "save": "Save Changes",
             "saving": "Saving...",
             "cancel": "Cancel"
+        },
+        "subtitle": "Manage your employees' time entries.",
+        "new_entry": "New entry",
+        "filter_date_from": "From",
+        "filter_date_to": "To",
+        "net_hours": "Net hours",
+        "delete_confirm_title": "Delete entry?",
+        "delete_confirm_message": "The entry will be removed and will no longer count toward KPIs and reports. You can create a new one for that day.",
+        "delete_action": "Delete entry",
+        "status": {
+            "pending": "Pending",
+            "calculated": "Calculated",
+            "edited": "Edited"
+        },
+        "create": {
+            "breadcrumb": "New entry",
+            "head_title": "New time entry",
+            "title": "New time entry",
+            "description": "Manually create an entry for an employee on a day without one.",
+            "employee": "Employee",
+            "select_employee": "Select an employee",
+            "date": "Date",
+            "clock_in": "Clock in",
+            "clock_out": "Clock out",
+            "save": "Create entry",
+            "saving": "Creating...",
+            "cancel": "Cancel"
+        },
+        "breaks": {
+            "title": "Breaks",
+            "description": "Add, edit or remove this shift's breaks. Unpaid breaks are deducted from net time.",
+            "add": "Add break",
+            "type": "Type",
+            "start": "Start",
+            "end": "End",
+            "duration": "Duration",
+            "paid": "Paid",
+            "unpaid": "Unpaid",
+            "no_breaks": "This shift has no recorded breaks.",
+            "save": "Save break",
+            "saving": "Saving...",
+            "cancel": "Cancel",
+            "delete": "Delete break",
+            "select_type": "Select a type"
         }
     },
     "super_admin": {

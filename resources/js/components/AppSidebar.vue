@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 // TODO: Schedules feature temporarily disabled — restore Sliders import when resuming
-import { Building2, CalendarDays, Clock, CreditCard, FileText, LayoutGrid, Settings, Users } from 'lucide-vue-next';
+import { Building2, CalendarDays, ClipboardList, Clock, CreditCard, FileText, LayoutGrid, Settings, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { index as timeEntriesIndex } from '@/actions/App/Http/Controllers/Admin/TimeEntryController';
 import { index as reportsIndex } from '@/actions/App/Http/Controllers/ReportController';
 // TODO: Schedules feature temporarily disabled — restore schedulesIndex import when resuming
 // import { index as schedulesIndex } from '@/actions/App/Http/Controllers/SchedulesController';
@@ -70,6 +71,11 @@ const mainNavItems = computed<NavItem[]>(() => {
         items.push(
             // TODO: Schedules feature temporarily disabled — restore this nav item when resuming
             // { title: t('nav.schedules'), href: schedulesIndex(), icon: Sliders },
+            {
+                title: t('nav.time_entries'),
+                href: timeEntriesIndex(),
+                icon: ClipboardList,
+            },
             {
                 title: t('nav.calendar'),
                 href: calendarIndex(),

@@ -81,10 +81,6 @@ class DashboardController extends Controller
                 'name' => $employee->user->name,
                 'avatar' => $employee->user->avatar,
                 'status' => $status,
-                'clock_in' => $entry?->clock_in?->format('H:i'),
-                'clock_out' => $entry?->clock_out?->format('H:i'),
-                'net_hours_today' => $entry ? (float) $entry->net_hours : 0,
-                'time_entry_id' => $entry?->id,
             ];
         });
 

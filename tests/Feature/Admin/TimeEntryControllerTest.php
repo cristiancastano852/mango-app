@@ -4,6 +4,8 @@ namespace Tests\Feature\Admin;
 
 use App\Domain\Company\Models\Company;
 use App\Domain\Employee\Models\Employee;
+use App\Domain\TimeTracking\Models\BreakEntry;
+use App\Domain\TimeTracking\Models\BreakType;
 use App\Domain\TimeTracking\Models\TimeEntry;
 use App\Models\User;
 use Carbon\Carbon;
@@ -54,6 +56,76 @@ class TimeEntryControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page->component('Admin/TimeEntries/Index'));
+    }
+
+    private function entryOn(string $date): TimeEntry
+    {
+        return TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => $date,
+            'clock_in' => $date.' 08:00:00',
+            'clock_out' => $date.' 17:00:00',
+            'gross_hours' => 9,
+            'net_hours' => 8,
+            'status' => 'calculated',
+        ]);
+    }
+
+    public function test_index_filters_by_date_range(): void
+    {
+        $this->entryOn('2026-06-01');
+        $this->entryOn('2026-06-10');
+        $this->entryOn('2026-06-20');
+
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('admin.time-entries.index', [
+                'date_from' => '2026-06-05',
+                'date_to' => '2026-06-15',
+            ]));
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/TimeEntries/Index')
+            ->where('entries.total', 1));
+    }
+
+    public function test_index_filters_by_employee(): void
+    {
+        $this->entryOn('2026-06-01');
+
+        $otherUser = User::factory()->create(['company_id' => $this->company->id]);
+        $otherUser->assignRole('employee');
+        $otherEmployee = Employee::create(['user_id' => $otherUser->id, 'company_id' => $this->company->id]);
+        TimeEntry::create([
+            'employee_id' => $otherEmployee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-06-02',
+            'clock_in' => '2026-06-02 08:00:00',
+            'clock_out' => '2026-06-02 17:00:00',
+            'gross_hours' => 9,
+            'net_hours' => 8,
+            'status' => 'calculated',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('admin.time-entries.index', ['employee_id' => $this->employee->id]));
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/TimeEntries/Index')
+            ->where('entries.total', 1));
+    }
+
+    public function test_index_without_filters_shows_all_active(): void
+    {
+        $this->entryOn('2026-06-01');
+        $this->entryOn('2026-06-10');
+
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('admin.time-entries.index'));
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/TimeEntries/Index')
+            ->where('entries.total', 2));
     }
 
     public function test_non_admin_cannot_access_time_entries(): void
@@ -169,5 +241,277 @@ class TimeEntryControllerTest extends TestCase
             ]);
 
         $response->assertSessionHasErrors('clock_out');
+    }
+
+    public function test_admin_can_create_time_entry(): void
+    {
+        $response = $this->actingAs($this->adminUser)
+            ->post(route('admin.time-entries.store'), [
+                'employee_id' => $this->employee->id,
+                'date' => '2026-06-01',
+                'clock_in' => '2026-06-01 08:00',
+                'clock_out' => '2026-06-01 17:00',
+            ]);
+
+        $response->assertRedirect(route('admin.time-entries.index'));
+        $this->assertDatabaseHas('time_entries', [
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'status' => 'edited',
+        ]);
+    }
+
+    public function test_cannot_create_duplicate_active_entry_same_day(): void
+    {
+        TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-06-01',
+            'clock_in' => '2026-06-01 08:00:00',
+            'clock_out' => '2026-06-01 17:00:00',
+            'gross_hours' => 9,
+            'net_hours' => 8,
+            'status' => 'calculated',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->post(route('admin.time-entries.store'), [
+                'employee_id' => $this->employee->id,
+                'date' => '2026-06-01',
+                'clock_in' => '2026-06-01 09:00',
+                'clock_out' => '2026-06-01 18:00',
+            ]);
+
+        $response->assertSessionHasErrors('employee_id');
+    }
+
+    public function test_can_recreate_entry_after_soft_delete(): void
+    {
+        $entry = TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-06-01',
+            'clock_in' => '2026-06-01 08:00:00',
+            'clock_out' => '2026-06-01 17:00:00',
+            'gross_hours' => 9,
+            'net_hours' => 8,
+            'status' => 'calculated',
+        ]);
+        $entry->delete();
+
+        $response = $this->actingAs($this->adminUser)
+            ->post(route('admin.time-entries.store'), [
+                'employee_id' => $this->employee->id,
+                'date' => '2026-06-01',
+                'clock_in' => '2026-06-01 09:00',
+                'clock_out' => '2026-06-01 18:00',
+            ]);
+
+        $response->assertRedirect(route('admin.time-entries.index'));
+        $response->assertSessionHasNoErrors();
+    }
+
+    public function test_create_rejects_clock_out_before_clock_in(): void
+    {
+        $response = $this->actingAs($this->adminUser)
+            ->post(route('admin.time-entries.store'), [
+                'employee_id' => $this->employee->id,
+                'date' => '2026-06-01',
+                'clock_in' => '2026-06-01 17:00',
+                'clock_out' => '2026-06-01 08:00',
+            ]);
+
+        $response->assertSessionHasErrors('clock_out');
+    }
+
+    public function test_employee_cannot_create_time_entry(): void
+    {
+        $employeeUser = User::factory()->create(['company_id' => $this->company->id]);
+        $employeeUser->assignRole('employee');
+
+        $response = $this->actingAs($employeeUser)
+            ->post(route('admin.time-entries.store'), [
+                'employee_id' => $this->employee->id,
+                'date' => '2026-06-01',
+                'clock_in' => '2026-06-01 08:00',
+                'clock_out' => '2026-06-01 17:00',
+            ]);
+
+        $response->assertForbidden();
+    }
+
+    public function test_admin_cannot_create_entry_for_other_company_employee(): void
+    {
+        $otherCompany = Company::create(['name' => 'Other', 'slug' => 'other']);
+        $otherUser = User::factory()->create(['company_id' => $otherCompany->id]);
+        $otherUser->assignRole('employee');
+        $otherEmployee = Employee::create([
+            'user_id' => $otherUser->id,
+            'company_id' => $otherCompany->id,
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->post(route('admin.time-entries.store'), [
+                'employee_id' => $otherEmployee->id,
+                'date' => '2026-06-01',
+                'clock_in' => '2026-06-01 08:00',
+                'clock_out' => '2026-06-01 17:00',
+            ]);
+
+        $response->assertSessionHasErrors('employee_id');
+    }
+
+    public function test_update_recalculates_hours(): void
+    {
+        $entry = TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-06-01',
+            'clock_in' => '2026-06-01 08:00:00',
+            'clock_out' => '2026-06-01 17:00:00',
+            'gross_hours' => 9,
+            'net_hours' => 9,
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->put(route('admin.time-entries.update', $entry), [
+                'clock_in' => '2026-06-01 08:00',
+                'clock_out' => '2026-06-01 16:00',
+                'edit_reason' => 'Ajuste de salida',
+            ]);
+
+        $response->assertRedirect(route('admin.time-entries.index'));
+        $entry->refresh();
+        $this->assertEquals(8.0, (float) $entry->gross_hours);
+        $this->assertEquals(8.0, (float) $entry->net_hours);
+        $this->assertEquals('edited', $entry->status);
+    }
+
+    public function test_update_rejects_when_break_falls_outside_new_range(): void
+    {
+        $entry = TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-06-01',
+            'clock_in' => '2026-06-01 08:00:00',
+            'clock_out' => '2026-06-01 17:00:00',
+            'gross_hours' => 9,
+            'net_hours' => 8,
+            'status' => 'calculated',
+        ]);
+
+        $breakType = BreakType::factory()->create(['company_id' => $this->company->id]);
+        BreakEntry::create([
+            'time_entry_id' => $entry->id,
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'break_type_id' => $breakType->id,
+            'started_at' => '2026-06-01 12:00:00',
+            'ended_at' => '2026-06-01 13:00:00',
+            'duration_minutes' => 60,
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->put(route('admin.time-entries.update', $entry), [
+                'clock_in' => '2026-06-01 14:00',
+                'clock_out' => '2026-06-01 17:00',
+                'edit_reason' => 'Ajuste que deja la pausa fuera',
+            ]);
+
+        $response->assertSessionHasErrors('clock_in');
+    }
+
+    public function test_admin_cannot_update_other_company_entry(): void
+    {
+        $otherCompany = Company::create(['name' => 'Other', 'slug' => 'other']);
+        $otherUser = User::factory()->create(['company_id' => $otherCompany->id]);
+        $otherUser->assignRole('employee');
+        $otherEmployee = Employee::create([
+            'user_id' => $otherUser->id,
+            'company_id' => $otherCompany->id,
+        ]);
+        $entry = TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $otherEmployee->id,
+            'company_id' => $otherCompany->id,
+            'date' => '2026-06-01',
+            'clock_in' => '2026-06-01 08:00:00',
+            'clock_out' => '2026-06-01 17:00:00',
+            'gross_hours' => 9,
+            'net_hours' => 8,
+            'status' => 'calculated',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->put(route('admin.time-entries.update', $entry), [
+                'clock_in' => '2026-06-01 09:00',
+                'clock_out' => '2026-06-01 18:00',
+                'edit_reason' => 'Intento cross-company',
+            ]);
+
+        $response->assertNotFound();
+    }
+
+    public function test_admin_can_soft_delete_entry(): void
+    {
+        $entry = TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-06-01',
+            'clock_in' => '2026-06-01 08:00:00',
+            'clock_out' => '2026-06-01 17:00:00',
+            'gross_hours' => 9,
+            'net_hours' => 8,
+            'status' => 'calculated',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->delete(route('admin.time-entries.destroy', $entry));
+
+        $response->assertRedirect(route('admin.time-entries.index'));
+        $this->assertSoftDeleted('time_entries', ['id' => $entry->id]);
+    }
+
+    public function test_soft_deleted_entry_is_excluded_from_index(): void
+    {
+        $entry = TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-06-01',
+            'clock_in' => '2026-06-01 08:00:00',
+            'clock_out' => '2026-06-01 17:00:00',
+            'gross_hours' => 9,
+            'net_hours' => 8,
+            'status' => 'calculated',
+        ]);
+        $entry->delete();
+
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('admin.time-entries.index'));
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/TimeEntries/Index')
+            ->where('entries.total', 0));
+    }
+
+    public function test_employee_cannot_delete_entry(): void
+    {
+        $employeeUser = User::factory()->create(['company_id' => $this->company->id]);
+        $employeeUser->assignRole('employee');
+        $entry = TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-06-01',
+            'clock_in' => '2026-06-01 08:00:00',
+            'clock_out' => '2026-06-01 17:00:00',
+            'gross_hours' => 9,
+            'net_hours' => 8,
+            'status' => 'calculated',
+        ]);
+
+        $response = $this->actingAs($employeeUser)
+            ->delete(route('admin.time-entries.destroy', $entry));
+
+        $response->assertForbidden();
     }
 }

@@ -10,6 +10,7 @@ use App\Domain\Shared\Traits\BelongsToCompany;
 use App\Domain\TimeTracking\Models\BreakEntry;
 use App\Domain\TimeTracking\Models\TimeEntry;
 use App\Models\User;
+use Database\Factories\EmployeeFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +19,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Employee extends Model
 {
     use BelongsToCompany, HasFactory;
+
+    protected static function newFactory(): EmployeeFactory
+    {
+        return EmployeeFactory::new();
+    }
 
     protected $fillable = [
         'user_id',

@@ -5,7 +5,6 @@ import { Clock, Coffee, UserCheck } from 'lucide-vue-next';
 import { onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { store as manualCheckIn } from '@/actions/App/Http/Controllers/Admin/ManualCheckInController';
-import { edit as editTimeEntry } from '@/actions/App/Http/Controllers/Admin/TimeEntryController';
 import GuidedTour from '@/components/GuidedTour.vue';
 // TODO: Schedules feature temporarily disabled — restore Badge when resuming
 // import { Badge } from '@/components/ui/badge';
@@ -44,10 +43,6 @@ type EmployeeStatus = {
     name: string;
     avatar: string | null;
     status: 'working' | 'on_break' | 'absent' | 'done';
-    clock_in: string | null;
-    clock_out: string | null;
-    net_hours_today: number;
-    time_entry_id: number | null;
 };
 
 // TODO: Schedules feature temporarily disabled — restore LateArrival type when resuming
@@ -227,26 +222,6 @@ function deltaSign(delta: number) {
                                     </div>
                                 </div>
 
-                                <!-- Clock times -->
-                                <div class="text-muted-foreground hidden text-right text-xs sm:block">
-                                    <div v-if="emp.clock_in">{{ emp.clock_in }}</div>
-                                    <div v-if="emp.clock_out">→ {{ emp.clock_out }}</div>
-                                </div>
-
-                                <!-- Net hours -->
-                                <div class="hidden text-right text-sm font-medium sm:block">
-                                    <span v-if="emp.net_hours_today > 0">{{ formatDecimalHours(emp.net_hours_today) }}</span>
-                                    <span v-else class="text-muted-foreground">—</span>
-                                </div>
-
-                                <!-- Edit link -->
-                                <a
-                                    v-if="emp.time_entry_id"
-                                    :href="editTimeEntry(emp.time_entry_id).url"
-                                    class="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
-                                >
-                                    {{ t('common.edit') }}
-                                </a>
                             </div>
                         </div>
                     </CardContent>

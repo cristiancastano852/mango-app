@@ -28,8 +28,8 @@
 - overtime_day_hours, overtime_night_hours, overtime_day_sunday_hours, overtime_night_sunday_hours (decimal 5,2 default 0)
 - status (string, default: pending) — valores: pending, clocked_in, on_break, clocked_out
 - edited_by (nullable → users), edit_reason (text nullable), pin_verified (boolean default false)
-- timestamps
-- unique: (employee_id, date)
+- timestamps, deleted_at (soft deletes)
+- unique: (employee_id, date, deleted_at) — permite recrear un registro tras soft-delete (1 registro activo por empleado/día)
 - indexes: company_id, (company_id, date), (company_id, employee_id)
 
 ## breaks

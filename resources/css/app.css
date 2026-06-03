@@ -170,3 +170,40 @@
         @apply bg-background text-foreground;
     }
 }
+
+@layer base {
+    /* Make the native date/time picker icon larger, clearly clickable, and visible in dark mode. */
+    input[type='date']::-webkit-calendar-picker-indicator,
+    input[type='datetime-local']::-webkit-calendar-picker-indicator,
+    input[type='time']::-webkit-calendar-picker-indicator,
+    input[type='month']::-webkit-calendar-picker-indicator,
+    input[type='week']::-webkit-calendar-picker-indicator {
+        width: 1.15rem;
+        height: 1.15rem;
+        padding: 2px;
+        margin-inline-start: 0.25rem;
+        cursor: pointer;
+        border-radius: var(--radius-sm);
+        opacity: 0.75;
+        transition:
+            opacity 0.15s ease,
+            background-color 0.15s ease;
+    }
+
+    input[type='date']::-webkit-calendar-picker-indicator:hover,
+    input[type='datetime-local']::-webkit-calendar-picker-indicator:hover,
+    input[type='time']::-webkit-calendar-picker-indicator:hover,
+    input[type='month']::-webkit-calendar-picker-indicator:hover,
+    input[type='week']::-webkit-calendar-picker-indicator:hover {
+        opacity: 1;
+        background-color: var(--accent);
+    }
+
+    .dark input[type='date']::-webkit-calendar-picker-indicator,
+    .dark input[type='datetime-local']::-webkit-calendar-picker-indicator,
+    .dark input[type='time']::-webkit-calendar-picker-indicator,
+    .dark input[type='month']::-webkit-calendar-picker-indicator,
+    .dark input[type='week']::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+    }
+}
