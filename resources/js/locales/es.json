@@ -609,7 +609,8 @@
             "saving": "Guardando...",
             "cancel": "Cancelar",
             "delete": "Eliminar pausa",
-            "select_type": "Selecciona un tipo"
+            "select_type": "Selecciona un tipo",
+            "unsaved_warning": "Guarda primero los cambios del turno: las pausas se validan contra las horas guardadas."
         }
     },
     "super_admin": {

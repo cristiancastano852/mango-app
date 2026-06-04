@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Coffee, Plus, Trash2 } from 'lucide-vue-next';
+import { Coffee, Plus, Trash2, TriangleAlert } from 'lucide-vue-next';
 import { reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
@@ -232,6 +232,14 @@ function isPaidType(typeId: string) {
                     <CardDescription>{{ t('time_entries.breaks.description') }}</CardDescription>
                 </CardHeader>
                 <CardContent class="flex flex-col gap-4">
+                    <div
+                        v-if="form.isDirty"
+                        class="bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-start gap-2 rounded-lg border border-amber-500/30 p-3 text-sm"
+                    >
+                        <TriangleAlert class="mt-0.5 size-4 shrink-0" />
+                        <span>{{ t('time_entries.breaks.unsaved_warning') }}</span>
+                    </div>
+
                     <p
                         v-if="editableBreaks.length === 0 && !showAddBreak"
                         class="text-muted-foreground py-2 text-sm"
@@ -265,11 +273,23 @@ function isPaidType(typeId: string) {
                             </div>
                             <div class="flex min-w-0 flex-col gap-1.5">
                                 <Label class="text-xs">{{ t('time_entries.breaks.start') }}</Label>
-                                <Input v-model="b.started_at" type="datetime-local" class="w-full" />
+                                <Input
+                                    v-model="b.started_at"
+                                    type="datetime-local"
+                                    class="w-full"
+                                    :min="entry.clock_in ?? undefined"
+                                    :max="entry.clock_out ?? undefined"
+                                />
                             </div>
                             <div class="flex min-w-0 flex-col gap-1.5">
                                 <Label class="text-xs">{{ t('time_entries.breaks.end') }}</Label>
-                                <Input v-model="b.ended_at" type="datetime-local" class="w-full" />
+                                <Input
+                                    v-model="b.ended_at"
+                                    type="datetime-local"
+                                    class="w-full"
+                                    :min="entry.clock_in ?? undefined"
+                                    :max="entry.clock_out ?? undefined"
+                                />
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center justify-end gap-2">
@@ -279,7 +299,7 @@ function isPaidType(typeId: string) {
                             <Button
                                 size="sm"
                                 variant="secondary"
-                                :disabled="savingBreakId === b.id"
+                                :disabled="savingBreakId === b.id || form.isDirty"
                                 @click="saveBreak(b)"
                             >
                                 {{ savingBreakId === b.id ? t('time_entries.breaks.saving') : t('time_entries.breaks.save') }}
@@ -327,15 +347,27 @@ function isPaidType(typeId: string) {
                             </div>
                             <div class="flex min-w-0 flex-col gap-1.5">
                                 <Label class="text-xs">{{ t('time_entries.breaks.start') }}</Label>
-                                <Input v-model="addForm.started_at" type="datetime-local" class="w-full" />
+                                <Input
+                                    v-model="addForm.started_at"
+                                    type="datetime-local"
+                                    class="w-full"
+                                    :min="entry.clock_in ?? undefined"
+                                    :max="entry.clock_out ?? undefined"
+                                />
                             </div>
                             <div class="flex min-w-0 flex-col gap-1.5">
                                 <Label class="text-xs">{{ t('time_entries.breaks.end') }}</Label>
-                                <Input v-model="addForm.ended_at" type="datetime-local" class="w-full" />
+                                <Input
+                                    v-model="addForm.ended_at"
+                                    type="datetime-local"
+                                    class="w-full"
+                                    :min="entry.clock_in ?? undefined"
+                                    :max="entry.clock_out ?? undefined"
+                                />
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center justify-end gap-2">
-                            <Button size="sm" :disabled="addForm.processing" @click="addBreak">
+                            <Button size="sm" :disabled="addForm.processing || form.isDirty" @click="addBreak">
                                 {{ addForm.processing ? t('time_entries.breaks.saving') : t('time_entries.breaks.save') }}
                             </Button>
                             <Button size="sm" variant="ghost" @click="showAddBreak = false">
@@ -355,7 +387,7 @@ function isPaidType(typeId: string) {
                     </p>
 
                     <div v-if="!showAddBreak">
-                        <Button variant="outline" size="sm" @click="showAddBreak = true">
+                        <Button variant="outline" size="sm" :disabled="form.isDirty" @click="showAddBreak = true">
                             <Plus class="mr-2 size-4" />
                             {{ t('time_entries.breaks.add') }}
                         </Button>

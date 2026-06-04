@@ -609,7 +609,8 @@
             "saving": "Saving...",
             "cancel": "Cancel",
             "delete": "Delete break",
-            "select_type": "Select a type"
+            "select_type": "Select a type",
+            "unsaved_warning": "Save the shift changes first: breaks are validated against the saved times."
         }
     },
     "super_admin": {
