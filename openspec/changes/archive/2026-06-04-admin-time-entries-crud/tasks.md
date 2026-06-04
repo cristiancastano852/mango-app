@@ -67,4 +67,4 @@
 
 - [x] 10.1 Actualizar `ai-specs/specs/domain-model.md` con la nueva Action `RecalculateTimeEntry` y los controllers/requests nuevos
 - [x] 10.2 Correr la suite completa con `php artisan test --compact` y confirmar verde
-- [ ] 10.3 Verificación manual rápida: crear/editar/eliminar registro, editar pausas, y dashboard sin tiempos
+- [x] 10.3 Verificación manual rápida: crear/editar/eliminar registro, editar pausas, y dashboard sin tiempos
