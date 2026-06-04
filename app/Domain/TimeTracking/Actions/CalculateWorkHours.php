@@ -4,6 +4,7 @@ namespace App\Domain\TimeTracking\Actions;
 
 use App\Domain\Company\Models\Holiday;
 use App\Domain\Company\Models\SurchargeRule;
+use App\Domain\Shared\Scopes\CompanyScope;
 use App\Domain\TimeTracking\Models\TimeEntry;
 use Carbon\Carbon;
 
@@ -42,7 +43,7 @@ class CalculateWorkHours
         $weekStart = $clockIn->copy()->startOfWeek(Carbon::MONDAY);
 
         // Minutos netos acumulados en la semana antes de este turno.
-        $priorWeeklyNetMinutes = TimeEntry::withoutGlobalScopes()
+        $priorWeeklyNetMinutes = TimeEntry::withoutGlobalScopes([CompanyScope::class])
             ->where('employee_id', $entry->employee_id)
             ->where('id', '!=', $entry->id)
             ->whereBetween('date', [$weekStart->toDateString(), $clockIn->toDateString()])
@@ -50,7 +51,7 @@ class CalculateWorkHours
             ->sum('net_hours') * 60;
 
         // Minutos netos acumulados en el día del clock_in antes de este turno.
-        $priorDailyNetMinutes = TimeEntry::withoutGlobalScopes()
+        $priorDailyNetMinutes = TimeEntry::withoutGlobalScopes([CompanyScope::class])
             ->where('employee_id', $entry->employee_id)
             ->where('id', '!=', $entry->id)
             ->where('date', $clockIn->toDateString())
@@ -110,7 +111,7 @@ class CalculateWorkHours
             // Si el inicio del segmento es una medianoche (y no es el clock_in original),
             // el acumulador diario se reinicia con las horas previas del nuevo día.
             if (isset($midnightBreakpoints[$segStart->toDateTimeString()])) {
-                $accumulatedDailyNetMinutes = TimeEntry::withoutGlobalScopes()
+                $accumulatedDailyNetMinutes = TimeEntry::withoutGlobalScopes([CompanyScope::class])
                     ->where('employee_id', $entry->employee_id)
                     ->where('id', '!=', $entry->id)
                     ->where('date', $segStart->toDateString())

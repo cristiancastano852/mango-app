@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Employee\Models\Employee;
+use App\Domain\Shared\Scopes\CompanyScope;
 use App\Domain\TimeTracking\Models\BreakEntry;
 use App\Domain\TimeTracking\Models\TimeEntry;
 use Illuminate\Http\RedirectResponse;
@@ -33,7 +34,7 @@ class DashboardController extends Controller
             ->whereNotNull('clock_in')
             ->count();
 
-        $yesterdayPresentCount = TimeEntry::withoutGlobalScopes()
+        $yesterdayPresentCount = TimeEntry::withoutGlobalScopes([CompanyScope::class])
             ->where('company_id', $user->company_id)
             ->whereDate('date', $yesterday)
             ->whereNotNull('clock_in')
