@@ -21,9 +21,13 @@ class RecalculateTimeEntry
         ?User $editedBy = null,
         ?string $editReason = null,
     ): TimeEntry {
-        $grossHours = $timeEntry->clock_out
-            ? round($timeEntry->clock_in->diffInMinutes($timeEntry->clock_out) / 60, 2)
-            : 0.0;
+        // Un turno abierto (sin clock_out) no tiene horas que recomputar; salir sin tocar
+        // los totales evita poner gross/net en 0 al gestionar pausas de un turno en curso.
+        if (! $timeEntry->clock_out) {
+            return $timeEntry;
+        }
+
+        $grossHours = round($timeEntry->clock_in->diffInMinutes($timeEntry->clock_out) / 60, 2);
 
         $breakHours = round(
             $timeEntry->breaks()

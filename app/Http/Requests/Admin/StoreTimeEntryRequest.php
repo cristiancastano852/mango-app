@@ -40,7 +40,6 @@ class StoreTimeEntryRequest extends FormRequest
     {
         return [
             'clock_out.after' => __('messages.clock_out_after_clock_in'),
-            'employee_id.unique' => __('messages.time_entry_already_exists'),
         ];
     }
 

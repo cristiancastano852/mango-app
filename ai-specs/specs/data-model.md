@@ -26,10 +26,11 @@
 - gross_hours (decimal 5,2 default 0), break_hours (decimal 5,2 default 0), net_hours (decimal 5,2 default 0)
 - regular_hours, night_hours, sunday_holiday_hours, night_sunday_hours (decimal 5,2 default 0)
 - overtime_day_hours, overtime_night_hours, overtime_day_sunday_hours, overtime_night_sunday_hours (decimal 5,2 default 0)
-- status (string, default: pending) — valores: pending, clocked_in, on_break, clocked_out
+- status (string, default: pending) — valores persistidos: pending (creado/clock-in), calculated (tras CalculateWorkHours), edited (tras RecalculateTimeEntry)
 - edited_by (nullable → users), edit_reason (text nullable), pin_verified (boolean default false)
 - timestamps, deleted_at (soft deletes)
-- unique: (employee_id, date, deleted_at) — permite recrear un registro tras soft-delete (1 registro activo por empleado/día)
+- active_marker (tinyint generado: 1 si activo / NULL si eliminado)
+- unique: (employee_id, date, active_marker) — garantiza 1 registro activo por empleado/día a nivel BD y permite recrear tras soft-delete
 - indexes: company_id, (company_id, date), (company_id, employee_id)
 
 ## breaks

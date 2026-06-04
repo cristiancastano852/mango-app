@@ -101,6 +101,7 @@ syncBreaks();
 watch(() => props.entry.breaks, syncBreaks, { deep: true });
 
 const savingBreakId = ref<number | null>(null);
+const breakErrors = ref<Record<number, string[]>>({});
 
 function saveBreak(b: EditableBreak) {
     savingBreakId.value = b.id;
@@ -111,12 +112,26 @@ function saveBreak(b: EditableBreak) {
             started_at: b.started_at,
             ended_at: b.ended_at,
         },
-        { preserveScroll: true, onFinish: () => (savingBreakId.value = null) },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                delete breakErrors.value[b.id];
+            },
+            onError: (errors) => {
+                breakErrors.value[b.id] = Object.values(errors) as string[];
+            },
+            onFinish: () => (savingBreakId.value = null),
+        },
     );
 }
 
 function removeBreak(b: EditableBreak) {
-    router.delete(destroyBreak([props.entry.id, b.id]).url, { preserveScroll: true });
+    router.delete(destroyBreak([props.entry.id, b.id]).url, {
+        preserveScroll: true,
+        onError: (errors) => {
+            breakErrors.value[b.id] = Object.values(errors) as string[];
+        },
+    });
 }
 
 const showAddBreak = ref(false);
@@ -278,6 +293,13 @@ function isPaidType(typeId: string) {
                                 <Trash2 class="size-4" />
                             </Button>
                         </div>
+                        <p
+                            v-for="(err, i) in breakErrors[b.id]"
+                            :key="i"
+                            class="text-destructive text-sm"
+                        >
+                            {{ err }}
+                        </p>
                     </div>
 
                     <!-- Add break -->

@@ -104,6 +104,26 @@ class RecalculateTimeEntryTest extends TestCase
         $this->assertEquals(9.0, (float) $entry->net_hours);
     }
 
+    public function test_open_entry_without_clock_out_is_left_untouched(): void
+    {
+        $entry = TimeEntry::factory()->forEmployee($this->employee)->create([
+            'date' => '2026-06-01',
+            'clock_in' => '2026-06-01 08:00:00',
+            'clock_out' => null,
+            'gross_hours' => 3,
+            'break_hours' => 0,
+            'net_hours' => 3,
+            'status' => 'pending',
+        ]);
+
+        app(RecalculateTimeEntry::class)->execute($entry);
+
+        $entry->refresh();
+        $this->assertEquals(3.0, (float) $entry->gross_hours);
+        $this->assertEquals(3.0, (float) $entry->net_hours);
+        $this->assertEquals('pending', $entry->status);
+    }
+
     public function test_persists_edited_by_and_reason(): void
     {
         $entry = $this->makeEntry();

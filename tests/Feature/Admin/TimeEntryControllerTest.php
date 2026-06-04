@@ -285,6 +285,27 @@ class TimeEntryControllerTest extends TestCase
         $response->assertSessionHasErrors('employee_id');
     }
 
+    public function test_database_blocks_two_active_entries_same_day(): void
+    {
+        TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-06-01',
+            'clock_in' => '2026-06-01 08:00:00',
+            'status' => 'pending',
+        ]);
+
+        $this->expectException(\Illuminate\Database\QueryException::class);
+
+        TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-06-01',
+            'clock_in' => '2026-06-01 09:00:00',
+            'status' => 'pending',
+        ]);
+    }
+
     public function test_can_recreate_entry_after_soft_delete(): void
     {
         $entry = TimeEntry::create([
