@@ -13,9 +13,9 @@
 
 ## TimeTracking (app/Domain/TimeTracking/)
 - Actions (clock): ClockIn, ClockOut, StartBreak, EndBreak, AdminClockIn
-- Actions (cálculo): CalculateWorkHours — clasificación minuto a minuto en regular/night/sunday_holiday/overtime
+- Actions (cálculo): CalculateWorkHours — clasificación minuto a minuto en regular/night/sunday_holiday/overtime; RecalculateTimeEntry — recomputa gross/break (solo pausas no pagadas finalizadas)/net, invoca CalculateWorkHours y marca status='edited' (usada por edición admin de registros y pausas)
 - Actions (reportes): GenerateCompanyReport, GenerateEmployeeReport, CalculateReportCosts (acepta flag payOvertime), ResolveOvertimePaymentDecision (precedencia request → decisión guardada → default de compañía)
-- Models: TimeEntry, BreakEntry, BreakType
+- Models: TimeEntry (SoftDeletes; unique employee_id+date+active_marker — 1 activo/día), BreakEntry, BreakType
 
 ## Organization (app/Domain/Organization/)
 - Models: Department, Location, Position, Schedule
@@ -32,7 +32,8 @@
 - TourController — POST /tour/dismiss; guarda tour_dismissed en sesión
 - DashboardController — KPIs + employee status + showTour prop; redirige non-admin a time-clock
 - Admin/ManualCheckInController — POST /admin/manual-check-in (admin + super-admin)
-- Admin/TimeEntryController — index (filterable) + edit + update (llama CalculateWorkHours)
+- Admin/TimeEntryController — index (filtrable: empleado + rango date_from/date_to) + create/store + edit + update + destroy (soft-delete); delega recálculo en RecalculateTimeEntry. Requests: StoreTimeEntryRequest (unicidad activa por empleado/día), UpdateTimeEntryRequest (valida pausas dentro del nuevo rango)
+- Admin/TimeEntryBreakController — store/update/destroy de pausas anidadas bajo un registro (admin + super-admin); recalcula el registro tras cada cambio. Requests: StoreBreakRequest, UpdateBreakRequest (break_type de la empresa, rango dentro del turno)
 - SchedulesController — CRUD completo /schedules (admin + super-admin)
 - CalendarController — GET /calendar?month=Y-m&employee_id=optional
 - Settings/HolidayController — CRUD holidays (admin + super-admin)

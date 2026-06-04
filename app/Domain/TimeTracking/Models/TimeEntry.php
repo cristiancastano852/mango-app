@@ -5,14 +5,21 @@ namespace App\Domain\TimeTracking\Models;
 use App\Domain\Employee\Models\Employee;
 use App\Domain\Shared\Traits\BelongsToCompany;
 use App\Models\User;
+use Database\Factories\TimeEntryFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TimeEntry extends Model
 {
-    use BelongsToCompany, HasFactory;
+    use BelongsToCompany, HasFactory, SoftDeletes;
+
+    protected static function newFactory(): TimeEntryFactory
+    {
+        return TimeEntryFactory::new();
+    }
 
     protected $fillable = [
         'employee_id',

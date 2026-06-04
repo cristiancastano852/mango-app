@@ -4,6 +4,7 @@ namespace App\Domain\TimeTracking\Actions;
 
 use App\Domain\Company\Models\SurchargeRule;
 use App\Domain\Employee\Models\Employee;
+use App\Domain\Shared\Scopes\CompanyScope;
 use App\Domain\TimeTracking\Models\TimeEntry;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -106,7 +107,7 @@ class GenerateEmployeeReport
      */
     private function aggregateTotals(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): object
     {
-        return TimeEntry::withoutGlobalScopes()
+        return TimeEntry::withoutGlobalScopes([CompanyScope::class])
             ->where('employee_id', $employeeId)
             ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
             ->whereNotNull('clock_out')
@@ -139,6 +140,7 @@ class GenerateEmployeeReport
             ->join('time_entries', 'breaks.time_entry_id', '=', 'time_entries.id')
             ->where('breaks.employee_id', $employeeId)
             ->whereBetween('time_entries.date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->whereNull('time_entries.deleted_at')
             ->whereNotNull('breaks.ended_at')
             ->groupBy('break_types.id', 'break_types.name', 'break_types.is_paid', 'break_types.icon', 'break_types.color')
             ->selectRaw('
@@ -170,7 +172,7 @@ class GenerateEmployeeReport
      */
     private function getDailyBreakdown(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): array
     {
-        return TimeEntry::withoutGlobalScopes()
+        return TimeEntry::withoutGlobalScopes([CompanyScope::class])
             ->where('employee_id', $employeeId)
             ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
             ->whereNotNull('clock_out')

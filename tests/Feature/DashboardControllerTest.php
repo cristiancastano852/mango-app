@@ -94,6 +94,46 @@ class DashboardControllerTest extends TestCase
         );
     }
 
+    public function test_employee_status_payload_excludes_times_and_entry_id(): void
+    {
+        TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->toDateString(),
+            'clock_in' => now()->setTime(8, 0),
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->get(route('dashboard'));
+
+        $response->assertInertia(fn ($page) => $page
+            ->has('employeeStatus.0', fn ($emp) => $emp
+                ->has('id')
+                ->has('name')
+                ->has('avatar')
+                ->where('status', 'working')
+                ->missing('clock_in')
+                ->missing('clock_out')
+                ->missing('net_hours_today')
+                ->missing('time_entry_id')
+            )
+        );
+    }
+
+    public function test_manual_check_in_still_works_from_dashboard(): void
+    {
+        $response = $this->actingAs($this->adminUser)
+            ->post(route('admin.manual-check-in'), [
+                'employee_id' => $this->employee->id,
+            ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('time_entries', [
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+        ]);
+    }
+
     public function test_employee_status_list_loads_correctly_for_multiple_employees(): void
     {
         // Crear un segundo empleado con entry hoy — verifica que limit(1) no estaba

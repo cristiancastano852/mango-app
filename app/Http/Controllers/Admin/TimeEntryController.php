@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Domain\Employee\Models\Employee;
-use App\Domain\TimeTracking\Actions\CalculateWorkHours;
+use App\Domain\TimeTracking\Actions\RecalculateTimeEntry;
+use App\Domain\TimeTracking\Models\BreakType;
 use App\Domain\TimeTracking\Models\TimeEntry;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreTimeEntryRequest;
 use App\Http\Requests\Admin\UpdateTimeEntryRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +20,8 @@ class TimeEntryController extends Controller
     {
         $entries = TimeEntry::with(['employee.user', 'editedBy'])
             ->when($request->input('employee_id'), fn ($q, $id) => $q->where('employee_id', $id))
-            ->when($request->input('date'), fn ($q, $date) => $q->whereDate('date', $date))
+            ->when($request->input('date_from'), fn ($q, $from) => $q->whereDate('date', '>=', $from))
+            ->when($request->input('date_to'), fn ($q, $to) => $q->whereDate('date', '<=', $to))
             ->orderByDesc('date')
             ->orderByDesc('clock_in')
             ->paginate(20)
@@ -41,13 +44,41 @@ class TimeEntryController extends Controller
                 'id' => $e->id,
                 'name' => $e->user->name,
             ]),
-            'filters' => $request->only(['employee_id', 'date']),
+            'filters' => $request->only(['employee_id', 'date_from', 'date_to']),
         ]);
+    }
+
+    public function create(): Response
+    {
+        return Inertia::render('Admin/TimeEntries/Create', [
+            'employees' => Employee::with('user')->get()->map(fn (Employee $e) => [
+                'id' => $e->id,
+                'name' => $e->user->name,
+            ]),
+        ]);
+    }
+
+    public function store(StoreTimeEntryRequest $request, RecalculateTimeEntry $recalculate): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $timeEntry = TimeEntry::create([
+            'employee_id' => $validated['employee_id'],
+            'date' => $validated['date'],
+            'clock_in' => $validated['clock_in'],
+            'clock_out' => $validated['clock_out'],
+            'status' => 'pending',
+        ]);
+
+        $recalculate->execute($timeEntry, $request->user());
+
+        return redirect()->route('admin.time-entries.index')
+            ->with('success', __('messages.time_entry_created'));
     }
 
     public function edit(TimeEntry $timeEntry): Response
     {
-        $timeEntry->load(['employee.user', 'editedBy']);
+        $timeEntry->load(['employee.user', 'editedBy', 'breaks.breakType']);
 
         return Inertia::render('Admin/TimeEntries/Edit', [
             'entry' => [
@@ -67,35 +98,47 @@ class TimeEntryController extends Controller
                 'status' => $timeEntry->status,
                 'edit_reason' => $timeEntry->edit_reason,
                 'employee' => $timeEntry->employee,
+                'breaks' => $timeEntry->breaks->map(fn ($break) => [
+                    'id' => $break->id,
+                    'break_type_id' => $break->break_type_id,
+                    'break_type_name' => $break->breakType?->name,
+                    'is_paid' => (bool) $break->breakType?->is_paid,
+                    'started_at' => $break->started_at?->format('Y-m-d\TH:i'),
+                    'ended_at' => $break->ended_at?->format('Y-m-d\TH:i'),
+                    'duration_minutes' => $break->duration_minutes,
+                ]),
             ],
+            'breakTypes' => BreakType::where('is_active', true)->get()->map(fn (BreakType $type) => [
+                'id' => $type->id,
+                'name' => $type->name,
+                'is_paid' => (bool) $type->is_paid,
+            ]),
         ]);
     }
 
     public function update(
         UpdateTimeEntryRequest $request,
         TimeEntry $timeEntry,
-        CalculateWorkHours $calculator,
+        RecalculateTimeEntry $recalculate,
     ): RedirectResponse {
         $validated = $request->validated();
 
-        $clockIn = $validated['clock_in'];
-        $clockOut = $validated['clock_out'];
-        $grossHours = round($clockIn->diffInMinutes($clockOut) / 60, 4);
-
         $timeEntry->update([
-            'clock_in' => $clockIn,
-            'clock_out' => $clockOut,
-            'gross_hours' => $grossHours,
-            'net_hours' => $grossHours - (float) $timeEntry->break_hours,
-            'edit_reason' => $validated['edit_reason'],
-            'edited_by' => $request->user()->id,
+            'clock_in' => $validated['clock_in'],
+            'clock_out' => $validated['clock_out'],
         ]);
 
-        $calculator->execute($timeEntry->fresh());
-
-        $timeEntry->update(['status' => 'edited']);
+        $recalculate->execute($timeEntry, $request->user(), $validated['edit_reason']);
 
         return redirect()->route('admin.time-entries.index')
             ->with('success', __('messages.time_entry_updated'));
+    }
+
+    public function destroy(TimeEntry $timeEntry): RedirectResponse
+    {
+        $timeEntry->delete();
+
+        return redirect()->route('admin.time-entries.index')
+            ->with('success', __('messages.time_entry_deleted'));
     }
 }

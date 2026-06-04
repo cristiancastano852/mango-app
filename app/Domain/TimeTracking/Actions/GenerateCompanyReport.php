@@ -151,6 +151,7 @@ class GenerateCompanyReport
             ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
             ->where('time_entries.company_id', $companyId)
             ->whereBetween('time_entries.date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->whereNull('time_entries.deleted_at')
             ->whereNotNull('time_entries.clock_out')
             ->when($departmentId, fn ($q) => $q->where('employees.department_id', $departmentId))
             ->groupBy('employees.id', 'users.name', 'employees.hourly_rate', 'employees.salary_type', 'employees.monthly_base_salary', 'departments.name')
@@ -245,6 +246,7 @@ class GenerateCompanyReport
         $query = DB::table('time_entries')
             ->where('time_entries.company_id', $companyId)
             ->whereBetween('time_entries.date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->whereNull('time_entries.deleted_at')
             ->whereNotNull('time_entries.clock_out');
 
         if ($departmentId) {

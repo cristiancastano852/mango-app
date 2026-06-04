@@ -3,6 +3,7 @@
 namespace App\Domain\TimeTracking\Actions;
 
 use App\Domain\Employee\Models\Employee;
+use App\Domain\Shared\Scopes\CompanyScope;
 use App\Domain\TimeTracking\Models\TimeEntry;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
@@ -13,7 +14,7 @@ class AdminClockIn
     {
         $today = now()->toDateString();
 
-        $existing = TimeEntry::withoutGlobalScopes()
+        $existing = TimeEntry::withoutGlobalScopes([CompanyScope::class])
             ->where('employee_id', $employee->id)
             ->where('date', $today)
             ->first();

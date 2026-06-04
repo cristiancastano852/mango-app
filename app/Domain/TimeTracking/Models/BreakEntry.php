@@ -4,6 +4,7 @@ namespace App\Domain\TimeTracking\Models;
 
 use App\Domain\Employee\Models\Employee;
 use App\Domain\Shared\Traits\BelongsToCompany;
+use Database\Factories\BreakEntryFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +12,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class BreakEntry extends Model
 {
     use BelongsToCompany, HasFactory;
+
+    protected static function newFactory(): BreakEntryFactory
+    {
+        return BreakEntryFactory::new();
+    }
 
     protected $table = 'breaks';
 

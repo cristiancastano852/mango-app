@@ -161,6 +161,68 @@ class GenerateEmployeeReportTest extends TestCase
         $this->assertEquals(1, $result['totals']['days_worked']);
     }
 
+    public function test_excludes_soft_deleted_entries(): void
+    {
+        // Registro activo
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-03-05',
+            'clock_in' => '2026-03-05 08:00:00',
+            'clock_out' => '2026-03-05 17:00:00',
+            'gross_hours' => 9.0,
+            'break_hours' => 0,
+            'net_hours' => 8.0,
+            'regular_hours' => 8.0,
+            'status' => 'calculated',
+        ]);
+
+        // Registro borrado (soft-delete) con una pausa: no debe contar en totales ni pausas
+        $deleted = TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-03-06',
+            'clock_in' => '2026-03-06 08:00:00',
+            'clock_out' => '2026-03-06 17:00:00',
+            'gross_hours' => 9.0,
+            'break_hours' => 1.0,
+            'net_hours' => 8.0,
+            'regular_hours' => 8.0,
+            'status' => 'calculated',
+        ]);
+
+        $lunchType = BreakType::withoutGlobalScopes()->create([
+            'company_id' => $this->company->id,
+            'name' => 'Almuerzo',
+            'slug' => 'almuerzo',
+            'is_paid' => false,
+            'is_active' => true,
+        ]);
+
+        BreakEntry::withoutGlobalScopes()->create([
+            'time_entry_id' => $deleted->id,
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'break_type_id' => $lunchType->id,
+            'started_at' => '2026-03-06 12:00:00',
+            'ended_at' => '2026-03-06 13:00:00',
+            'duration_minutes' => 60,
+        ]);
+
+        $deleted->delete();
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-07'),
+        );
+
+        $this->assertEquals(1, $result['totals']['days_worked']);
+        $this->assertEquals(8.0, $result['totals']['net_hours']);
+        $this->assertCount(1, $result['daily_breakdown']);
+        $this->assertEmpty($result['breaks_by_type']);
+    }
+
     public function test_handles_employee_with_no_entries(): void
     {
         $result = $this->action->execute(

@@ -566,6 +566,51 @@
             "save": "Guardar Cambios",
             "saving": "Guardando...",
             "cancel": "Cancelar"
+        },
+        "subtitle": "Administra los registros de tiempo de tus empleados.",
+        "new_entry": "Nuevo registro",
+        "filter_date_from": "Desde",
+        "filter_date_to": "Hasta",
+        "net_hours": "Horas netas",
+        "delete_confirm_title": "¿Eliminar registro?",
+        "delete_confirm_message": "El registro se eliminará y dejará de contar en KPIs y reportes. Podrás crear uno nuevo para ese día.",
+        "delete_action": "Eliminar registro",
+        "status": {
+            "pending": "Pendiente",
+            "calculated": "Calculado",
+            "edited": "Editado"
+        },
+        "create": {
+            "breadcrumb": "Nuevo registro",
+            "head_title": "Nuevo registro de tiempo",
+            "title": "Nuevo registro de tiempo",
+            "description": "Crea manualmente un registro para un empleado en una fecha sin registro.",
+            "employee": "Empleado",
+            "select_employee": "Selecciona un empleado",
+            "date": "Fecha",
+            "clock_in": "Hora de entrada",
+            "clock_out": "Hora de salida",
+            "save": "Crear registro",
+            "saving": "Creando...",
+            "cancel": "Cancelar"
+        },
+        "breaks": {
+            "title": "Pausas",
+            "description": "Agrega, edita o elimina las pausas de este turno. Las pausas no pagadas descuentan del tiempo neto.",
+            "add": "Agregar pausa",
+            "type": "Tipo",
+            "start": "Inicio",
+            "end": "Fin",
+            "duration": "Duración",
+            "paid": "Pagada",
+            "unpaid": "No pagada",
+            "no_breaks": "Este turno no tiene pausas registradas.",
+            "save": "Guardar pausa",
+            "saving": "Guardando...",
+            "cancel": "Cancelar",
+            "delete": "Eliminar pausa",
+            "select_type": "Selecciona un tipo",
+            "unsaved_warning": "Guarda primero los cambios del turno: las pausas se validan contra las horas guardadas."
         }
     },
     "super_admin": {

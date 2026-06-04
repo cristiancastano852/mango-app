@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Shared\Scopes\CompanyScope;
 use App\Domain\TimeTracking\Actions\ClockIn;
 use App\Domain\TimeTracking\Actions\ClockOut;
 use App\Domain\TimeTracking\Actions\EndBreak;
@@ -20,7 +21,7 @@ class TimeClockController extends Controller
         $employee = $request->user()->employee;
 
         $todayEntry = $employee
-            ? TimeEntry::withoutGlobalScopes()
+            ? TimeEntry::withoutGlobalScopes([CompanyScope::class])
                 ->where('employee_id', $employee->id)
                 ->where('date', now()->toDateString())
                 ->with(['breaks.breakType'])
@@ -30,7 +31,7 @@ class TimeClockController extends Controller
         $breakTypes = BreakType::where('is_active', true)->get();
 
         $recentEntries = $employee
-            ? TimeEntry::withoutGlobalScopes()
+            ? TimeEntry::withoutGlobalScopes([CompanyScope::class])
                 ->where('employee_id', $employee->id)
                 ->with(['breaks.breakType'])
                 ->orderByDesc('date')
@@ -56,7 +57,7 @@ class TimeClockController extends Controller
 
     public function clockOut(Request $request, ClockOut $action): RedirectResponse
     {
-        $entry = TimeEntry::withoutGlobalScopes()
+        $entry = TimeEntry::withoutGlobalScopes([CompanyScope::class])
             ->where('employee_id', $request->user()->employee->id)
             ->where('date', now()->toDateString())
             ->firstOrFail();
@@ -70,7 +71,7 @@ class TimeClockController extends Controller
     {
         $request->validate(['break_type_id' => ['required', 'exists:break_types,id']]);
 
-        $entry = TimeEntry::withoutGlobalScopes()
+        $entry = TimeEntry::withoutGlobalScopes([CompanyScope::class])
             ->where('employee_id', $request->user()->employee->id)
             ->where('date', now()->toDateString())
             ->firstOrFail();
@@ -82,7 +83,7 @@ class TimeClockController extends Controller
 
     public function endBreak(Request $request, EndBreak $action): RedirectResponse
     {
-        $entry = TimeEntry::withoutGlobalScopes()
+        $entry = TimeEntry::withoutGlobalScopes([CompanyScope::class])
             ->where('employee_id', $request->user()->employee->id)
             ->where('date', now()->toDateString())
             ->firstOrFail();

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ManualCheckInController;
+use App\Http\Controllers\Admin\TimeEntryBreakController;
 use App\Http\Controllers\Admin\TimeEntryController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
@@ -56,8 +57,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Admin time entries management
         Route::get('admin/time-entries', [TimeEntryController::class, 'index'])->name('admin.time-entries.index');
+        Route::get('admin/time-entries/create', [TimeEntryController::class, 'create'])->name('admin.time-entries.create');
+        Route::post('admin/time-entries', [TimeEntryController::class, 'store'])->name('admin.time-entries.store');
         Route::get('admin/time-entries/{timeEntry}/edit', [TimeEntryController::class, 'edit'])->name('admin.time-entries.edit');
         Route::put('admin/time-entries/{timeEntry}', [TimeEntryController::class, 'update'])->name('admin.time-entries.update');
+        Route::delete('admin/time-entries/{timeEntry}', [TimeEntryController::class, 'destroy'])->name('admin.time-entries.destroy');
+
+        // Breaks anidados bajo un registro
+        Route::post('admin/time-entries/{timeEntry}/breaks', [TimeEntryBreakController::class, 'store'])->name('admin.time-entries.breaks.store');
+        Route::put('admin/time-entries/{timeEntry}/breaks/{break}', [TimeEntryBreakController::class, 'update'])->name('admin.time-entries.breaks.update');
+        Route::delete('admin/time-entries/{timeEntry}/breaks/{break}', [TimeEntryBreakController::class, 'destroy'])->name('admin.time-entries.breaks.destroy');
 
         // Manual check-in
         Route::post('admin/manual-check-in', [ManualCheckInController::class, 'store'])->name('admin.manual-check-in');

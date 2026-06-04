@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Employee\Models\Employee;
+use App\Domain\Shared\Scopes\CompanyScope;
 use App\Domain\Shared\Tenancy\TenantContext;
 use App\Domain\TimeTracking\Actions\ClockIn;
 use App\Domain\TimeTracking\Actions\ClockOut;
@@ -43,7 +44,7 @@ class KioskController extends Controller
             if ($employee) {
                 $kioskEmployee = ['id' => $employee->id, 'name' => $employee->user->name];
 
-                $todayEntry = TimeEntry::withoutGlobalScopes()
+                $todayEntry = TimeEntry::withoutGlobalScopes([CompanyScope::class])
                     ->where('employee_id', $employee->id)
                     ->where('date', now()->toDateString())
                     ->with(['breaks.breakType'])
@@ -114,7 +115,7 @@ class KioskController extends Controller
     {
         $employee = $this->resolveKioskEmployee($request);
 
-        $entry = TimeEntry::withoutGlobalScopes()
+        $entry = TimeEntry::withoutGlobalScopes([CompanyScope::class])
             ->where('employee_id', $employee->id)
             ->where('date', now()->toDateString())
             ->firstOrFail();
@@ -150,7 +151,7 @@ class KioskController extends Controller
 
         $employee = $this->resolveKioskEmployee($request);
 
-        $entry = TimeEntry::withoutGlobalScopes()
+        $entry = TimeEntry::withoutGlobalScopes([CompanyScope::class])
             ->where('employee_id', $employee->id)
             ->where('date', now()->toDateString())
             ->firstOrFail();
@@ -177,7 +178,7 @@ class KioskController extends Controller
     {
         $employee = $this->resolveKioskEmployee($request);
 
-        $entry = TimeEntry::withoutGlobalScopes()
+        $entry = TimeEntry::withoutGlobalScopes([CompanyScope::class])
             ->where('employee_id', $employee->id)
             ->where('date', now()->toDateString())
             ->firstOrFail();
