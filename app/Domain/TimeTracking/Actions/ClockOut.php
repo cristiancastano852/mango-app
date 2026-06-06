@@ -24,7 +24,7 @@ class ClockOut
         if ($activeBreak) {
             $activeBreak->update([
                 'ended_at' => now(),
-                'duration_minutes' => (int) now()->diffInMinutes($activeBreak->started_at),
+                'duration_minutes' => (int) $activeBreak->started_at->diffInMinutes(now()),
             ]);
         }
 

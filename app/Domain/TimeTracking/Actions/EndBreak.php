@@ -15,7 +15,7 @@ class EndBreak
             ]);
         }
 
-        $duration = (int) now()->diffInMinutes($breakEntry->started_at);
+        $duration = (int) $breakEntry->started_at->diffInMinutes(now());
 
         $breakEntry->update([
             'ended_at' => now(),
