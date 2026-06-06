@@ -15,11 +15,11 @@ class EndBreak
             ]);
         }
 
-        $duration = (int) now()->diffInMinutes($breakEntry->started_at);
+        $endedAt = now();
 
         $breakEntry->update([
-            'ended_at' => now(),
-            'duration_minutes' => $duration,
+            'ended_at' => $endedAt,
+            'duration_minutes' => (int) $breakEntry->started_at->diffInMinutes($endedAt),
         ]);
 
         return $breakEntry->fresh('breakType');

@@ -159,6 +159,7 @@ class KioskActionsTest extends TestCase
         $this->assertDatabaseHas('breaks', [
             'employee_id' => $this->employee->id,
             'break_type_id' => $this->breakType->id,
+            'duration_minutes' => 15,
         ]);
         $this->assertNotNull(
             \App\Domain\TimeTracking\Models\BreakEntry::where('employee_id', $this->employee->id)->first()->ended_at

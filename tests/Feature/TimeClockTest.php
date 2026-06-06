@@ -128,6 +128,94 @@ class TimeClockTest extends TestCase
         $this->assertNotNull($break->duration_minutes);
     }
 
+    public function test_ending_break_records_positive_duration(): void
+    {
+        $this->travelTo(now()->startOfDay()->addHours(9));
+
+        $breakType = BreakType::create([
+            'company_id' => $this->company->id,
+            'name' => 'Almuerzo',
+            'slug' => 'almuerzo',
+            'is_paid' => false,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->user)->post(route('time-clock.clock-in'));
+        $this->actingAs($this->user)->post(route('time-clock.break.start'), [
+            'break_type_id' => $breakType->id,
+        ]);
+
+        $this->travel(30)->minutes();
+
+        $this->actingAs($this->user)->post(route('time-clock.break.end'));
+
+        $break = $this->employee->breaks()->first();
+        $this->assertSame(30, $break->duration_minutes);
+    }
+
+    public function test_clock_out_with_active_break_records_positive_duration_and_deducts_unpaid_break(): void
+    {
+        $this->travelTo(now()->startOfDay()->addHours(9));
+
+        $breakType = BreakType::create([
+            'company_id' => $this->company->id,
+            'name' => 'Almuerzo',
+            'slug' => 'almuerzo',
+            'is_paid' => false,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->user)->post(route('time-clock.clock-in'));
+
+        $this->travel(2)->hours();
+        $this->actingAs($this->user)->post(route('time-clock.break.start'), [
+            'break_type_id' => $breakType->id,
+        ]);
+
+        $this->travel(30)->minutes();
+        $this->actingAs($this->user)->post(route('time-clock.clock-out'));
+
+        $entry = TimeEntry::withoutGlobalScopes()
+            ->where('employee_id', $this->employee->id)
+            ->first();
+        $break = $this->employee->breaks()->first();
+
+        $this->assertSame(30, $break->duration_minutes);
+        $this->assertGreaterThanOrEqual(0, (float) $entry->break_hours);
+        $this->assertSame(0.5, (float) $entry->break_hours);
+        $this->assertEqualsWithDelta(2.0, (float) $entry->net_hours, 0.02);
+    }
+
+    public function test_paid_break_is_not_deducted_from_net_hours(): void
+    {
+        $this->travelTo(now()->startOfDay()->addHours(9));
+
+        $breakType = BreakType::create([
+            'company_id' => $this->company->id,
+            'name' => 'Descanso',
+            'slug' => 'descanso',
+            'is_paid' => true,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->user)->post(route('time-clock.clock-in'));
+
+        $this->travel(2)->hours();
+        $this->actingAs($this->user)->post(route('time-clock.break.start'), [
+            'break_type_id' => $breakType->id,
+        ]);
+
+        $this->travel(30)->minutes();
+        $this->actingAs($this->user)->post(route('time-clock.clock-out'));
+
+        $entry = TimeEntry::withoutGlobalScopes()
+            ->where('employee_id', $this->employee->id)
+            ->first();
+
+        $this->assertSame(0.0, (float) $entry->break_hours);
+        $this->assertEqualsWithDelta(2.5, (float) $entry->net_hours, 0.02);
+    }
+
     public function test_employee_cannot_start_break_without_clock_in(): void
     {
         $breakType = BreakType::create([
