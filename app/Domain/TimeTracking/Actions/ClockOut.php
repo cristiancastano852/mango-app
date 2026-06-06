@@ -19,17 +19,18 @@ class ClockOut
             ]);
         }
 
+        $clockOut = now();
+
         // Finalizar pausa activa si existe
         $activeBreak = $timeEntry->breaks()->whereNull('ended_at')->first();
         if ($activeBreak) {
             $activeBreak->update([
-                'ended_at' => now(),
-                'duration_minutes' => (int) $activeBreak->started_at->diffInMinutes(now()),
+                'ended_at' => $clockOut,
+                'duration_minutes' => (int) $activeBreak->started_at->diffInMinutes($clockOut),
             ]);
         }
 
         $clockIn = $timeEntry->clock_in;
-        $clockOut = now();
         $grossHours = round($clockIn->diffInMinutes($clockOut) / 60, 2);
 
         $breakHours = round(

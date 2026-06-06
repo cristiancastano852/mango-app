@@ -40,6 +40,8 @@ class NegativeBreakDurationRegressionTest extends TestCase
 
     private BreakType $unpaidBreakType;
 
+    private BreakType $paidBreakType;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -76,6 +78,14 @@ class NegativeBreakDurationRegressionTest extends TestCase
             'name' => 'Almuerzo',
             'slug' => 'almuerzo',
             'is_paid' => false,
+            'is_active' => true,
+        ]);
+
+        $this->paidBreakType = BreakType::create([
+            'company_id' => $this->company->id,
+            'name' => 'Almuerzo pagado',
+            'slug' => 'almuerzo-pagado',
+            'is_paid' => true,
             'is_active' => true,
         ]);
     }
@@ -126,6 +136,64 @@ class NegativeBreakDurationRegressionTest extends TestCase
 
         // Invariante que el bug rompía: el neto nunca supera el bruto.
         $this->assertLessThanOrEqual((float) $entry->gross_hours, (float) $entry->net_hours);
+
+        // Los 8 buckets suman el neto.
+        $bucketsSum = (float) $entry->regular_hours
+            + (float) $entry->night_hours
+            + (float) $entry->sunday_holiday_hours
+            + (float) $entry->night_sunday_hours
+            + (float) $entry->overtime_day_hours
+            + (float) $entry->overtime_night_hours
+            + (float) $entry->overtime_day_sunday_hours
+            + (float) $entry->overtime_night_sunday_hours;
+        $this->assertEqualsWithDelta((float) $entry->net_hours, $bucketsSum, 0.02);
+    }
+
+    public function test_real_shift_with_paid_break_does_not_deduct_net(): void
+    {
+        // Mismo turno, pero el almuerzo es una pausa PAGADA.
+        // Check-in 14:10:39
+        $this->travelTo(Carbon::parse('2026-06-05 14:10:39'));
+        $this->actingAs($this->user)->post(route('time-clock.clock-in'));
+
+        // Inicia pausa pagada 16:33:35
+        $this->travelTo(Carbon::parse('2026-06-05 16:33:35'));
+        $this->actingAs($this->user)->post(route('time-clock.break.start'), [
+            'break_type_id' => $this->paidBreakType->id,
+        ]);
+
+        // Finaliza pausa 16:48:42 (15 min reales)
+        $this->travelTo(Carbon::parse('2026-06-05 16:48:42'));
+        $this->actingAs($this->user)->post(route('time-clock.break.end'));
+
+        // Check-out 21:35:03
+        $this->travelTo(Carbon::parse('2026-06-05 21:35:03'));
+        $this->actingAs($this->user)->post(route('time-clock.clock-out'));
+
+        $entry = TimeEntry::withoutGlobalScopes()
+            ->where('employee_id', $this->employee->id)
+            ->first();
+        $break = $this->employee->breaks()->first();
+
+        // La pausa existe y dura 15 min, igual que en el caso no pagado.
+        $this->assertSame(15, $break->duration_minutes);
+
+        // gross = 14:10:39 → 21:35:03 = 7h 24m 24s (no cambia).
+        $this->assertEqualsWithDelta(7.41, (float) $entry->gross_hours, 0.01);
+
+        // Las pausas PAGADAS no se restan: break_hours = 0.
+        $this->assertSame(0.0, (float) $entry->break_hours);
+
+        // net = gross (los 15 min de pausa se pagan, no se descuentan).
+        $this->assertEqualsWithDelta(7.41, (float) $entry->net_hours, 0.01);
+        $this->assertSame((float) $entry->gross_hours, (float) $entry->net_hours);
+
+        // netRatio = 1.0 → cada segmento se clasifica sin encogerse.
+        $this->assertEqualsWithDelta(4.82, (float) $entry->regular_hours, 0.03);
+        $this->assertEqualsWithDelta(2.58, (float) $entry->night_hours, 0.03);
+        $this->assertSame(0.0, (float) $entry->sunday_holiday_hours);
+        $this->assertSame(0.0, (float) $entry->overtime_day_hours);
+        $this->assertSame(0.0, (float) $entry->overtime_night_hours);
 
         // Los 8 buckets suman el neto.
         $bucketsSum = (float) $entry->regular_hours
