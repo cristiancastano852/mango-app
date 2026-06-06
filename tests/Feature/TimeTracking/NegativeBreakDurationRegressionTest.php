@@ -118,35 +118,48 @@ class NegativeBreakDurationRegressionTest extends TestCase
         // La pausa se guarda con duración POSITIVA (antes del fix era -15).
         $this->assertSame(15, $break->duration_minutes);
 
-        // gross = 14:10:39 → 21:35:03 = 7h 24m 24s.
-        $this->assertEqualsWithDelta(7.41, (float) $entry->gross_hours, 0.01);
+        // Fila completa del turno: metadatos + bruto/neto + los 8 buckets + auditoría.
+        $this->assertDatabaseHas('time_entries', [
+            'id' => $entry->id,
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-06-05',
+            'clock_in' => '2026-06-05 14:10:39',
+            'clock_out' => '2026-06-05 21:35:03',
+            'gross_hours' => 7.41,    // 7h 24m 24s
+            'break_hours' => 0.25,    // 15 min no pagados (antes -0.25)
+            'net_hours' => 7.16,      // gross - break (antes 7.66, inflado)
+            'regular_hours' => 4.66,  // diurno 14:10 → 19:00
+            'night_hours' => 2.50,    // nocturno 19:00 → 21:35
+            'sunday_holiday_hours' => 0.00,
+            'night_sunday_hours' => 0.00,
+            'overtime_day_hours' => 0.00,
+            'overtime_night_hours' => 0.00,
+            'overtime_day_sunday_hours' => 0.00,
+            'overtime_night_sunday_hours' => 0.00,
+            'status' => 'calculated',
+            'edited_by' => null,
+            'edit_reason' => null,
+            'pin_verified' => false,
+        ]);
 
-        // break_hours = 15 min no pagados = 0.25h (antes era -0.25).
-        $this->assertSame(0.25, (float) $entry->break_hours);
-
-        // net = gross - break = 7.41 - 0.25 = 7.16 (antes salía 7.66, inflado).
-        $this->assertEqualsWithDelta(7.16, (float) $entry->net_hours, 0.01);
-
-        // Distribución: diurno hasta 19:00, nocturno 19:00 → 21:35, sin extras.
-        $this->assertEqualsWithDelta(4.66, (float) $entry->regular_hours, 0.03);
-        $this->assertEqualsWithDelta(2.50, (float) $entry->night_hours, 0.03);
-        $this->assertSame(0.0, (float) $entry->sunday_holiday_hours);
-        $this->assertSame(0.0, (float) $entry->overtime_day_hours);
-        $this->assertSame(0.0, (float) $entry->overtime_night_hours);
+        // La pausa quedó persistida con su tipo, ventana exacta y duración positiva.
+        $this->assertDatabaseHas('breaks', [
+            'id' => $break->id,
+            'time_entry_id' => $entry->id,
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'break_type_id' => $this->unpaidBreakType->id,
+            'started_at' => '2026-06-05 16:33:35',
+            'ended_at' => '2026-06-05 16:48:42',
+            'duration_minutes' => 15,
+        ]);
 
         // Invariante que el bug rompía: el neto nunca supera el bruto.
         $this->assertLessThanOrEqual((float) $entry->gross_hours, (float) $entry->net_hours);
 
         // Los 8 buckets suman el neto.
-        $bucketsSum = (float) $entry->regular_hours
-            + (float) $entry->night_hours
-            + (float) $entry->sunday_holiday_hours
-            + (float) $entry->night_sunday_hours
-            + (float) $entry->overtime_day_hours
-            + (float) $entry->overtime_night_hours
-            + (float) $entry->overtime_day_sunday_hours
-            + (float) $entry->overtime_night_sunday_hours;
-        $this->assertEqualsWithDelta((float) $entry->net_hours, $bucketsSum, 0.02);
+        $this->assertEqualsWithDelta((float) $entry->net_hours, $this->sumBuckets($entry), 0.02);
     }
 
     public function test_real_shift_with_paid_break_does_not_deduct_net(): void
@@ -178,33 +191,48 @@ class NegativeBreakDurationRegressionTest extends TestCase
         // La pausa existe y dura 15 min, igual que en el caso no pagado.
         $this->assertSame(15, $break->duration_minutes);
 
-        // gross = 14:10:39 → 21:35:03 = 7h 24m 24s (no cambia).
-        $this->assertEqualsWithDelta(7.41, (float) $entry->gross_hours, 0.01);
+        // Fila completa: break_hours = 0 (pagada no se resta) y net = gross.
+        $this->assertDatabaseHas('time_entries', [
+            'id' => $entry->id,
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-06-05',
+            'clock_in' => '2026-06-05 14:10:39',
+            'clock_out' => '2026-06-05 21:35:03',
+            'gross_hours' => 7.41,    // no cambia
+            'break_hours' => 0.00,    // pausa PAGADA: no se descuenta
+            'net_hours' => 7.41,      // net == gross
+            'regular_hours' => 4.82,  // netRatio 1.0: diurno 14:10 → 19:00 sin encoger
+            'night_hours' => 2.58,    // nocturno 19:00 → 21:35
+            'sunday_holiday_hours' => 0.00,
+            'night_sunday_hours' => 0.00,
+            'overtime_day_hours' => 0.00,
+            'overtime_night_hours' => 0.00,
+            'overtime_day_sunday_hours' => 0.00,
+            'overtime_night_sunday_hours' => 0.00,
+            'status' => 'calculated',
+            'edited_by' => null,
+            'edit_reason' => null,
+            'pin_verified' => false,
+        ]);
 
-        // Las pausas PAGADAS no se restan: break_hours = 0.
-        $this->assertSame(0.0, (float) $entry->break_hours);
+        // La pausa pagada queda persistida con su tipo y duración correcta.
+        $this->assertDatabaseHas('breaks', [
+            'id' => $break->id,
+            'time_entry_id' => $entry->id,
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'break_type_id' => $this->paidBreakType->id,
+            'started_at' => '2026-06-05 16:33:35',
+            'ended_at' => '2026-06-05 16:48:42',
+            'duration_minutes' => 15,
+        ]);
 
-        // net = gross (los 15 min de pausa se pagan, no se descuentan).
-        $this->assertEqualsWithDelta(7.41, (float) $entry->net_hours, 0.01);
+        // net == gross: los 15 min de pausa se pagan, no se descuentan.
         $this->assertSame((float) $entry->gross_hours, (float) $entry->net_hours);
 
-        // netRatio = 1.0 → cada segmento se clasifica sin encogerse.
-        $this->assertEqualsWithDelta(4.82, (float) $entry->regular_hours, 0.03);
-        $this->assertEqualsWithDelta(2.58, (float) $entry->night_hours, 0.03);
-        $this->assertSame(0.0, (float) $entry->sunday_holiday_hours);
-        $this->assertSame(0.0, (float) $entry->overtime_day_hours);
-        $this->assertSame(0.0, (float) $entry->overtime_night_hours);
-
         // Los 8 buckets suman el neto.
-        $bucketsSum = (float) $entry->regular_hours
-            + (float) $entry->night_hours
-            + (float) $entry->sunday_holiday_hours
-            + (float) $entry->night_sunday_hours
-            + (float) $entry->overtime_day_hours
-            + (float) $entry->overtime_night_hours
-            + (float) $entry->overtime_day_sunday_hours
-            + (float) $entry->overtime_night_sunday_hours;
-        $this->assertEqualsWithDelta((float) $entry->net_hours, $bucketsSum, 0.02);
+        $this->assertEqualsWithDelta((float) $entry->net_hours, $this->sumBuckets($entry), 0.02);
     }
 
     public function test_unpaid_break_is_never_negative_nor_inflates_net(): void
@@ -231,5 +259,17 @@ class NegativeBreakDurationRegressionTest extends TestCase
         $this->assertGreaterThan(0, $break->duration_minutes);
         $this->assertGreaterThanOrEqual(0.0, (float) $entry->break_hours);
         $this->assertLessThan((float) $entry->gross_hours, (float) $entry->net_hours);
+    }
+
+    private function sumBuckets(TimeEntry $entry): float
+    {
+        return (float) $entry->regular_hours
+            + (float) $entry->night_hours
+            + (float) $entry->sunday_holiday_hours
+            + (float) $entry->night_sunday_hours
+            + (float) $entry->overtime_day_hours
+            + (float) $entry->overtime_night_hours
+            + (float) $entry->overtime_day_sunday_hours
+            + (float) $entry->overtime_night_sunday_hours;
     }
 }
