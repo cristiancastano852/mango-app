@@ -61,7 +61,14 @@ class ReportController extends Controller
             $this->requestPayOvertime($request),
         );
 
-        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime, includeDailyBreakdown: false, includeBreaksByType: false);
+        $report = $this->buildEmployeeReport(
+            $request,
+            $startDate,
+            $endDate,
+            $payOvertime,
+            includeDailyBreakdown: false,
+            includeBreaksByType: false,
+        );
 
         return Inertia::render('Reports/Employee', [
             'report' => $report,

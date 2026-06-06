@@ -98,7 +98,7 @@ const props = defineProps<{
     employees: Array<{ id: number; name: string }>;
 }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const payOvertime = ref(props.filters.pay_overtime);
 
@@ -124,7 +124,7 @@ const presetLabel = computed(() =>
 
 function formatPeriodDate(iso: string): string {
     const [year, month, day] = iso.split('-').map(Number);
-    return new Intl.DateTimeFormat('es-CO', {
+    return new Intl.DateTimeFormat(locale.value, {
         day: 'numeric',
         month: 'short',
     }).format(new Date(year, month - 1, day));

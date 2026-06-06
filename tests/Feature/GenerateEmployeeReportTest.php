@@ -392,8 +392,8 @@ class GenerateEmployeeReportTest extends TestCase
             includeBreaksByType: false,
         );
 
-        // El desglose diario y las pausas por tipo se omiten (solo los usan los exports),
-        // pero los totales se siguen calculando para la vista.
+        // El desglose diario y las pausas por tipo no se calculan (solo los usan los
+        // exports): las llaves siguen presentes pero como arrays vacíos. Los totales sí.
         $this->assertEmpty($result['daily_breakdown']);
         $this->assertEmpty($result['breaks_by_type']);
         $this->assertEquals(1, $result['totals']['days_worked']);
