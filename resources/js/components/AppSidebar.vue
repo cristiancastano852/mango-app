@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 // TODO: Schedules feature temporarily disabled — restore Sliders import when resuming
-import { Building2, CalendarDays, ClipboardList, Clock, CreditCard, FileText, LayoutGrid, Settings, Users } from 'lucide-vue-next';
+import {
+    Building2,
+    CalendarDays,
+    ClipboardList,
+    Clock,
+    CreditCard,
+    FileText,
+    LayoutGrid,
+    Settings,
+    Users,
+} from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { index as timeEntriesIndex } from '@/actions/App/Http/Controllers/Admin/TimeEntryController';
@@ -28,9 +38,13 @@ import type { NavItem } from '@/types';
 
 const { t } = useI18n();
 const page = usePage();
-const userRoles = computed(() => (page.props.auth as { user: { roles: string[] } })?.user?.roles ?? []);
+const userRoles = computed(
+    () => (page.props.auth as { user: { roles: string[] } })?.user?.roles ?? [],
+);
 const isSuperAdmin = computed(() => userRoles.value.includes('super-admin'));
-const isAdmin = computed(() => userRoles.value.includes('admin') || isSuperAdmin.value);
+const isAdmin = computed(
+    () => userRoles.value.includes('admin') || isSuperAdmin.value,
+);
 
 const mainNavItems = computed<NavItem[]>(() => {
     if (isSuperAdmin.value) {
@@ -85,6 +99,7 @@ const mainNavItems = computed<NavItem[]>(() => {
                 title: t('nav.reports'),
                 href: reportsIndex(),
                 icon: FileText,
+                matchSubPaths: true,
             },
             // LOCATIONS FEATURE DISABLED — backend model/DB exist but UI is hidden until the feature is complete.
             // Restore this nav item when LocationController and routes are implemented.
