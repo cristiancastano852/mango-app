@@ -13,7 +13,7 @@ import {
     TrendingUp,
     Zap,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
     exportEmployeeExcel,
@@ -34,29 +34,6 @@ import { formatDecimalHours } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import DateRangeFilter from './partials/DateRangeFilter.vue';
 import OvertimePaymentToggle from './partials/OvertimePaymentToggle.vue';
-
-type BreakByType = {
-    name: string;
-    is_paid: boolean;
-    icon: string;
-    color: string;
-    total_minutes: number;
-    count: number;
-};
-
-type DailyBreakdown = {
-    date: string;
-    gross_hours: number;
-    net_hours: number;
-    regular_hours: number;
-    night_hours: number;
-    sunday_holiday_hours: number;
-    night_sunday_hours: number;
-    overtime_day_hours: number;
-    overtime_night_hours: number;
-    overtime_day_sunday_hours: number;
-    overtime_night_sunday_hours: number;
-};
 
 type CostDetail = {
     type: string;
@@ -91,8 +68,6 @@ type Report = {
         overtime_day_sunday_hours: number;
         overtime_night_sunday_hours: number;
     };
-    breaks_by_type: BreakByType[];
-    daily_breakdown: DailyBreakdown[];
     cost_summary: {
         regular: number;
         night: number;
@@ -247,30 +222,6 @@ function hourTypeLabel(type: string): string {
     };
     return map[type] || type;
 }
-
-// --- Charts ---
-const breaksChartEl = ref<HTMLElement | null>(null);
-
-onMounted(async () => {
-    if (props.report.totals.days_worked === 0) return;
-
-    const ApexCharts = (await import('apexcharts')).default;
-
-    // Breaks donut
-    if (breaksChartEl.value && props.report.breaks_by_type.length > 0) {
-        new ApexCharts(breaksChartEl.value, {
-            chart: { type: 'donut', height: 260, fontFamily: 'inherit' },
-            series: props.report.breaks_by_type.map((b) => b.total_minutes),
-            labels: props.report.breaks_by_type.map((b) => b.name),
-            colors: props.report.breaks_by_type.map(
-                (b) => b.color || '#94a3b8',
-            ),
-            legend: { position: 'bottom', fontSize: '12px' },
-            tooltip: { y: { formatter: (v: number) => `${v} min` } },
-            plotOptions: { pie: { donut: { size: '55%' } } },
-        }).render();
-    }
-});
 </script>
 
 <template>
@@ -788,50 +739,6 @@ onMounted(async () => {
                         </div>
                     </CardContent>
                 </Card>
-
-                <!-- Breaks Donut -->
-                <div
-                    v-if="report.breaks_by_type.length > 0"
-                    class="grid grid-cols-1 gap-4 lg:grid-cols-2"
-                >
-                    <Card>
-                        <CardHeader class="pb-2">
-                            <CardTitle class="text-sm font-medium">{{
-                                t('reports.breaks.title')
-                            }}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div ref="breaksChartEl" />
-                            <div class="mt-3 divide-y">
-                                <div
-                                    v-for="b in report.breaks_by_type"
-                                    :key="b.name"
-                                    class="flex items-center justify-between py-2 text-sm"
-                                >
-                                    <div class="flex items-center gap-2">
-                                        <span>{{ b.icon }}</span>
-                                        <span>{{ b.name }}</span>
-                                        <Badge
-                                            variant="outline"
-                                            class="text-xs"
-                                        >
-                                            {{
-                                                b.is_paid
-                                                    ? t('reports.breaks.paid')
-                                                    : t('reports.breaks.unpaid')
-                                            }}
-                                        </Badge>
-                                    </div>
-                                    <div class="text-muted-foreground">
-                                        {{ b.total_minutes }} min ({{
-                                            b.count
-                                        }}x)
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
             </template>
         </div>
     </AppLayout>
