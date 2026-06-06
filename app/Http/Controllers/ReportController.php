@@ -61,7 +61,14 @@ class ReportController extends Controller
             $this->requestPayOvertime($request),
         );
 
-        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime);
+        $report = $this->buildEmployeeReport(
+            $request,
+            $startDate,
+            $endDate,
+            $payOvertime,
+            includeDailyBreakdown: false,
+            includeBreaksByType: false,
+        );
 
         return Inertia::render('Reports/Employee', [
             'report' => $report,
@@ -176,7 +183,7 @@ class ReportController extends Controller
     /**
      * Genera los datos del reporte de empleado (reutilizado por vista y exports).
      */
-    private function buildEmployeeReport(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true): array
+    private function buildEmployeeReport(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true, bool $includeDailyBreakdown = true, bool $includeBreaksByType = true): array
     {
         $validated = $request->validated();
 
@@ -185,6 +192,8 @@ class ReportController extends Controller
             $startDate,
             $endDate,
             $payOvertime,
+            $includeDailyBreakdown,
+            $includeBreaksByType,
         );
     }
 

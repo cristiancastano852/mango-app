@@ -368,6 +368,38 @@ class GenerateEmployeeReportTest extends TestCase
         $this->assertEquals(9.0, $result['daily_breakdown'][1]['net_hours']);
     }
 
+    public function test_export_only_data_is_omitted_when_not_requested(): void
+    {
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-03-02',
+            'clock_in' => '2026-03-02 08:00:00',
+            'clock_out' => '2026-03-02 16:00:00',
+            'gross_hours' => 8.0,
+            'break_hours' => 0,
+            'net_hours' => 8.0,
+            'regular_hours' => 8.0,
+            'status' => 'calculated',
+        ]);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-07'),
+            payOvertime: true,
+            includeDailyBreakdown: false,
+            includeBreaksByType: false,
+        );
+
+        // El desglose diario y las pausas por tipo no se calculan (solo los usan los
+        // exports): las llaves siguen presentes pero como arrays vacíos. Los totales sí.
+        $this->assertEmpty($result['daily_breakdown']);
+        $this->assertEmpty($result['breaks_by_type']);
+        $this->assertEquals(1, $result['totals']['days_worked']);
+        $this->assertEquals(8.0, $result['totals']['net_hours']);
+    }
+
     public function test_cost_calculation_uses_employee_hourly_rate(): void
     {
         TimeEntry::withoutGlobalScopes()->create([

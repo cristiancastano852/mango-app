@@ -31,7 +31,7 @@ class GenerateEmployeeReport
      *     period: array{start: string, end: string}
      * }
      */
-    public function execute(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true): array
+    public function execute(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true, bool $includeDailyBreakdown = true, bool $includeBreaksByType = true): array
     {
         $employee = Employee::withoutGlobalScopes()
             ->with('user', 'department', 'position')
@@ -42,8 +42,12 @@ class GenerateEmployeeReport
             ->firstOrFail();
 
         $totals = $this->aggregateTotals($employeeId, $startDate, $endDate);
-        $breaksByType = $this->aggregateBreaksByType($employeeId, $startDate, $endDate);
-        $dailyBreakdown = $this->getDailyBreakdown($employeeId, $startDate, $endDate);
+        $breaksByType = $includeBreaksByType
+            ? $this->aggregateBreaksByType($employeeId, $startDate, $endDate)
+            : [];
+        $dailyBreakdown = $includeDailyBreakdown
+            ? $this->getDailyBreakdown($employeeId, $startDate, $endDate)
+            : [];
 
         $salaryType = $employee->salary_type ?? 'hourly';
         $baseSalary = $salaryType === 'monthly'

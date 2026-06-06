@@ -11,4 +11,6 @@ export type NavItem = {
     href: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon;
     isActive?: boolean;
+    /** Marca el ítem como activo también en sub-rutas (p. ej. /reports activo en /reports/employee). */
+    matchSubPaths?: boolean;
 };
