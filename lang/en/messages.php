@@ -31,6 +31,7 @@ return [
     'kiosk_clock_out' => 'Shift ended.',
     'kiosk_break_started' => 'Break started.',
     'kiosk_break_ended' => 'Break ended.',
+    'kiosk_break_not_started' => 'Could not start the break.',
     'slug_invalid_format' => 'The slug may only contain lowercase letters, numbers, and hyphens.',
     'slug_already_taken' => 'This slug is already in use by another company.',
     'company_created' => 'Company created successfully.',

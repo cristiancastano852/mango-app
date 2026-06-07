@@ -31,6 +31,7 @@ return [
     'kiosk_clock_out' => 'Jornada finalizada.',
     'kiosk_break_started' => 'Pausa iniciada.',
     'kiosk_break_ended' => 'Pausa finalizada.',
+    'kiosk_break_not_started' => 'No se pudo iniciar la pausa.',
     'slug_invalid_format' => 'El slug solo puede contener letras minúsculas, números y guiones.',
     'slug_already_taken' => 'Este slug ya está en uso por otra empresa.',
     'company_created' => 'Empresa creada exitosamente.',

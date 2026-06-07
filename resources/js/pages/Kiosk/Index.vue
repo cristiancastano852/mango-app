@@ -24,6 +24,7 @@ const props = defineProps<{
     todayEntry: TodayEntry | null;
     breakTypes: BreakType[];
     kioskAction: KioskAction | null;
+    kioskError: string | null;
 }>();
 
 type Screen = 'document' | 'actions' | 'confirmation';
@@ -36,6 +37,8 @@ const screen = computed<Screen>(() => {
 
 const showClockOutConfirm = ref(false);
 const clockOutConfirmNow = ref(Date.now());
+const errorMessage = ref<string | null>(null);
+let errorTimeout: ReturnType<typeof setTimeout> | null = null;
 const countdown = ref(5);
 let countdownInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -90,6 +93,14 @@ watch(() => props.kioskAction, (val) => {
     if (val) startCountdown();
 }, { immediate: true });
 
+watch(() => props.kioskError, (val) => {
+    errorMessage.value = val;
+    if (errorTimeout) clearTimeout(errorTimeout);
+    if (val) {
+        errorTimeout = setTimeout(() => { errorMessage.value = null; }, 6000);
+    }
+}, { immediate: true });
+
 watch(screen, (val) => {
     if (val !== 'actions') {
         showClockOutConfirm.value = false;
@@ -102,6 +113,7 @@ onMounted(() => {
 
 onUnmounted(() => {
     if (countdownInterval) clearInterval(countdownInterval);
+    if (errorTimeout) clearTimeout(errorTimeout);
 });
 
 const entryStatus = computed(() => {
@@ -266,6 +278,14 @@ const progressWidth = computed(() => `${((5 - countdown.value) / 5) * 100}%`);
                             Sin registros de hoy
                         </div>
                     </div>
+
+                    <!-- Inline error feedback -->
+                    <Transition name="fade">
+                        <div v-if="errorMessage" class="kiosk-alert">
+                            <span class="kiosk-alert-icon" aria-hidden="true">⚠</span>
+                            <span>{{ errorMessage }}</span>
+                        </div>
+                    </Transition>
 
                     <!-- Timeline -->
                     <div v-if="timeline.length" class="kiosk-timeline">
@@ -809,6 +829,27 @@ const progressWidth = computed(() => `${((5 - countdown.value) / 5) * 100}%`);
     display: flex;
     flex-direction: column;
     gap: 0;
+}
+
+/* ─── Inline alert ─── */
+.kiosk-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0.75rem 0 0;
+    padding: 0.85rem 1.1rem;
+    border-radius: 1rem;
+    background: rgba(210,115,74,0.14);
+    border: 1px solid rgba(210,115,74,0.35);
+    color: #ec9870;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-align: left;
+}
+
+.kiosk-alert-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
 }
 
 /* ─── Status chip ─── */

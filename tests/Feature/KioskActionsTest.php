@@ -166,6 +166,45 @@ class KioskActionsTest extends TestCase
         );
     }
 
+    public function test_start_break_at_daily_limit_keeps_session_and_returns_error(): void
+    {
+        $limited = BreakType::create([
+            'company_id' => $this->company->id,
+            'name' => 'Almuerzo único',
+            'slug' => 'almuerzo-unico',
+            'is_active' => true,
+            'max_per_day' => 1,
+        ]);
+
+        $entry = TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->toDateString(),
+            'clock_in' => now()->subHours(3),
+            'status' => 'clocked_in',
+        ]);
+
+        $entry->breaks()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'break_type_id' => $limited->id,
+            'started_at' => now()->subHours(2),
+            'ended_at' => now()->subHour(),
+            'duration_minutes' => 60,
+        ]);
+
+        $response = $this->withKioskSession()
+            ->post($this->tenantUrl('kiosk.break.start'), [
+                'break_type_id' => $limited->id,
+            ]);
+
+        $response->assertRedirect(route('kiosk.index'));
+        $response->assertSessionHas('kiosk_error');
+
+        $this->assertEquals($this->employee->id, session('kiosk_employee_id'));
+        $this->assertEquals(1, $entry->breaks()->where('break_type_id', $limited->id)->count());
+    }
+
     public function test_action_without_kiosk_session_returns_403(): void
     {
         $response = $this->post($this->tenantUrl('kiosk.clock-in'));

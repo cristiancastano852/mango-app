@@ -30,6 +30,7 @@ class KioskController extends Controller
         $todayEntry = null;
         $breakTypes = collect();
         $kioskAction = session()->pull('kiosk_action');
+        $kioskError = session()->pull('kiosk_error');
 
         $employeeId = session('kiosk_employee_id');
         $companyId = session('kiosk_company_id');
@@ -63,6 +64,7 @@ class KioskController extends Controller
             'todayEntry' => $todayEntry,
             'breakTypes' => $breakTypes,
             'kioskAction' => $kioskAction,
+            'kioskError' => $kioskError,
         ]);
     }
 
@@ -158,10 +160,10 @@ class KioskController extends Controller
 
         try {
             $action->execute($entry, $request->input('break_type_id'));
-        } catch (ValidationException) {
-            session()->forget(['kiosk_employee_id', 'kiosk_company_id']);
+        } catch (ValidationException $e) {
+            $message = collect($e->errors())->flatten()->first() ?? __('messages.kiosk_break_not_started');
 
-            return redirect()->route('kiosk.index');
+            return redirect()->route('kiosk.index')->with('kiosk_error', $message);
         }
 
         session()->forget(['kiosk_employee_id', 'kiosk_company_id']);
