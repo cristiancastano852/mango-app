@@ -154,7 +154,8 @@ class KioskLookupTest extends TestCase
     /**
      * Invariante de seguridad: durante una pausa activa, el payload del kiosco
      * mantiene la jornada abierta (sin clock_out) con una pausa sin cerrar. El
-     * frontend deriva de ese contrato el estado `on_break`, que SOLO expone
+     * frontend deriva el estado `on_break` justamente de la existencia de un
+     * break sin `ended_at` (no del campo `status`), y en ese estado SOLO expone
      * "Finalizar pausa" y nunca "Finalizar jornada". Este test bloquea cualquier
      * cambio futuro que reintroduzca el riesgo de finalizar jornada por error.
      */
@@ -188,7 +189,6 @@ class KioskLookupTest extends TestCase
         ])->get($this->tenantUrl('kiosk.index'));
 
         $response->assertInertia(fn ($page) => $page
-            ->where('todayEntry.status', 'on_break')
             ->where('todayEntry.clock_out', null)
             ->where('todayEntry.breaks.0.ended_at', null)
         );

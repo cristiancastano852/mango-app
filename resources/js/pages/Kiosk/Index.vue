@@ -36,6 +36,7 @@ const screen = computed<Screen>(() => {
 
 const showBreakPicker = ref(false);
 const showClockOutConfirm = ref(false);
+const clockOutConfirmNow = ref(Date.now());
 const countdown = ref(5);
 let countdownInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -52,6 +53,10 @@ function doClockIn() {
 }
 function doClockOut() {
     router.post(KioskController.clockOut().url);
+}
+function openClockOutConfirm() {
+    clockOutConfirmNow.value = Date.now();
+    showClockOutConfirm.value = true;
 }
 function confirmClockOut() {
     showClockOutConfirm.value = false;
@@ -121,7 +126,7 @@ const formattedActiveBreak = computed(() => {
 
 const workedTime = computed(() => {
     if (!props.todayEntry?.clock_in) return '—';
-    const minutes = Math.max(0, Math.floor((Date.now() - new Date(props.todayEntry.clock_in).getTime()) / 60000));
+    const minutes = Math.max(0, Math.floor((clockOutConfirmNow.value - new Date(props.todayEntry.clock_in).getTime()) / 60000));
     const hours = Math.floor(minutes / 60);
     return `${hours}h ${String(minutes % 60).padStart(2, '0')}m`;
 });
@@ -319,7 +324,7 @@ const progressWidth = computed(() => `${((5 - countdown.value) / 5) * 100}%`);
                                     <span class="kiosk-divider-label">¿Terminaste?</span>
                                 </div>
 
-                                <button @click="showClockOutConfirm = true" class="kiosk-btn kiosk-btn--danger">
+                                <button @click="openClockOutConfirm" class="kiosk-btn kiosk-btn--danger">
                                     ⏹ Finalizar jornada
                                 </button>
                             </div>
@@ -396,9 +401,9 @@ const progressWidth = computed(() => `${((5 - countdown.value) / 5) * 100}%`);
                 class="kiosk-modal-overlay"
                 @click.self="showClockOutConfirm = false"
             >
-                <div class="kiosk-modal" role="dialog" aria-modal="true">
+                <div class="kiosk-modal" role="dialog" aria-modal="true" aria-labelledby="kiosk-clockout-title">
                     <div class="kiosk-modal-icon">⏹</div>
-                    <h2 class="kiosk-modal-title">¿Finalizar tu jornada?</h2>
+                    <h2 id="kiosk-clockout-title" class="kiosk-modal-title">¿Finalizar tu jornada?</h2>
 
                     <div class="kiosk-modal-stats">
                         <div class="kiosk-modal-stat">
