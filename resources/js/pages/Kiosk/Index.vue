@@ -137,21 +137,21 @@ const timeline = computed(() => {
     const entry = props.todayEntry;
     if (!entry?.clock_in) return [];
 
-    const items: Array<{ icon: string; label: string; time: string; active?: boolean }> = [];
+    const items: Array<{ tone: 'in' | 'break' | 'out'; label: string; time: string; active?: boolean }> = [];
 
-    items.push({ icon: '▶', label: 'Entrada', time: fmt(entry.clock_in) });
+    items.push({ tone: 'in', label: 'Entrada', time: fmt(entry.clock_in) });
 
     for (const b of entry.breaks ?? []) {
         const breakName = b.break_type?.name ?? 'Pausa';
         if (b.ended_at) {
-            items.push({ icon: '⏸', label: breakName, time: `${fmt(b.started_at)} – ${fmt(b.ended_at)}` });
+            items.push({ tone: 'break', label: breakName, time: `${fmt(b.started_at)} – ${fmt(b.ended_at)}` });
         } else {
-            items.push({ icon: '⏸', label: breakName, time: `${fmt(b.started_at)} – en curso`, active: true });
+            items.push({ tone: 'break', label: breakName, time: `${fmt(b.started_at)} – en curso`, active: true });
         }
     }
 
     if (entry.clock_out) {
-        items.push({ icon: '⏹', label: 'Salida', time: fmt(entry.clock_out) });
+        items.push({ tone: 'out', label: 'Salida', time: fmt(entry.clock_out) });
     }
 
     return items;
@@ -275,7 +275,9 @@ const progressWidth = computed(() => `${((5 - countdown.value) / 5) * 100}%`);
                             class="kiosk-tl-row"
                             :class="{ 'kiosk-tl-row--active': item.active }"
                         >
-                            <div class="kiosk-tl-icon">{{ item.icon }}</div>
+                            <div class="kiosk-tl-icon">
+                                <span class="kiosk-tl-dot" :class="`kiosk-tl-dot--${item.tone}`"></span>
+                            </div>
                             <div class="kiosk-tl-line" v-if="i < timeline.length - 1"></div>
                             <div class="kiosk-tl-content">
                                 <span class="kiosk-tl-label">{{ item.label }}</span>
@@ -321,7 +323,7 @@ const progressWidth = computed(() => `${((5 - countdown.value) / 5) * 100}%`);
                                     @click="doStartBreak(bt.id)"
                                     class="kiosk-break-btn"
                                 >
-                                    <span class="kiosk-break-icon">{{ bt.icon ?? '⏸' }}</span>
+                                    <span v-if="bt.icon" class="kiosk-break-icon">{{ bt.icon }}</span>
                                     {{ bt.name }}
                                 </button>
                             </div>
@@ -1050,14 +1052,34 @@ const progressWidth = computed(() => `${((5 - countdown.value) / 5) * 100}%`);
 }
 
 .kiosk-tl-icon {
-    font-size: 0.85rem;
-    color: rgba(240,235,224,0.5);
-    padding-top: 0.2rem;
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    padding-top: 0.45rem;
 }
 
-.kiosk-tl-row--active .kiosk-tl-icon {
-    color: #e8a020;
+.kiosk-tl-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    display: inline-block;
+    background: rgba(240,235,224,0.4);
+}
+
+.kiosk-tl-dot--in {
+    background: #4ade80;
+}
+
+.kiosk-tl-dot--break {
+    background: #e8a020;
+}
+
+.kiosk-tl-dot--out {
+    background: #d2734a;
+}
+
+.kiosk-tl-row--active .kiosk-tl-dot {
+    box-shadow: 0 0 0 3px rgba(232,160,32,0.2);
+    animation: pulse 2s infinite;
 }
 
 .kiosk-tl-line {
