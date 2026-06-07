@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Company\Models\Company;
 use App\Domain\Employee\Models\Employee;
+use App\Domain\TimeTracking\Models\BreakType;
 use App\Domain\TimeTracking\Models\TimeEntry;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -147,6 +148,49 @@ class KioskLookupTest extends TestCase
 
         $response->assertInertia(fn ($page) => $page
             ->where('todayEntry.status', 'clocked_in')
+        );
+    }
+
+    /**
+     * Invariante de seguridad: durante una pausa activa, el payload del kiosco
+     * mantiene la jornada abierta (sin clock_out) con una pausa sin cerrar. El
+     * frontend deriva de ese contrato el estado `on_break`, que SOLO expone
+     * "Finalizar pausa" y nunca "Finalizar jornada". Este test bloquea cualquier
+     * cambio futuro que reintroduzca el riesgo de finalizar jornada por error.
+     */
+    public function test_kiosk_index_on_break_payload_keeps_shift_open_with_unended_break(): void
+    {
+        $breakType = BreakType::create([
+            'company_id' => $this->company->id,
+            'name' => 'Almuerzo',
+            'slug' => 'almuerzo',
+            'is_active' => true,
+        ]);
+
+        $entry = TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->toDateString(),
+            'clock_in' => now()->subHours(2),
+            'status' => 'on_break',
+        ]);
+
+        $entry->breaks()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'break_type_id' => $breakType->id,
+            'started_at' => now()->subMinutes(20),
+        ]);
+
+        $response = $this->withSession([
+            'kiosk_employee_id' => $this->employee->id,
+            'kiosk_company_id' => $this->company->id,
+        ])->get($this->tenantUrl('kiosk.index'));
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('todayEntry.status', 'on_break')
+            ->where('todayEntry.clock_out', null)
+            ->where('todayEntry.breaks.0.ended_at', null)
         );
     }
 }
