@@ -35,6 +35,8 @@ const screen = computed<Screen>(() => {
 });
 
 const showBreakPicker = ref(false);
+const showClockOutConfirm = ref(false);
+const clockOutConfirmNow = ref(Date.now());
 const countdown = ref(5);
 let countdownInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -51,6 +53,14 @@ function doClockIn() {
 }
 function doClockOut() {
     router.post(KioskController.clockOut().url);
+}
+function openClockOutConfirm() {
+    clockOutConfirmNow.value = Date.now();
+    showClockOutConfirm.value = true;
+}
+function confirmClockOut() {
+    showClockOutConfirm.value = false;
+    doClockOut();
 }
 function doStartBreak(breakTypeId: number) {
     router.post(KioskController.startBreak().url, { break_type_id: breakTypeId });
@@ -82,7 +92,10 @@ watch(() => props.kioskAction, (val) => {
 }, { immediate: true });
 
 watch(screen, (val) => {
-    if (val !== 'actions') showBreakPicker.value = false;
+    if (val !== 'actions') {
+        showBreakPicker.value = false;
+        showClockOutConfirm.value = false;
+    }
 });
 
 onMounted(() => {
@@ -109,6 +122,13 @@ const formattedClockIn = computed(() => {
 const formattedActiveBreak = computed(() => {
     if (!activeBreak.value) return null;
     return new Date(activeBreak.value.started_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+});
+
+const workedTime = computed(() => {
+    if (!props.todayEntry?.clock_in) return '—';
+    const minutes = Math.max(0, Math.floor((clockOutConfirmNow.value - new Date(props.todayEntry.clock_in).getTime()) / 60000));
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ${String(minutes % 60).padStart(2, '0')}m`;
 });
 
 function fmt(ts: string) {
@@ -299,7 +319,12 @@ const progressWidth = computed(() => `${((5 - countdown.value) / 5) * 100}%`);
                                 <button @click="showBreakPicker = true" class="kiosk-btn kiosk-btn--amber kiosk-btn--lg">
                                     ⏸ Iniciar pausa
                                 </button>
-                                <button @click="doClockOut" class="kiosk-btn kiosk-btn--ghost kiosk-btn--lg">
+
+                                <div class="kiosk-divider">
+                                    <span class="kiosk-divider-label">¿Terminaste?</span>
+                                </div>
+
+                                <button @click="openClockOutConfirm" class="kiosk-btn kiosk-btn--danger">
                                     ⏹ Finalizar jornada
                                 </button>
                             </div>
@@ -365,6 +390,40 @@ const progressWidth = computed(() => `${((5 - countdown.value) / 5) * 100}%`);
                     <button @click="resetKiosk" class="kiosk-btn kiosk-btn--ghost kiosk-btn--sm">
                         Nuevo registro →
                     </button>
+                </div>
+            </div>
+        </Transition>
+
+        <!-- Clock-out confirmation modal -->
+        <Transition name="fade">
+            <div
+                v-if="showClockOutConfirm"
+                class="kiosk-modal-overlay"
+                @click.self="showClockOutConfirm = false"
+            >
+                <div class="kiosk-modal" role="dialog" aria-modal="true" aria-labelledby="kiosk-clockout-title">
+                    <div class="kiosk-modal-icon">⏹</div>
+                    <h2 id="kiosk-clockout-title" class="kiosk-modal-title">¿Finalizar tu jornada?</h2>
+
+                    <div class="kiosk-modal-stats">
+                        <div class="kiosk-modal-stat">
+                            <span class="kiosk-modal-stat-label">Entrada</span>
+                            <span class="kiosk-modal-stat-value">{{ formattedClockIn ?? '—' }}</span>
+                        </div>
+                        <div class="kiosk-modal-stat">
+                            <span class="kiosk-modal-stat-label">Trabajado</span>
+                            <span class="kiosk-modal-stat-value">{{ workedTime }}</span>
+                        </div>
+                    </div>
+
+                    <div class="kiosk-modal-actions">
+                        <button @click="showClockOutConfirm = false" class="kiosk-btn kiosk-btn--primary kiosk-btn--lg">
+                            No, volver
+                        </button>
+                        <button @click="confirmClockOut" class="kiosk-btn kiosk-btn--danger-solid">
+                            Sí, finalizar
+                        </button>
+                    </div>
                 </div>
             </div>
         </Transition>
@@ -577,6 +636,151 @@ const progressWidth = computed(() => `${((5 - countdown.value) / 5) * 100}%`);
 .kiosk-btn--ghost:hover {
     border-color: rgba(255,255,255,0.25);
     color: rgba(240,235,224,0.8);
+}
+
+.kiosk-btn--danger {
+    background: transparent;
+    color: #e0875f;
+    border: 1.5px solid rgba(210,115,74,0.35);
+    font-weight: 500;
+}
+
+.kiosk-btn--danger:hover {
+    background: rgba(210,115,74,0.12);
+    border-color: rgba(210,115,74,0.55);
+    color: #ec9870;
+}
+
+.kiosk-btn--danger-solid {
+    background: #c2683f;
+    color: #fdf3ec;
+    font-weight: 600;
+}
+
+.kiosk-btn--danger-solid:hover {
+    background: #d4764a;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(194,104,63,0.3);
+}
+
+/* ─── Divider ─── */
+.kiosk-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+
+.kiosk-divider::before,
+.kiosk-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+}
+
+.kiosk-divider-label {
+    font-size: 0.8rem;
+    color: rgba(240,235,224,0.35);
+    white-space: nowrap;
+}
+
+/* ─── Confirmation modal ─── */
+.kiosk-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(8,15,8,0.72);
+    backdrop-filter: blur(6px);
+}
+
+.kiosk-modal {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(18,34,20,0.98);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 1.75rem;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+    animation: pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.kiosk-modal-icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    background: rgba(210,115,74,0.15);
+    border: 2px solid rgba(210,115,74,0.3);
+    color: #e0875f;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+}
+
+.kiosk-modal-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.5rem, 4vw, 1.75rem);
+    font-weight: 300;
+    color: #f0ebe0;
+    margin-bottom: 1.5rem;
+}
+
+.kiosk-modal-stats {
+    display: flex;
+    margin-bottom: 1.75rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 1rem;
+    padding: 1rem;
+}
+
+.kiosk-modal-stat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.kiosk-modal-stat + .kiosk-modal-stat {
+    border-left: 1px solid rgba(255,255,255,0.08);
+}
+
+.kiosk-modal-stat-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(240,235,224,0.4);
+}
+
+.kiosk-modal-stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 300;
+    color: #f0ebe0;
+}
+
+.kiosk-modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
 }
 
 .kiosk-btn--lg {
