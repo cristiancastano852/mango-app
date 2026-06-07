@@ -34,7 +34,6 @@ const screen = computed<Screen>(() => {
     return 'document';
 });
 
-const showBreakPicker = ref(false);
 const showClockOutConfirm = ref(false);
 const clockOutConfirmNow = ref(Date.now());
 const countdown = ref(5);
@@ -93,7 +92,6 @@ watch(() => props.kioskAction, (val) => {
 
 watch(screen, (val) => {
     if (val !== 'actions') {
-        showBreakPicker.value = false;
         showClockOutConfirm.value = false;
     }
 });
@@ -315,36 +313,26 @@ const progressWidth = computed(() => `${((5 - countdown.value) / 5) * 100}%`);
 
                         <!-- Working -->
                         <template v-else-if="entryStatus === 'clocked_in'">
-                            <div v-if="!showBreakPicker">
-                                <button @click="showBreakPicker = true" class="kiosk-btn kiosk-btn--amber kiosk-btn--lg">
-                                    ⏸ Iniciar pausa
-                                </button>
-
-                                <div class="kiosk-divider">
-                                    <span class="kiosk-divider-label">¿Terminaste?</span>
-                                </div>
-
-                                <button @click="openClockOutConfirm" class="kiosk-btn kiosk-btn--danger">
-                                    ⏹ Finalizar jornada
-                                </button>
-                            </div>
-                            <div v-else class="kiosk-break-picker">
-                                <p class="kiosk-break-label">¿Qué tipo de pausa?</p>
-                                <div class="kiosk-break-grid">
-                                    <button
-                                        v-for="bt in breakTypes"
-                                        :key="bt.id"
-                                        @click="doStartBreak(bt.id)"
-                                        class="kiosk-break-btn"
-                                    >
-                                        <span class="kiosk-break-icon">{{ bt.icon ?? '⏸' }}</span>
-                                        {{ bt.name }}
-                                    </button>
-                                </div>
-                                <button @click="showBreakPicker = false" class="kiosk-btn kiosk-btn--ghost kiosk-btn--sm">
-                                    ← Volver
+                            <p v-if="breakTypes.length" class="kiosk-break-label">¿Vas a tomar un descanso?</p>
+                            <div v-if="breakTypes.length" class="kiosk-break-grid">
+                                <button
+                                    v-for="bt in breakTypes"
+                                    :key="bt.id"
+                                    @click="doStartBreak(bt.id)"
+                                    class="kiosk-break-btn"
+                                >
+                                    <span class="kiosk-break-icon">{{ bt.icon ?? '⏸' }}</span>
+                                    {{ bt.name }}
                                 </button>
                             </div>
+
+                            <div class="kiosk-divider">
+                                <span class="kiosk-divider-label">¿Terminaste?</span>
+                            </div>
+
+                            <button @click="openClockOutConfirm" class="kiosk-btn kiosk-btn--danger">
+                                ⏹ Finalizar jornada
+                            </button>
                         </template>
 
                         <!-- On break -->
