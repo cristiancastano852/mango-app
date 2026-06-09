@@ -52,16 +52,26 @@ class RecalculateTimeEntryTest extends TestCase
 
     private function addBreak(TimeEntry $entry, bool $isPaid): BreakEntry
     {
+        return $this->addBreakWith($entry, isPaid: $isPaid, durationMinutes: 60);
+    }
+
+    private function addBreakWith(
+        TimeEntry $entry,
+        bool $isPaid,
+        int $durationMinutes,
+        ?int $maxDurationMinutes = null,
+    ): BreakEntry {
         $type = BreakType::factory()->create([
             'company_id' => $this->company->id,
             'is_paid' => $isPaid,
+            'max_duration_minutes' => $maxDurationMinutes,
         ]);
 
         return BreakEntry::factory()->forTimeEntry($entry)->create([
             'break_type_id' => $type->id,
             'started_at' => '2026-06-01 12:00:00',
-            'ended_at' => '2026-06-01 13:00:00',
-            'duration_minutes' => 60,
+            'ended_at' => '2026-06-01 12:00:00',
+            'duration_minutes' => $durationMinutes,
         ]);
     }
 
@@ -102,6 +112,45 @@ class RecalculateTimeEntryTest extends TestCase
         $this->assertEquals(9.0, (float) $entry->gross_hours);
         $this->assertEquals(0.0, (float) $entry->break_hours);
         $this->assertEquals(9.0, (float) $entry->net_hours);
+    }
+
+    public function test_paid_break_with_cap_only_deducts_excess(): void
+    {
+        $entry = $this->makeEntry();
+        $this->addBreakWith($entry, isPaid: true, durationMinutes: 25, maxDurationMinutes: 15);
+
+        app(RecalculateTimeEntry::class)->execute($entry->fresh());
+
+        $entry->refresh();
+        $this->assertEquals(9.0, (float) $entry->gross_hours);
+        $this->assertEquals(round(10 / 60, 2), (float) $entry->break_hours);
+        $this->assertEquals(round(9 - 10 / 60, 2), (float) $entry->net_hours);
+    }
+
+    public function test_paid_break_within_cap_does_not_deduct(): void
+    {
+        $entry = $this->makeEntry();
+        $this->addBreakWith($entry, isPaid: true, durationMinutes: 15, maxDurationMinutes: 15);
+
+        app(RecalculateTimeEntry::class)->execute($entry->fresh());
+
+        $entry->refresh();
+        $this->assertEquals(0.0, (float) $entry->break_hours);
+        $this->assertEquals(9.0, (float) $entry->net_hours);
+    }
+
+    public function test_combination_of_breaks_accumulates_only_deductible_minutes(): void
+    {
+        $entry = $this->makeEntry();
+        $this->addBreakWith($entry, isPaid: false, durationMinutes: 30);
+        $this->addBreakWith($entry, isPaid: true, durationMinutes: 25, maxDurationMinutes: 15);
+        $this->addBreakWith($entry, isPaid: true, durationMinutes: 20, maxDurationMinutes: null);
+
+        app(RecalculateTimeEntry::class)->execute($entry->fresh());
+
+        $entry->refresh();
+        $this->assertEquals(round(40 / 60, 2), (float) $entry->break_hours);
+        $this->assertEquals(round(9 - 40 / 60, 2), (float) $entry->net_hours);
     }
 
     public function test_open_entry_without_clock_out_is_left_untouched(): void

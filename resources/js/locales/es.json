@@ -607,6 +607,7 @@
             "duration": "Duración",
             "paid": "Pagada",
             "unpaid": "No pagada",
+            "excess_deducted": "-{minutes} min descontados por exceso",
             "no_breaks": "Este turno no tiene pausas registradas.",
             "save": "Guardar pausa",
             "saving": "Guardando...",

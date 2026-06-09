@@ -2,6 +2,7 @@
 
 namespace App\Domain\TimeTracking\Actions;
 
+4use App\Domain\TimeTracking\Models\BreakEntry;
 use App\Domain\TimeTracking\Models\TimeEntry;
 use App\Models\User;
 
@@ -29,13 +30,13 @@ class RecalculateTimeEntry
 
         $grossHours = round($timeEntry->clock_in->diffInMinutes($timeEntry->clock_out) / 60, 2);
 
-        $breakHours = round(
-            $timeEntry->breaks()
-                ->whereNotNull('ended_at')
-                ->whereHas('breakType', fn ($query) => $query->where('is_paid', false))
-                ->sum('duration_minutes') / 60,
-            2,
-        );
+        $breakMinutes = $timeEntry->breaks()
+            ->whereNotNull('ended_at')
+            ->with('breakType')
+            ->get()
+            ->sum(fn (BreakEntry $break): int => $this->deductibleBreakMinutes($break));
+
+        $breakHours = round($breakMinutes / 60, 2);
 
         $netHours = round(max(0, $grossHours - $breakHours), 2);
 
@@ -53,5 +54,28 @@ class RecalculateTimeEntry
         $timeEntry->update(['status' => 'edited']);
 
         return $timeEntry->fresh();
+    }
+
+    /**
+     * Minutos de una pausa finalizada que descuentan del tiempo trabajado:
+     * - No pagada: su duración completa.
+     * - Pagada con tope: solo el exceso sobre max_duration_minutes.
+     * - Pagada sin tope: nada.
+     */
+    private function deductibleBreakMinutes(BreakEntry $break): int
+    {
+        $duration = (int) $break->duration_minutes;
+
+        if (! $break->breakType->is_paid) {
+            return $duration;
+        }
+
+        $cap = $break->breakType->max_duration_minutes;
+
+        if ($cap === null) {
+            return 0;
+        }
+
+        return max(0, $duration - (int) $cap);
     }
 }

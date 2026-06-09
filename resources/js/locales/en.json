@@ -607,6 +607,7 @@
             "duration": "Duration",
             "paid": "Paid",
             "unpaid": "Unpaid",
+            "excess_deducted": "-{minutes} min deducted as excess",
             "no_breaks": "This shift has no recorded breaks.",
             "save": "Save break",
             "saving": "Saving...",

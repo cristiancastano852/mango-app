@@ -103,6 +103,7 @@ class TimeEntryController extends Controller
                     'break_type_id' => $break->break_type_id,
                     'break_type_name' => $break->breakType?->name,
                     'is_paid' => (bool) $break->breakType?->is_paid,
+                    'max_duration_minutes' => $break->breakType?->max_duration_minutes,
                     'started_at' => $break->started_at?->format('Y-m-d\TH:i'),
                     'ended_at' => $break->ended_at?->format('Y-m-d\TH:i'),
                     'duration_minutes' => $break->duration_minutes,

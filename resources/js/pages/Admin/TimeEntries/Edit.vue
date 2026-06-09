@@ -33,6 +33,7 @@ type BreakRow = {
     break_type_id: number;
     break_type_name: string | null;
     is_paid: boolean;
+    max_duration_minutes: number | null;
     started_at: string | null;
     ended_at: string | null;
     duration_minutes: number | null;
@@ -153,6 +154,16 @@ function addBreak() {
 
 function isPaidType(typeId: string) {
     return props.breakTypes.find((bt) => String(bt.id) === typeId)?.is_paid ?? false;
+}
+
+function excessMinutes(breakId: number): number {
+    const row = props.entry.breaks.find((b) => b.id === breakId);
+
+    if (!row || !row.is_paid || row.max_duration_minutes === null || row.duration_minutes === null) {
+        return 0;
+    }
+
+    return Math.max(0, row.duration_minutes - row.max_duration_minutes);
 }
 </script>
 
@@ -293,9 +304,13 @@ function isPaidType(typeId: string) {
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center justify-end gap-2">
-                            <Badge variant="outline" class="mr-auto text-xs">
+                            <Badge variant="outline" class="text-xs">
                                 {{ isPaidType(b.break_type_id) ? t('time_entries.breaks.paid') : t('time_entries.breaks.unpaid') }}
                             </Badge>
+                            <Badge v-if="excessMinutes(b.id) > 0" variant="destructive" class="mr-auto text-xs">
+                                {{ t('time_entries.breaks.excess_deducted', { minutes: excessMinutes(b.id) }) }}
+                            </Badge>
+                            <span v-else class="mr-auto"></span>
                             <Button
                                 size="sm"
                                 variant="secondary"
