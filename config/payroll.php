@@ -12,10 +12,26 @@ return [
     | Cada empresa puede editarlo desde su configuración de recargos.
     |
     | SMLV 2026 Colombia: $1.750.905 (Decreto 0159 de 2026). No incluye el
-    | auxilio de transporte, que está fuera del alcance del cálculo de costo.
+    | auxilio de transporte, que se configura por separado (ver más abajo).
     |
     */
     'smlv_monthly' => (float) env('PAYROLL_SMLV_MONTHLY', 1750905),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Auxilio de transporte mensual
+    |--------------------------------------------------------------------------
+    |
+    | Valor por defecto del auxilio de transporte con el que se siembra la
+    | configuración de cada empresa nueva (surcharge_rules.transport_allowance).
+    | Cada empresa puede editarlo desde su configuración de recargos.
+    |
+    | Auxilio de transporte 2026 Colombia: $249.095 (Decretos 1469 y 1470 de
+    | 2025). Solo aplica a empleados con salario mensual (modo `monthly`) que lo
+    | reciben; se prorratea por periodo igual que el salario base.
+    |
+    */
+    'transport_allowance_monthly' => (float) env('PAYROLL_TRANSPORT_ALLOWANCE_MONTHLY', 249095),
 
     /*
     |--------------------------------------------------------------------------

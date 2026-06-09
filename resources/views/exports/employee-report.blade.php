@@ -109,6 +109,14 @@
                         <td class="text-right">${{ number_format($report['cost_summary']['base'] ?? 0, 0, ',', '.') }}</td>
                     </tr>
                     @endif
+                    @if (($report['cost_summary']['transport_allowance'] ?? 0) > 0)
+                    <tr>
+                        <td>Auxilio de transporte</td>
+                        <td class="text-right">&mdash;</td>
+                        <td class="text-right">&mdash;</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['transport_allowance'], 0, ',', '.') }}</td>
+                    </tr>
+                    @endif
                     <tr>
                         <td>Ordinarias</td>
                         <td class="text-right">{{ $report['totals']['regular_hours'] }}</td>

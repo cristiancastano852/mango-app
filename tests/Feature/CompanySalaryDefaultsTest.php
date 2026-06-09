@@ -48,4 +48,20 @@ class CompanySalaryDefaultsTest extends TestCase
         // 2.000.000 / 220 = 9090.91
         $this->assertEquals(9090.91, (float) $rules->default_hourly_rate);
     }
+
+    public function test_creating_a_company_seeds_transport_allowance_default(): void
+    {
+        config()->set('payroll.transport_allowance_monthly', 249095);
+
+        $company = Company::create([
+            'name' => 'Gamma SAS',
+            'slug' => 'gamma-sas',
+        ]);
+
+        $rules = SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $company->id)
+            ->firstOrFail();
+
+        $this->assertEquals(249095.0, (float) $rules->transport_allowance);
+    }
 }

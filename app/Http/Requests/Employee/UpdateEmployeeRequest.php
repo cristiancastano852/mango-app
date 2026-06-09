@@ -28,6 +28,7 @@ class UpdateEmployeeRequest extends FormRequest
             'hourly_rate' => ['nullable', 'numeric', 'min:0'],
             'salary_type' => ['nullable', 'in:hourly,monthly'],
             'monthly_base_salary' => ['nullable', 'numeric', 'min:0', 'required_if:salary_type,monthly'],
+            'receives_transport_allowance' => ['nullable', 'boolean'],
             'schedule_id' => ['nullable', 'exists:schedules,id'],
             // LOCATIONS FEATURE DISABLED — restore when the feature is re-enabled.
             // 'location_id' => ['nullable', 'exists:locations,id'],

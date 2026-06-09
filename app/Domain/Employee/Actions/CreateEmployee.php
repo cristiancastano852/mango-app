@@ -46,6 +46,10 @@ class CreateEmployee
                     ? ($data['monthly_base_salary'] ?? $defaults?->default_monthly_salary)
                     : ($data['monthly_base_salary'] ?? null),
                 'salary_type' => $salaryType,
+                // Solo aplica en modo monthly; default ON cuando no se especifica.
+                'receives_transport_allowance' => $salaryType === 'monthly'
+                    ? ($data['receives_transport_allowance'] ?? true)
+                    : false,
                 'schedule_id' => $data['schedule_id'] ?? $this->getDefaultScheduleId($companyId),
                 'location_id' => $data['location_id'] ?? null,
             ]);

@@ -232,6 +232,51 @@ class EmployeeControllerTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'missingbase@test.com']);
     }
 
+    public function test_new_monthly_employee_receives_transport_allowance_by_default(): void
+    {
+        $this->actingAs($this->adminUser)->post(route('employees.store'), [
+            'name' => 'Monthly Default',
+            'email' => 'monthlydefault@test.com',
+            'document_number' => '100000020',
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => 2000000,
+            'hourly_rate' => 8000,
+        ]);
+
+        $employee = Employee::whereHas('user', fn ($q) => $q->where('email', 'monthlydefault@test.com'))->first();
+        $this->assertTrue($employee->receives_transport_allowance);
+    }
+
+    public function test_new_hourly_employee_does_not_receive_transport_allowance(): void
+    {
+        $this->actingAs($this->adminUser)->post(route('employees.store'), [
+            'name' => 'Hourly No Allowance',
+            'email' => 'hourlyna@test.com',
+            'document_number' => '100000021',
+            'salary_type' => 'hourly',
+            'hourly_rate' => 10000,
+        ]);
+
+        $employee = Employee::whereHas('user', fn ($q) => $q->where('email', 'hourlyna@test.com'))->first();
+        $this->assertFalse($employee->receives_transport_allowance);
+    }
+
+    public function test_admin_can_disable_transport_allowance_for_monthly_employee(): void
+    {
+        $this->actingAs($this->adminUser)->post(route('employees.store'), [
+            'name' => 'Monthly Off',
+            'email' => 'monthlyoff@test.com',
+            'document_number' => '100000022',
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => 2000000,
+            'hourly_rate' => 8000,
+            'receives_transport_allowance' => false,
+        ]);
+
+        $employee = Employee::whereHas('user', fn ($q) => $q->where('email', 'monthlyoff@test.com'))->first();
+        $this->assertFalse($employee->receives_transport_allowance);
+    }
+
     public function test_store_prefills_hourly_rate_from_company_default(): void
     {
         // Sin hourly_rate explícito → toma el default sembrado de la empresa (SMLV/220 = 7958.66).
