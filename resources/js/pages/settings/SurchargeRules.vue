@@ -28,6 +28,7 @@ type SurchargeRule = {
     night_end_time: string;
     default_monthly_salary: string;
     default_hourly_rate: string;
+    transport_allowance: string;
 };
 
 defineProps<{ rule: SurchargeRule }>();
@@ -110,6 +111,22 @@ const fields: { name: keyof SurchargeRule; label: string; isInt?: boolean }[] = 
                                     class="mt-1 block w-full"
                                 />
                                 <InputError :message="errors.default_hourly_rate" />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="transport_allowance">Auxilio de transporte ($)</Label>
+                                <Input
+                                    id="transport_allowance"
+                                    name="transport_allowance"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    :default-value="rule.transport_allowance"
+                                    class="mt-1 block w-full"
+                                />
+                                <p class="text-xs text-muted-foreground">
+                                    Se suma al pago de los empleados con salario mensual que lo reciben, prorrateado por periodo.
+                                </p>
+                                <InputError :message="errors.transport_allowance" />
                             </div>
                         </div>
                     </div>

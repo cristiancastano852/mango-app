@@ -32,6 +32,7 @@ class UpdateSurchargeRuleRequest extends FormRequest
             'night_end_time' => ['required', 'date_format:H:i'],
             'default_monthly_salary' => ['required', 'numeric', 'min:0'],
             'default_hourly_rate' => ['required', 'numeric', 'min:0'],
+            'transport_allowance' => ['required', 'numeric', 'min:0'],
         ];
 
         // Admin can only target their own company; super-admin must explicitly supply which company.
@@ -61,6 +62,9 @@ class UpdateSurchargeRuleRequest extends FormRequest
             'default_monthly_salary.numeric' => 'El salario base mensual por defecto debe ser numérico.',
             'default_hourly_rate.required' => 'El valor hora por defecto es obligatorio.',
             'default_hourly_rate.numeric' => 'El valor hora por defecto debe ser numérico.',
+            'transport_allowance.required' => 'El auxilio de transporte es obligatorio.',
+            'transport_allowance.numeric' => 'El auxilio de transporte debe ser numérico.',
+            'transport_allowance.min' => 'El auxilio de transporte no puede ser negativo.',
             'company_id.in' => 'No puedes modificar la configuración de otra empresa.',
         ];
     }

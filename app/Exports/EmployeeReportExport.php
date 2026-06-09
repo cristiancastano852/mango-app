@@ -65,6 +65,10 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
             $rows[] = ['Salario base del periodo', '', '', $costs['base'] ?? 0];
         }
 
+        if (($costs['transport_allowance'] ?? 0) > 0) {
+            $rows[] = ['Auxilio de transporte', '', '', $costs['transport_allowance']];
+        }
+
         $rows = array_merge($rows, [
             ['Horas ordinarias', $totals['regular_hours'], ($surcharges['regular']['surcharge'] ?? 0).'%', $costs['regular']],
             ['Horas nocturnas', $totals['night_hours'], ($surcharges['night']['surcharge'] ?? 35).'%', $costs['night']],

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Company\Models\Company;
+use App\Domain\Company\Models\SurchargeRule;
 use App\Domain\Employee\Models\Employee;
 use App\Domain\TimeTracking\Actions\GenerateEmployeeReport;
 use App\Domain\TimeTracking\Models\BreakEntry;
@@ -558,17 +559,81 @@ class GenerateEmployeeReportTest extends TestCase
         $this->assertEquals(533333.33, $result['cost_summary']['total']);
     }
 
-    private function makeMonthlyEmployee(float $monthlyBaseSalary, float $hourlyRate): Employee
+    public function test_monthly_employee_with_flag_on_gets_prorated_transport_allowance(): void
+    {
+        $this->setCompanyTransportAllowance(240000);
+        $employee = $this->makeMonthlyEmployee(2000000, 8000, receivesTransportAllowance: true);
+
+        foreach (['2026-03-02', '2026-03-03', '2026-03-04'] as $date) {
+            $this->createMonthlyEntry($employee, $date, regular: 8.0);
+        }
+
+        $result = $this->action->execute(
+            $employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        // Quincena completa → medio auxilio: 240.000 / 2 = 120.000.
+        $this->assertEquals(120000.0, $result['cost_summary']['transport_allowance']);
+        // total = base (1.000.000) + auxilio (120.000).
+        $this->assertEquals(1000000.0 + 120000.0, $result['cost_summary']['total']);
+    }
+
+    public function test_monthly_employee_with_flag_off_gets_no_transport_allowance(): void
+    {
+        $this->setCompanyTransportAllowance(240000);
+        $employee = $this->makeMonthlyEmployee(2000000, 8000, receivesTransportAllowance: false);
+
+        $this->createMonthlyEntry($employee, '2026-03-02', regular: 8.0);
+
+        $result = $this->action->execute(
+            $employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        $this->assertEquals(0.0, $result['cost_summary']['transport_allowance']);
+        $this->assertEquals(1000000.0, $result['cost_summary']['total']);
+    }
+
+    public function test_hourly_employee_never_gets_transport_allowance(): void
+    {
+        $this->setCompanyTransportAllowance(240000);
+
+        // El empleado por hora del setUp (flag default true) no debe recibir auxilio.
+        $this->createMonthlyEntry($this->employee, '2026-03-02', regular: 8.0);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        $this->assertEquals(0.0, $result['cost_summary']['transport_allowance']);
+    }
+
+    private function setCompanyTransportAllowance(float $value): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['transport_allowance' => $value]);
+    }
+
+    private function makeMonthlyEmployee(float $monthlyBaseSalary, float $hourlyRate, bool $receivesTransportAllowance = false): Employee
     {
         $user = User::factory()->create(['company_id' => $this->company->id]);
         $user->assignRole('employee');
 
+        // El auxilio se desactiva por defecto en este helper para que las pruebas de
+        // prorrateo de salario base midan solo la base; las pruebas de auxilio lo activan.
         return Employee::create([
             'user_id' => $user->id,
             'company_id' => $this->company->id,
             'salary_type' => 'monthly',
             'monthly_base_salary' => $monthlyBaseSalary,
             'hourly_rate' => $hourlyRate,
+            'receives_transport_allowance' => $receivesTransportAllowance,
         ]);
     }
 

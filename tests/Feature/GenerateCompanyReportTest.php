@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Company\Models\Company;
+use App\Domain\Company\Models\SurchargeRule;
 use App\Domain\Employee\Models\Employee;
 use App\Domain\Organization\Models\Department;
 use App\Domain\TimeTracking\Actions\GenerateCompanyReport;
@@ -40,7 +41,12 @@ class GenerateCompanyReportTest extends TestCase
             'slug' => 'test-co',
         ]);
 
-        // CompanyObserver ya crea SurchargeRule automáticamente
+        // CompanyObserver ya crea SurchargeRule automáticamente. Se anula el auxilio de
+        // transporte por defecto para que las pruebas de base/horas midan solo eso; la
+        // prueba de auxilio lo activa explícitamente.
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['transport_allowance' => 0]);
 
         $this->deptA = Department::withoutGlobalScopes()->create([
             'company_id' => $this->company->id,
@@ -334,6 +340,58 @@ class GenerateCompanyReportTest extends TestCase
 
         $this->assertCount(0, $result['employees']);
         $this->assertEquals(0.0, $result['cost_summary']['total']);
+    }
+
+    public function test_company_report_aggregates_transport_allowance_only_for_receiving_monthly_employees(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['transport_allowance' => 240000]);
+
+        // Mensual que SÍ recibe auxilio.
+        $userA = User::factory()->create(['company_id' => $this->company->id]);
+        $userA->assignRole('employee');
+        $receiving = Employee::create([
+            'user_id' => $userA->id,
+            'company_id' => $this->company->id,
+            'department_id' => $this->deptA->id,
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => 2000000,
+            'hourly_rate' => 8000,
+            'receives_transport_allowance' => true,
+        ]);
+        $this->createEntryForEmployee($receiving, $this->company->id, '2026-03-05', 8.0, 8.0, 0.0);
+
+        // Mensual que NO recibe auxilio.
+        $userB = User::factory()->create(['company_id' => $this->company->id]);
+        $userB->assignRole('employee');
+        $notReceiving = Employee::create([
+            'user_id' => $userB->id,
+            'company_id' => $this->company->id,
+            'department_id' => $this->deptA->id,
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => 2000000,
+            'hourly_rate' => 8000,
+            'receives_transport_allowance' => false,
+        ]);
+        $this->createEntryForEmployee($notReceiving, $this->company->id, '2026-03-06', 8.0, 8.0, 0.0);
+
+        // Por horas: nunca recibe auxilio aunque el flag esté en true.
+        $this->createEntry($this->employee1, '2026-03-07', 8.0, 8.0, 0.0);
+
+        $result = $this->action->execute(
+            $this->company->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        // Solo el empleado receptor suma auxilio: quincena completa → 240.000 / 2 = 120.000.
+        $this->assertEquals(120000.0, $result['cost_summary']['transport_allowance']);
+
+        $byId = collect($result['employees'])->keyBy('employee_id');
+        $this->assertEquals(120000.0, $byId[$receiving->id]['transport_allowance']);
+        $this->assertEquals(0.0, $byId[$notReceiving->id]['transport_allowance']);
+        $this->assertEquals(0.0, $byId[$this->employee1->id]['transport_allowance']);
     }
 
     private function createEntry(Employee $employee, string $date, float $netHours, float $regularHours, float $nightHours): void

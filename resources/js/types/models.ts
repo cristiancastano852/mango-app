@@ -57,6 +57,7 @@ export type Employee = {
     hourly_rate: string | null;
     monthly_base_salary: string | null;
     salary_type: string;
+    receives_transport_allowance: boolean;
     schedule_id: number | null;
     location_id: number | null;
     user: User;

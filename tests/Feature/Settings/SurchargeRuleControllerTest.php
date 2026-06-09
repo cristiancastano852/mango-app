@@ -66,7 +66,46 @@ class SurchargeRuleControllerTest extends TestCase
             'night_end_time' => '06:00',
             'default_monthly_salary' => 1750905,
             'default_hourly_rate' => 7958.66,
+            'transport_allowance' => 249095,
         ], $overrides);
+    }
+
+    public function test_admin_can_update_transport_allowance(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['transport_allowance' => 260000]),
+        );
+
+        $response->assertRedirect(route('surcharge-rules.edit'));
+
+        $rule = SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->first();
+
+        $this->assertEquals(260000.0, (float) $rule->transport_allowance);
+    }
+
+    public function test_transport_allowance_cannot_be_negative(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['transport_allowance' => -1]),
+        );
+
+        $response->assertSessionHasErrors('transport_allowance');
+    }
+
+    public function test_admin_cannot_update_transport_allowance_of_another_company(): void
+    {
+        $otherCompany = Company::create(['name' => 'Other Co', 'slug' => 'other-co']);
+
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['company_id' => $otherCompany->id, 'transport_allowance' => 999999]),
+        );
+
+        $response->assertSessionHasErrors('company_id');
     }
 
     public function test_admin_can_update_salary_defaults(): void
@@ -155,6 +194,7 @@ class SurchargeRuleControllerTest extends TestCase
             'max_daily_hours',
             'night_start_time',
             'night_end_time',
+            'transport_allowance',
         ]);
     }
 

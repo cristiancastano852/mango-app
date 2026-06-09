@@ -18,6 +18,7 @@ class CompanyObserver
             'company_id' => $company->id,
             'default_monthly_salary' => $smlv,
             'default_hourly_rate' => round($smlv / $divisor, 2),
+            'transport_allowance' => (float) config('payroll.transport_allowance_monthly'),
         ]);
         (new ColombianHolidaysSeeder)->seedForCompany($company->id);
         (new SeedDefaultBreakTypes)->execute($company);

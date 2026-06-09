@@ -428,4 +428,67 @@ class CalculateReportCostsTest extends TestCase
         $this->assertEquals(80000.0, $result['total']);
         $this->assertEquals('hourly', $result['salary_type']);
     }
+
+    // ----------------------------------------------------------------------------------
+    // Auxilio de transporte: solo en modo monthly, se suma plano al total como concepto
+    // propio. No es base de recargos/extras ni se multiplica por horas.
+    // ----------------------------------------------------------------------------------
+
+    public function test_monthly_transport_allowance_adds_to_total(): void
+    {
+        // Quincena: base 875.452,5 + medio auxilio 124.547,5.
+        $result = $this->calculator->execute(8000, [
+            'regular_hours' => 96.0,
+        ], $this->rules, salaryType: 'monthly', baseSalary: 875452.5, transportAllowance: 124547.5);
+
+        $this->assertEquals(124547.5, $result['transport_allowance']);
+        $this->assertEquals(875452.5 + 124547.5, $result['total']);
+    }
+
+    public function test_transport_allowance_does_not_multiply_by_hours_or_affect_surcharges(): void
+    {
+        // El auxilio entra plano: recargos y extras no se ven alterados por su presencia.
+        $withAllowance = $this->calculator->execute(8000, [
+            'regular_hours' => 90.0,
+            'night_hours' => 10.0,
+            'overtime_day_hours' => 5.0,
+        ], $this->rules, salaryType: 'monthly', baseSalary: 1000000.0, transportAllowance: 124547.5);
+
+        $withoutAllowance = $this->calculator->execute(8000, [
+            'regular_hours' => 90.0,
+            'night_hours' => 10.0,
+            'overtime_day_hours' => 5.0,
+        ], $this->rules, salaryType: 'monthly', baseSalary: 1000000.0, transportAllowance: 0.0);
+
+        // Recargos y extras idénticos con o sin auxilio.
+        $this->assertEquals($withoutAllowance['night'], $withAllowance['night']);
+        $this->assertEquals($withoutAllowance['overtime_day'], $withAllowance['overtime_day']);
+        // La única diferencia en el total es exactamente el auxilio plano.
+        $this->assertEquals($withoutAllowance['total'] + 124547.5, $withAllowance['total']);
+    }
+
+    public function test_hourly_mode_ignores_transport_allowance(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'regular_hours' => 8.0,
+        ], $this->rules, salaryType: 'hourly', baseSalary: 0.0, transportAllowance: 999999.0);
+
+        $this->assertEquals(0.0, $result['transport_allowance']);
+        $this->assertEquals(80000.0, $result['total']);
+    }
+
+    public function test_transport_allowance_is_not_affected_by_pay_overtime_flag(): void
+    {
+        // payOvertime=false anula las extras pero NO el auxilio.
+        $result = $this->calculator->execute(8000, [
+            'regular_hours' => 90.0,
+            'overtime_day_hours' => 5.0,
+        ], $this->rules, payOvertime: false, salaryType: 'monthly', baseSalary: 1000000.0, transportAllowance: 124547.5);
+
+        $this->assertFalse($result['pay_overtime']);
+        $this->assertEquals(0.0, $result['overtime_day']);
+        $this->assertEquals(124547.5, $result['transport_allowance']);
+        // base + auxilio, sin extras.
+        $this->assertEquals(1000000.0 + 124547.5, $result['total']);
+    }
 }

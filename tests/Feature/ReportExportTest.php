@@ -335,4 +335,80 @@ class ReportExportTest extends TestCase
         $response->assertOk();
         $response->assertHeader('content-type', 'application/pdf');
     }
+
+    // --- Transport allowance row ---
+
+    public function test_employee_excel_includes_transport_allowance_row(): void
+    {
+        $report = [
+            'employee' => ['name' => 'Ana', 'department' => null, 'position' => null],
+            'period' => ['start' => '2026-03-01', 'end' => '2026-03-15'],
+            'totals' => $this->zeroTotals(),
+            'cost_summary' => $this->monthlyCostSummary(transportAllowance: 120000.0),
+            'breaks_by_type' => [],
+        ];
+
+        $rows = (new \App\Exports\EmployeeReportSummarySheet($report))->array();
+
+        $allowanceRow = collect($rows)->first(fn ($r) => ($r[0] ?? null) === 'Auxilio de transporte');
+        $this->assertNotNull($allowanceRow);
+        $this->assertEquals(120000.0, $allowanceRow[3]);
+    }
+
+    public function test_employee_excel_omits_transport_allowance_row_when_zero(): void
+    {
+        $report = [
+            'employee' => ['name' => 'Ana', 'department' => null, 'position' => null],
+            'period' => ['start' => '2026-03-01', 'end' => '2026-03-15'],
+            'totals' => $this->zeroTotals(),
+            'cost_summary' => $this->monthlyCostSummary(transportAllowance: 0.0),
+            'breaks_by_type' => [],
+        ];
+
+        $rows = (new \App\Exports\EmployeeReportSummarySheet($report))->array();
+
+        $this->assertNull(collect($rows)->first(fn ($r) => ($r[0] ?? null) === 'Auxilio de transporte'));
+    }
+
+    public function test_company_excel_includes_transport_allowance_row(): void
+    {
+        $report = [
+            'period' => ['start' => '2026-03-01', 'end' => '2026-03-15'],
+            'totals' => array_merge($this->zeroTotals(), ['total_employees' => 1, 'total_days_worked' => 1]),
+            'cost_summary' => $this->monthlyCostSummary(transportAllowance: 120000.0),
+        ];
+
+        $rows = (new \App\Exports\CompanyReportSummarySheet($report))->array();
+
+        $allowanceRow = collect($rows)->first(fn ($r) => ($r[0] ?? null) === 'Auxilio de transporte (total)');
+        $this->assertNotNull($allowanceRow);
+        $this->assertEquals(120000.0, $allowanceRow[1]);
+    }
+
+    /**
+     * @return array<string, float|int>
+     */
+    private function zeroTotals(): array
+    {
+        return [
+            'days_worked' => 0, 'gross_hours' => 0, 'break_hours' => 0, 'net_hours' => 0,
+            'regular_hours' => 0, 'night_hours' => 0, 'sunday_holiday_hours' => 0, 'night_sunday_hours' => 0,
+            'overtime_day_hours' => 0, 'overtime_night_hours' => 0, 'overtime_day_sunday_hours' => 0, 'overtime_night_sunday_hours' => 0,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function monthlyCostSummary(float $transportAllowance): array
+    {
+        return [
+            'regular' => 0, 'night' => 0, 'sunday_holiday' => 0, 'night_sunday' => 0,
+            'overtime_day' => 0, 'overtime_night' => 0, 'overtime_day_sunday' => 0, 'overtime_night_sunday' => 0,
+            'base' => 1000000.0, 'transport_allowance' => $transportAllowance,
+            'total' => 1000000.0 + $transportAllowance,
+            'salary_type' => 'monthly', 'pay_overtime' => true,
+            'details' => [],
+        ];
+    }
 }

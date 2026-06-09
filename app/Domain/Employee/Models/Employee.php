@@ -36,6 +36,7 @@ class Employee extends Model
         'hourly_rate',
         'monthly_base_salary',
         'salary_type',
+        'receives_transport_allowance',
         'schedule_id',
         'location_id',
     ];
@@ -46,6 +47,7 @@ class Employee extends Model
             'hire_date' => 'date',
             'hourly_rate' => 'decimal:2',
             'monthly_base_salary' => 'decimal:2',
+            'receives_transport_allowance' => 'boolean',
         ];
     }
 

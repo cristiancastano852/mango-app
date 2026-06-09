@@ -27,6 +27,7 @@ class SurchargeRule extends Model
         'night_end_time',
         'default_monthly_salary',
         'default_hourly_rate',
+        'transport_allowance',
     ];
 
     protected function casts(): array
@@ -43,6 +44,7 @@ class SurchargeRule extends Model
             'max_daily_hours' => 'integer',
             'default_monthly_salary' => 'decimal:2',
             'default_hourly_rate' => 'decimal:2',
+            'transport_allowance' => 'decimal:2',
         ];
     }
 
