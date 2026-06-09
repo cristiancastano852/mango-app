@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import SurchargeRuleController from '@/actions/App/Http/Controllers/Settings/SurchargeRuleController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -22,15 +23,15 @@ type SurchargeRule = {
     overtime_night_sunday: string;
     night_sunday: string;
     pay_overtime_by_default: boolean;
-    max_weekly_hours: number;
-    max_daily_hours: number;
+    max_weekly_minutes: number;
+    max_daily_minutes: number;
     night_start_time: string;
     night_end_time: string;
     default_monthly_salary: string;
     default_hourly_rate: string;
 };
 
-defineProps<{ rule: SurchargeRule }>();
+const props = defineProps<{ rule: SurchargeRule }>();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -47,9 +48,20 @@ const fields: { name: keyof SurchargeRule; label: string; isInt?: boolean }[] = 
     { name: 'overtime_day_sunday', label: 'Hora extra diurna dominical (%)' },
     { name: 'overtime_night_sunday', label: 'Hora extra nocturna dominical (%)' },
     { name: 'night_sunday', label: 'Nocturna dominical (%)' },
-    { name: 'max_weekly_hours', label: 'Máx. horas semanales', isInt: true },
-    { name: 'max_daily_hours', label: 'Máx. horas diarias ordinarias', isInt: true },
 ];
+
+// Los límites se guardan en minutos pero se capturan como Horas + Minutos.
+const dailyHours = ref(Math.floor(props.rule.max_daily_minutes / 60));
+const dailyMinutes = ref(props.rule.max_daily_minutes % 60);
+const weeklyHours = ref(Math.floor(props.rule.max_weekly_minutes / 60));
+const weeklyMinutes = ref(props.rule.max_weekly_minutes % 60);
+
+const maxDailyMinutes = computed(
+    () => (Number(dailyHours.value) || 0) * 60 + (Number(dailyMinutes.value) || 0),
+);
+const maxWeeklyMinutes = computed(
+    () => (Number(weeklyHours.value) || 0) * 60 + (Number(weeklyMinutes.value) || 0),
+);
 </script>
 
 <template>
@@ -130,6 +142,67 @@ const fields: { name: keyof SurchargeRule; label: string; isInt?: boolean }[] = 
                             class="mt-1 block w-full"
                         />
                         <InputError :message="errors[field.name]" />
+                    </div>
+
+                    <div class="space-y-4 rounded-lg border p-4">
+                        <div class="space-y-0.5">
+                            <Label class="text-base">Límites de horas ordinarias</Label>
+                            <p class="max-w-prose text-sm text-muted-foreground">
+                                Jornada antes de clasificar el resto como horas extra. Admite minutos (ej. 7 h 20 min).
+                            </p>
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label>Máx. diario ordinario</Label>
+                            <div class="flex items-center gap-2">
+                                <Input
+                                    v-model="dailyHours"
+                                    type="number"
+                                    min="0"
+                                    max="24"
+                                    class="w-20"
+                                    aria-label="Horas diarias"
+                                />
+                                <span class="text-sm text-muted-foreground">h</span>
+                                <Input
+                                    v-model="dailyMinutes"
+                                    type="number"
+                                    min="0"
+                                    max="59"
+                                    class="w-20"
+                                    aria-label="Minutos diarios"
+                                />
+                                <span class="text-sm text-muted-foreground">min</span>
+                            </div>
+                            <input type="hidden" name="max_daily_minutes" :value="maxDailyMinutes" />
+                            <InputError :message="errors.max_daily_minutes" />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label>Máx. semanal ordinario</Label>
+                            <div class="flex items-center gap-2">
+                                <Input
+                                    v-model="weeklyHours"
+                                    type="number"
+                                    min="0"
+                                    max="168"
+                                    class="w-20"
+                                    aria-label="Horas semanales"
+                                />
+                                <span class="text-sm text-muted-foreground">h</span>
+                                <Input
+                                    v-model="weeklyMinutes"
+                                    type="number"
+                                    min="0"
+                                    max="59"
+                                    class="w-20"
+                                    aria-label="Minutos semanales"
+                                />
+                                <span class="text-sm text-muted-foreground">min</span>
+                            </div>
+                            <input type="hidden" name="max_weekly_minutes" :value="maxWeeklyMinutes" />
+                            <InputError :message="errors.max_weekly_minutes" />
+                        </div>
                     </div>
 
                     <div class="grid gap-2">

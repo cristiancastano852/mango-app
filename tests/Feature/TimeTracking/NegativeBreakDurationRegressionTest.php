@@ -61,8 +61,8 @@ class NegativeBreakDurationRegressionTest extends TestCase
             ->update([
                 'night_start_time' => '19:00',
                 'night_end_time' => '06:00',
-                'max_daily_hours' => 8,
-                'max_weekly_hours' => 42,
+                'max_daily_minutes' => 480,
+                'max_weekly_minutes' => 2520,
             ]);
 
         $this->user = User::factory()->create(['company_id' => $this->company->id]);
