@@ -58,8 +58,8 @@ class CalculateWorkHours
             ->whereNotNull('clock_out')
             ->sum('net_hours') * 60;
 
-        $weeklyLimitMinutes = ($rules?->max_weekly_hours ?? 42) * 60;
-        $dailyLimitMinutes = ($rules?->max_daily_hours ?? 8) * 60;
+        $weeklyLimitMinutes = $rules?->max_weekly_minutes ?? 2520;
+        $dailyLimitMinutes = $rules?->max_daily_minutes ?? 480;
 
         $nightStartTime = $rules?->night_start_time ?? '21:00';
         $nightEndTime = $rules?->night_end_time ?? '06:00';

@@ -141,7 +141,7 @@ class WorkHourCalculationTest extends TestCase
     {
         // Same week (Mon–Thu Mar 2-5): 4 × 10h = 40h prior
         // With 42h limit → Friday Mar 6 shift 4h: first 2h regular, last 2h overtime
-        $this->rules->update(['max_weekly_hours' => 42]);
+        $this->rules->update(['max_weekly_minutes' => 2520]);
 
         foreach (['2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05'] as $date) {
             TimeEntry::create([
@@ -166,7 +166,7 @@ class WorkHourCalculationTest extends TestCase
 
     public function test_all_overtime_when_exceeds_weekly_limit(): void
     {
-        $this->rules->update(['max_weekly_hours' => 42]);
+        $this->rules->update(['max_weekly_minutes' => 2520]);
 
         // Same week (Mon–Thu Mar 2-5): 4 × 11h = 44h prior > 42h limit
         foreach (['2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05'] as $date) {
@@ -256,7 +256,7 @@ class WorkHourCalculationTest extends TestCase
     {
         // Mon–Sun: 7h/day × 6 days = 42h prior (hits weekly limit exactly)
         // Sunday 7th day: any hours should be overtime (weekly exhausted)
-        $this->rules->update(['max_weekly_hours' => 42, 'max_daily_hours' => 8]);
+        $this->rules->update(['max_weekly_minutes' => 2520, 'max_daily_minutes' => 480]);
 
         foreach (['2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05', '2026-03-06', '2026-03-07'] as $date) {
             TimeEntry::create([
@@ -286,7 +286,7 @@ class WorkHourCalculationTest extends TestCase
         // Prior weekly: 40h (Mon-Thu, 10h each). Prior daily for Friday: 0.
         // Friday shift 08:00-14:00 = 6h: weekly triggers at 2h, daily limit 8h is never reached.
         // Total overtime = 4h (2h regular until weekly exhausted, then 4h OT).
-        $this->rules->update(['max_weekly_hours' => 42, 'max_daily_hours' => 8]);
+        $this->rules->update(['max_weekly_minutes' => 2520, 'max_daily_minutes' => 480]);
 
         foreach (['2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05'] as $date) {
             TimeEntry::create([
@@ -314,12 +314,12 @@ class WorkHourCalculationTest extends TestCase
 
     public function test_midnight_crossing_shift_resets_daily_counter(): void
     {
-        // Shift: Monday 22:00 – Tuesday 10:00 (12h net), max_daily_hours = 8
+        // Shift: Monday 22:00 – Tuesday 10:00 (12h net), max_daily_minutes = 480
         // Monday portion: 22:00–00:00 = 2h (all night, daily counter goes 0→2h)
         // Tuesday portion: 00:00–10:00 = 10h. Counter resets to 0 at midnight.
         //   Daily limit hit at 08:00 (0+8h). So: 8h night (00:00–06:00 + 06:00–08:00), 2h OT (08:00–10:00)
         // Net result: 2h night (Mon) + 6h night (Tue pre-dawn) + 2h regular (Tue 06–08) + 2h OT (Tue 08–10)
-        $this->rules->update(['max_daily_hours' => 8, 'max_weekly_hours' => 42]);
+        $this->rules->update(['max_daily_minutes' => 480, 'max_weekly_minutes' => 2520]);
 
         $entry = $this->createEntry('2026-03-02 22:00', '2026-03-03 10:00');
 
@@ -339,7 +339,7 @@ class WorkHourCalculationTest extends TestCase
     public function test_custom_daily_limit_is_respected(): void
     {
         // Company configured 10h daily limit. 12h shift → 10h regular + 2h overtime.
-        $this->rules->update(['max_daily_hours' => 10]);
+        $this->rules->update(['max_daily_minutes' => 600]);
 
         $entry = $this->createEntry('2026-03-02 06:00', '2026-03-02 18:00');
 
@@ -347,6 +347,20 @@ class WorkHourCalculationTest extends TestCase
 
         $this->assertEquals(10.00, (float) $result->regular_hours);
         $this->assertEquals(2.00, (float) $result->overtime_day_hours);
+    }
+
+    public function test_daily_limit_with_minutes_defines_breakpoint(): void
+    {
+        // Company configured 7h20m (440 min) daily limit. 8h day shift → 7h20m regular + 40m overtime.
+        $this->rules->update(['max_daily_minutes' => 440]);
+
+        $entry = $this->createEntry('2026-03-02 06:00', '2026-03-02 14:00');
+
+        $result = app(CalculateWorkHours::class)->execute($entry);
+
+        // 440 min = 7.333… h regular; 40 min = 0.667… h overtime diurno.
+        $this->assertEqualsWithDelta(7.33, (float) $result->regular_hours, 0.01);
+        $this->assertEqualsWithDelta(0.67, (float) $result->overtime_day_hours, 0.01);
     }
 
     public function test_clock_out_integration_stores_calculated_hours(): void
@@ -558,7 +572,7 @@ class WorkHourCalculationTest extends TestCase
     {
         // Caso 6.2: lun-jue 4 × 10h = 40h. Viernes 20:00–02:00 sáb, restante semanal = 2h
         // 20:00–21:00 = 1h ordinaria, 21:00–22:00 = 1h nocturna (semanal agotado), 22:00–00:00 = 2h overtime_night, 00:00–02:00 = 2h night
-        $this->rules->update(['max_weekly_hours' => 42, 'max_daily_hours' => 8]);
+        $this->rules->update(['max_weekly_minutes' => 2520, 'max_daily_minutes' => 480]);
 
         foreach (['2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05'] as $date) {
             TimeEntry::create([
@@ -589,7 +603,7 @@ class WorkHourCalculationTest extends TestCase
     public function test_weekly_limit_exhausted_on_sunday_produces_overtime_day_sunday(): void
     {
         // Caso 6.3: lun-sáb 40h acumuladas. Domingo 08:00–12:00 → 2h sunday_holiday + 2h overtime_day_sunday
-        $this->rules->update(['max_weekly_hours' => 42, 'max_daily_hours' => 8]);
+        $this->rules->update(['max_weekly_minutes' => 2520, 'max_daily_minutes' => 480]);
 
         foreach (['2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05', '2026-03-06', '2026-03-07'] as $date) {
             TimeEntry::create([

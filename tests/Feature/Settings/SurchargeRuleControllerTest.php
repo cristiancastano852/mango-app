@@ -60,8 +60,8 @@ class SurchargeRuleControllerTest extends TestCase
             'overtime_night_sunday' => 150,
             'night_sunday' => 110,
             'pay_overtime_by_default' => true,
-            'max_weekly_hours' => 42,
-            'max_daily_hours' => 8,
+            'max_weekly_minutes' => 2520,
+            'max_daily_minutes' => 480,
             'night_start_time' => '21:00',
             'night_end_time' => '06:00',
             'default_monthly_salary' => 1750905,
@@ -154,7 +154,7 @@ class SurchargeRuleControllerTest extends TestCase
     {
         $response = $this->actingAs($this->adminUser)->put(
             route('surcharge-rules.update'),
-            $this->validPayload(['night_surcharge' => 40, 'max_weekly_hours' => 40]),
+            $this->validPayload(['night_surcharge' => 40, 'max_weekly_minutes' => 2400]),
         );
 
         $response->assertRedirect(route('surcharge-rules.edit'));
@@ -164,7 +164,7 @@ class SurchargeRuleControllerTest extends TestCase
             ->first();
 
         $this->assertEquals(40, (float) $rule->night_surcharge);
-        $this->assertEquals(40, $rule->max_weekly_hours);
+        $this->assertEquals(2400, $rule->max_weekly_minutes);
     }
 
     public function test_employee_cannot_update_surcharge_rules(): void
@@ -190,8 +190,8 @@ class SurchargeRuleControllerTest extends TestCase
             'overtime_night_sunday',
             'night_sunday',
             'pay_overtime_by_default',
-            'max_weekly_hours',
-            'max_daily_hours',
+            'max_weekly_minutes',
+            'max_daily_minutes',
             'night_start_time',
             'night_end_time',
             'transport_allowance',
@@ -237,7 +237,7 @@ class SurchargeRuleControllerTest extends TestCase
             'night_start_time' => '22:00',
             'night_end_time' => '05:00',
             'night_surcharge' => 35,
-            'max_weekly_hours' => 42,
+            'max_weekly_minutes' => 2520,
         ]);
     }
 
@@ -296,65 +296,104 @@ class SurchargeRuleControllerTest extends TestCase
         $response->assertSessionHasErrors('night_start_time');
     }
 
-    public function test_admin_can_update_max_daily_hours(): void
+    public function test_admin_can_update_daily_limit_with_minutes(): void
     {
+        // 7h20m = 440 min.
         $response = $this->actingAs($this->adminUser)->put(
             route('surcharge-rules.update'),
-            $this->validPayload(['max_daily_hours' => 10]),
+            $this->validPayload(['max_daily_minutes' => 440]),
         );
 
         $response->assertRedirect(route('surcharge-rules.edit'));
 
         $this->assertDatabaseHas('surcharge_rules', [
             'company_id' => $this->company->id,
-            'max_daily_hours' => 10,
+            'max_daily_minutes' => 440,
         ]);
     }
 
-    public function test_max_daily_hours_rejects_zero(): void
+    public function test_max_daily_minutes_rejects_zero(): void
     {
         $response = $this->actingAs($this->adminUser)->put(
             route('surcharge-rules.update'),
-            $this->validPayload(['max_daily_hours' => 0]),
+            $this->validPayload(['max_daily_minutes' => 0]),
         );
 
-        $response->assertSessionHasErrors('max_daily_hours');
+        $response->assertSessionHasErrors('max_daily_minutes');
     }
 
-    public function test_max_daily_hours_rejects_value_above_24(): void
+    public function test_max_daily_minutes_rejects_value_above_1440(): void
     {
         $response = $this->actingAs($this->adminUser)->put(
             route('surcharge-rules.update'),
-            $this->validPayload(['max_daily_hours' => 25]),
+            $this->validPayload(['max_daily_minutes' => 1441]),
         );
 
-        $response->assertSessionHasErrors('max_daily_hours');
+        $response->assertSessionHasErrors('max_daily_minutes');
     }
 
-    public function test_max_daily_hours_rejects_decimal(): void
+    public function test_max_daily_minutes_rejects_decimal(): void
     {
         $response = $this->actingAs($this->adminUser)->put(
             route('surcharge-rules.update'),
-            $this->validPayload(['max_daily_hours' => 8.5]),
+            $this->validPayload(['max_daily_minutes' => 440.5]),
         );
 
-        $response->assertSessionHasErrors('max_daily_hours');
+        $response->assertSessionHasErrors('max_daily_minutes');
     }
 
-    public function test_max_daily_hours_accepts_boundary_values(): void
+    public function test_max_daily_minutes_accepts_boundary_values(): void
     {
         $response = $this->actingAs($this->adminUser)->put(
             route('surcharge-rules.update'),
-            $this->validPayload(['max_daily_hours' => 1]),
+            $this->validPayload(['max_daily_minutes' => 1]),
         );
 
         $response->assertRedirect(route('surcharge-rules.edit'));
 
         $response = $this->actingAs($this->adminUser)->put(
             route('surcharge-rules.update'),
-            $this->validPayload(['max_daily_hours' => 24]),
+            $this->validPayload(['max_daily_minutes' => 1440]),
         );
 
         $response->assertRedirect(route('surcharge-rules.edit'));
+    }
+
+    public function test_admin_can_update_weekly_limit_with_minutes(): void
+    {
+        // 44h30m = 2670 min.
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['max_weekly_minutes' => 2670]),
+        );
+
+        $response->assertRedirect(route('surcharge-rules.edit'));
+
+        $this->assertDatabaseHas('surcharge_rules', [
+            'company_id' => $this->company->id,
+            'max_weekly_minutes' => 2670,
+        ]);
+    }
+
+    public function test_max_weekly_minutes_rejects_value_above_10080(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['max_weekly_minutes' => 10081]),
+        );
+
+        $response->assertSessionHasErrors('max_weekly_minutes');
+    }
+
+    public function test_admin_cannot_update_limits_of_another_company(): void
+    {
+        $otherCompany = Company::create(['name' => 'Other Co', 'slug' => 'other-co']);
+
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['company_id' => $otherCompany->id, 'max_daily_minutes' => 999]),
+        );
+
+        $response->assertSessionHasErrors('company_id');
     }
 }

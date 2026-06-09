@@ -27,7 +27,7 @@ class CalculateReportCostsTest extends TestCase
             'overtime_day_sunday' => 100,
             'overtime_night_sunday' => 150,
             'night_sunday' => 110,
-            'max_weekly_hours' => 42,
+            'max_weekly_minutes' => 2520,
         ]);
     }
 
