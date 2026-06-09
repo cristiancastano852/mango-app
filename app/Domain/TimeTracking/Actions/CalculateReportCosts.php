@@ -19,7 +19,12 @@ class CalculateReportCosts
      *                  porcentaje: `horas × tarifa × (recargo% / 100)`.
      *                · las 4 horas extra suman el valor COMPLETO: `horas × tarifa × (1 + recargo%)`,
      *                  porque están fuera de la jornada que cubre el salario base.
-     *                · el `total` incluye además el salario base prorrateado del periodo (`$baseSalary`).
+     *                · el `total` incluye además el salario base prorrateado del periodo (`$baseSalary`)
+     *                  y el auxilio de transporte prorrateado del periodo (`$transportAllowance`).
+     *
+     * El auxilio de transporte se suma plano al total como concepto propio: NO es base de
+     * recargos ni de horas extra y NUNCA se multiplica por horas. Solo aplica en modo `monthly`;
+     * en modo `hourly` se ignora aunque se pase un valor.
      *
      * Cuando $payOvertime es false, las 4 categorías de hora extra se cobran en 0,
      * se excluyen del total y se marcan como compensated (las horas no se modifican). Aplica en ambos modos.
@@ -28,9 +33,10 @@ class CalculateReportCosts
      * @param  array{regular_hours: float, night_hours: float, sunday_holiday_hours: float, night_sunday_hours: float, overtime_day_hours: float, overtime_night_hours: float, overtime_day_sunday_hours: float, overtime_night_sunday_hours: float}  $hourTotals
      * @param  string  $salaryType  `hourly` | `monthly`
      * @param  float  $baseSalary  Salario base prorrateado del periodo (solo se suma en modo `monthly`)
-     * @return array{regular: float, night: float, sunday_holiday: float, night_sunday: float, overtime_day: float, overtime_night: float, overtime_day_sunday: float, overtime_night_sunday: float, base: float, total: float, salary_type: string, pay_overtime: bool, details: list<array{type: string, hours: float, rate: float, surcharge: float, subtotal: float, compensated: bool}>}
+     * @param  float  $transportAllowance  Auxilio de transporte prorrateado del periodo (solo se suma en modo `monthly`)
+     * @return array{regular: float, night: float, sunday_holiday: float, night_sunday: float, overtime_day: float, overtime_night: float, overtime_day_sunday: float, overtime_night_sunday: float, base: float, transport_allowance: float, total: float, salary_type: string, pay_overtime: bool, details: list<array{type: string, hours: float, rate: float, surcharge: float, subtotal: float, compensated: bool}>}
      */
-    public function execute(float $hourlyRate, array $hourTotals, SurchargeRule $rules, bool $payOvertime = true, string $salaryType = 'hourly', float $baseSalary = 0.0): array
+    public function execute(float $hourlyRate, array $hourTotals, SurchargeRule $rules, bool $payOvertime = true, string $salaryType = 'hourly', float $baseSalary = 0.0, float $transportAllowance = 0.0): array
     {
         $regularHours = (float) ($hourTotals['regular_hours'] ?? 0);
         $nightHours = (float) ($hourTotals['night_hours'] ?? 0);
@@ -43,6 +49,7 @@ class CalculateReportCosts
 
         $isMonthly = $salaryType === 'monthly';
         $baseSalary = $isMonthly ? $baseSalary : 0.0;
+        $transportAllowance = $isMonthly ? $transportAllowance : 0.0;
 
         // En modo monthly los recargos suman solo el porcentaje (la hora base ya está en el salario);
         // en modo hourly suman el valor completo (1 + recargo%).
@@ -61,7 +68,7 @@ class CalculateReportCosts
         $overtimeDaySundayCost = $payOvertime ? $overtimeDaySundayHours * $hourlyRate * (1 + (float) $rules->overtime_day_sunday / 100) : 0.0;
         $overtimeNightSundayCost = $payOvertime ? $overtimeNightSundayHours * $hourlyRate * (1 + (float) $rules->overtime_night_sunday / 100) : 0.0;
 
-        $totalCost = $baseSalary + $regularCost + $nightCost + $sundayHolidayCost + $nightSundayCost
+        $totalCost = $baseSalary + $transportAllowance + $regularCost + $nightCost + $sundayHolidayCost + $nightSundayCost
             + $overtimeDayCost + $overtimeNightCost + $overtimeDaySundayCost + $overtimeNightSundayCost;
 
         $overtimeCompensated = ! $payOvertime;
@@ -76,6 +83,7 @@ class CalculateReportCosts
             'overtime_day_sunday' => round($overtimeDaySundayCost, 2),
             'overtime_night_sunday' => round($overtimeNightSundayCost, 2),
             'base' => round($baseSalary, 2),
+            'transport_allowance' => round($transportAllowance, 2),
             'total' => round($totalCost, 2),
             'salary_type' => $salaryType,
             'pay_overtime' => $payOvertime,

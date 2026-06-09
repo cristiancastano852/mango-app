@@ -69,6 +69,7 @@ type Report = {
         overtime_day_sunday: number;
         overtime_night_sunday: number;
         base: number;
+        transport_allowance: number;
         total: number;
         pay_overtime: boolean;
     };
@@ -195,6 +196,7 @@ onMounted(async () => {
         const cs = props.report.cost_summary;
         const allCosts = [
             { value: cs.base, label: t('reports.costs.base_salary'), color: '#10b981' },
+            { value: cs.transport_allowance, label: t('reports.costs.transport_allowance'), color: '#14b8a6' },
             { value: cs.regular, label: t('reports.hours.regular'), color: '#3b82f6' },
             { value: cs.night, label: t('reports.hours.night'), color: '#6366f1' },
             { value: cs.sunday_holiday, label: t('reports.hours.sunday_holiday'), color: '#ef4444' },

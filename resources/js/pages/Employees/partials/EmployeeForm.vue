@@ -7,6 +7,7 @@ import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -36,6 +37,7 @@ type Props = {
         hourly_rate: string;
         salary_type: string;
         monthly_base_salary?: string;
+        receives_transport_allowance?: boolean;
         // TODO: Schedules feature temporarily disabled — restore schedule_id when resuming
         // schedule_id: string;
         // LOCATIONS FEATURE DISABLED — restore location_id when re-enabling.
@@ -176,6 +178,18 @@ const showPasswordText = ref(false);
                 <Label for="monthly_base_salary">{{ t('employees.form.monthly_base_salary') }}</Label>
                 <Input id="monthly_base_salary" v-model="form.monthly_base_salary" type="number" step="0.01" min="0" />
                 <InputError :message="form.errors.monthly_base_salary" />
+            </div>
+            <div v-if="form.salary_type === 'monthly'" class="flex items-start gap-3">
+                <Checkbox
+                    id="receives_transport_allowance"
+                    v-model="form.receives_transport_allowance"
+                    class="mt-0.5"
+                />
+                <div class="space-y-1">
+                    <Label for="receives_transport_allowance">{{ t('employees.form.receives_transport_allowance') }}</Label>
+                    <p class="text-muted-foreground text-xs">{{ t('employees.form.receives_transport_allowance_hint') }}</p>
+                    <InputError :message="form.errors.receives_transport_allowance" />
+                </div>
             </div>
             <div class="space-y-2">
                 <Label for="hourly_rate">{{ t('employees.form.hourly_rate') }}</Label>

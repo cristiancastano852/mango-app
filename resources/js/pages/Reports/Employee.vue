@@ -78,6 +78,7 @@ type Report = {
         overtime_day_sunday: number;
         overtime_night_sunday: number;
         base: number;
+        transport_allowance: number;
         total: number;
         salary_type: string;
         pay_overtime: boolean;
@@ -649,6 +650,48 @@ function hourTypeLabel(type: string): string {
                                             {{
                                                 formatCurrency(
                                                     report.cost_summary.base,
+                                                )
+                                            }}
+                                        </td>
+                                    </tr>
+                                    <tr
+                                        v-if="
+                                            (report.cost_summary
+                                                .transport_allowance ?? 0) > 0
+                                        "
+                                        class="bg-emerald-50/60 dark:bg-emerald-950/20"
+                                    >
+                                        <td class="py-2 font-medium">
+                                            <div
+                                                class="flex items-center gap-2"
+                                            >
+                                                <DollarSign
+                                                    class="size-3.5 text-emerald-600 dark:text-emerald-400"
+                                                />
+                                                {{
+                                                    t(
+                                                        'reports.costs.transport_allowance',
+                                                    )
+                                                }}
+                                            </div>
+                                        </td>
+                                        <td
+                                            class="py-2 text-right text-muted-foreground"
+                                        >
+                                            —
+                                        </td>
+                                        <td
+                                            class="hidden py-2 text-right text-muted-foreground sm:table-cell"
+                                        >
+                                            —
+                                        </td>
+                                        <td
+                                            class="py-2 text-right font-medium text-emerald-700 dark:text-emerald-400"
+                                        >
+                                            {{
+                                                formatCurrency(
+                                                    report.cost_summary
+                                                        .transport_allowance,
                                                 )
                                             }}
                                         </td>

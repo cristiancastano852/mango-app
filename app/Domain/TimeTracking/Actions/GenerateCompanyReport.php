@@ -58,6 +58,7 @@ class GenerateCompanyReport
             'overtime_day_sunday' => 0.0,
             'overtime_night_sunday' => 0.0,
             'base' => 0.0,
+            'transport_allowance' => 0.0,
             'total' => 0.0,
         ];
 
@@ -65,6 +66,10 @@ class GenerateCompanyReport
             $salaryType = $emp->salary_type ?? 'hourly';
             $baseSalary = $salaryType === 'monthly'
                 ? $this->baseSalaryCalculator->execute((float) $emp->monthly_base_salary, $startDate, $endDate)
+                : 0.0;
+
+            $transportAllowance = $salaryType === 'monthly' && $emp->receives_transport_allowance
+                ? $this->baseSalaryCalculator->execute((float) $rules->transport_allowance, $startDate, $endDate)
                 : 0.0;
 
             $cost = $this->costCalculator->execute(
@@ -83,6 +88,7 @@ class GenerateCompanyReport
                 $payOvertime,
                 $salaryType,
                 $baseSalary,
+                $transportAllowance,
             );
 
             $totalCost['regular'] += $cost['regular'];
@@ -94,6 +100,7 @@ class GenerateCompanyReport
             $totalCost['overtime_day_sunday'] += $cost['overtime_day_sunday'];
             $totalCost['overtime_night_sunday'] += $cost['overtime_night_sunday'];
             $totalCost['base'] += $cost['base'];
+            $totalCost['transport_allowance'] += $cost['transport_allowance'];
             $totalCost['total'] += $cost['total'];
 
             return [
@@ -104,6 +111,7 @@ class GenerateCompanyReport
                 'salary_type' => $salaryType,
                 'monthly_base_salary' => $emp->monthly_base_salary !== null ? (float) $emp->monthly_base_salary : null,
                 'base' => $cost['base'],
+                'transport_allowance' => $cost['transport_allowance'],
                 'days_worked' => (int) $emp->days_worked,
                 'gross_hours' => round((float) $emp->total_gross, 2),
                 'net_hours' => round((float) $emp->total_net, 2),
@@ -154,7 +162,7 @@ class GenerateCompanyReport
             ->whereNull('time_entries.deleted_at')
             ->whereNotNull('time_entries.clock_out')
             ->when($departmentId, fn ($q) => $q->where('employees.department_id', $departmentId))
-            ->groupBy('employees.id', 'users.name', 'employees.hourly_rate', 'employees.salary_type', 'employees.monthly_base_salary', 'departments.name')
+            ->groupBy('employees.id', 'users.name', 'employees.hourly_rate', 'employees.salary_type', 'employees.monthly_base_salary', 'employees.receives_transport_allowance', 'departments.name')
             ->selectRaw('
                 employees.id as employee_id,
                 users.name as employee_name,
@@ -162,6 +170,7 @@ class GenerateCompanyReport
                 employees.hourly_rate,
                 employees.salary_type,
                 employees.monthly_base_salary,
+                employees.receives_transport_allowance,
                 COUNT(*) as days_worked,
                 COALESCE(SUM(time_entries.gross_hours), 0) as total_gross,
                 COALESCE(SUM(time_entries.break_hours), 0) as total_breaks,
@@ -204,7 +213,8 @@ class GenerateCompanyReport
                 departments.name as department_name,
                 employees.hourly_rate,
                 employees.salary_type,
-                employees.monthly_base_salary
+                employees.monthly_base_salary,
+                employees.receives_transport_allowance
             ')
             ->get()
             ->map(fn ($e) => (object) [
@@ -214,6 +224,7 @@ class GenerateCompanyReport
                 'hourly_rate' => $e->hourly_rate,
                 'salary_type' => $e->salary_type,
                 'monthly_base_salary' => $e->monthly_base_salary,
+                'receives_transport_allowance' => $e->receives_transport_allowance,
                 'days_worked' => 0,
                 'total_gross' => 0,
                 'total_breaks' => 0,

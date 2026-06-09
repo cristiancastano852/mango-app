@@ -33,6 +33,7 @@ class EmployeeFactory extends Factory
             'hourly_rate' => 10000,
             'monthly_base_salary' => null,
             'salary_type' => 'hourly',
+            'receives_transport_allowance' => true,
         ];
     }
 

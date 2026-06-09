@@ -253,7 +253,9 @@
             "save": "Save",
             "saving": "Saving...",
             "monthly_base_salary": "Monthly base salary (COP)",
-            "hourly_rate_hint": "Used for surcharges and overtime in both modes."
+            "hourly_rate_hint": "Used for surcharges and overtime in both modes.",
+            "receives_transport_allowance": "Receives transport allowance",
+            "receives_transport_allowance_hint": "Added to pay, prorated per period. Monthly salary only."
         }
     },
     "time_clock": {
@@ -438,7 +440,8 @@
             "subtotal": "Subtotal",
             "total": "Total",
             "base_salary": "Base salary for the period",
-            "base_salary_hint": "Covers ordinary hours"
+            "base_salary_hint": "Covers ordinary hours",
+            "transport_allowance": "Transport allowance"
         },
         "overtime_payment": {
             "label": "Pay overtime",

@@ -253,7 +253,9 @@
             "save": "Guardar",
             "saving": "Guardando...",
             "monthly_base_salary": "Salario base mensual (COP)",
-            "hourly_rate_hint": "Usado para recargos y horas extra en ambos modos."
+            "hourly_rate_hint": "Usado para recargos y horas extra en ambos modos.",
+            "receives_transport_allowance": "Recibe auxilio de transporte",
+            "receives_transport_allowance_hint": "Se suma al pago, prorrateado por periodo. Solo aplica a salario mensual."
         }
     },
     "time_clock": {
@@ -438,7 +440,8 @@
             "subtotal": "Subtotal",
             "total": "Total",
             "base_salary": "Salario base del periodo",
-            "base_salary_hint": "Cubre las horas ordinarias"
+            "base_salary_hint": "Cubre las horas ordinarias",
+            "transport_allowance": "Auxilio de transporte"
         },
         "overtime_payment": {
             "label": "Pagar horas extra",

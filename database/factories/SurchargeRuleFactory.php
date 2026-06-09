@@ -35,6 +35,7 @@ class SurchargeRuleFactory extends Factory
             'night_end_time' => '06:00',
             'default_monthly_salary' => $smlv,
             'default_hourly_rate' => round($smlv / $divisor, 2),
+            'transport_allowance' => (float) config('payroll.transport_allowance_monthly'),
         ];
     }
 }

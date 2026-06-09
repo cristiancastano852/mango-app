@@ -54,6 +54,12 @@ class GenerateEmployeeReport
             ? $this->baseSalaryCalculator->execute((float) $employee->monthly_base_salary, $startDate, $endDate)
             : 0.0;
 
+        // El auxilio se prorratea con el mismo mes comercial que el salario base, solo en
+        // modo monthly y cuando el empleado lo recibe.
+        $transportAllowance = $salaryType === 'monthly' && $employee->receives_transport_allowance
+            ? $this->baseSalaryCalculator->execute((float) $rules->transport_allowance, $startDate, $endDate)
+            : 0.0;
+
         $costSummary = $this->costCalculator->execute(
             (float) $employee->hourly_rate,
             [
@@ -70,6 +76,7 @@ class GenerateEmployeeReport
             $payOvertime,
             $salaryType,
             $baseSalary,
+            $transportAllowance,
         );
 
         return [

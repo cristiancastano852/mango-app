@@ -38,6 +38,7 @@ const form = useForm({
     hourly_rate: props.defaultHourlyRate ?? '',
     salary_type: 'monthly',
     monthly_base_salary: props.defaultMonthlySalary ?? '',
+    receives_transport_allowance: true,
     // LOCATIONS FEATURE DISABLED — restore location_id when re-enabling.
     // location_id: '',
 });
