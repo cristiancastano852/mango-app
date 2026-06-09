@@ -507,32 +507,6 @@ Cálculo del límite diario del martes:
 
 ---
 
-### Caso 7.3 – Exceso de pausa pagada: cómo se reparte el descuento entre tipos de hora *(ejemplo del usuario)*
-
-Una pausa **pagada** con tope (`max_duration_minutes`) solo descuenta su **exceso** sobre el tope (ver `RecalculateTimeEntry::deductibleBreakMinutes()`):
-
-```
-no pagada        → descuenta su duración completa
-pagada con tope  → descuenta max(0, duración − tope)
-pagada sin tope  → no descuenta nada
-```
-
-**Turno:** 12:00–22:00 (inicio nocturno configurado a las 18:00 en esta empresa)
-**Pausa pagada con tope de 1h, el empleado tomó 2h** → exceso descontado = 1h
-**Horas brutas:** 10h · **Horas netas:** 9h · **net_ratio:** 9/10 = 0.9
-
-| Segmento | Tipo | Horas brutas | × net_ratio | Horas netas pagadas |
-|----------|------|--------------|-------------|---------------------|
-| 12:00–18:00 | Diurna | 6h | × 0.9 | **5.4h** |
-| 18:00–22:00 | Nocturna | 4h | × 0.9 | **3.6h** |
-| **Total** | | **10h** | | **9h** |
-
-> **La hora descontada NO sale de un solo tipo de hora.** Se reparte proporcionalmente vía `net_ratio` (`CalculateWorkHours.php`): 60% del turno era diurno → 0.6h del descuento salió de las diurnas; 40% nocturno → 0.4h salió de las nocturnas. El empleado **no** pierde "1 hora diurna" ni "1 hora nocturna": pierde un pedazo proporcional de cada tipo.
-
-> **Limitación conocida (decisión de diseño, se deja así por ahora):** el algoritmo **no considera la hora real en que ocurrió la pausa**. Aunque el almuerzo haya sido 12:00–14:00 (puro horario diurno), el descuento se prorratea igual sobre diurnas Y nocturnas, no solo sobre las diurnas. Lo mismo aplica a overtime, dominical y festivo: todos los buckets se escalan por el mismo `net_ratio`. El feature de descuento de exceso solo cambió *cuánto* se descuenta, no *cómo se reparte* (el prorrateo ya existía para pausas no pagadas). Cambiar esto a "descontar del tipo de hora donde realmente ocurrió la pausa" sería un rediseño mayor del clasificador.
-
----
-
 ## Grupo 8 — Edge cases
 
 ### Caso 8.1 – Exactamente en el límite diario (sin extras)
