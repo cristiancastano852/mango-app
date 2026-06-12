@@ -414,14 +414,14 @@
         },
         "hours": {
             "title": "Desglose de Horas",
-            "regular": "Ordinarias",
-            "night": "Nocturnas",
-            "sunday_holiday": "Dom/Festivas",
-            "night_sunday": "Noc. Dominicales",
-            "overtime_day": "Extra Diurnas",
-            "overtime_night": "Extra Nocturnas",
-            "overtime_day_sunday": "Extra Dom Diurnas",
-            "overtime_night_sunday": "Extra Dom Nocturnas"
+            "regular": "Ordinarias diurnas",
+            "night": "Recargo nocturno",
+            "sunday_holiday": "Recargo dominical/festivo",
+            "night_sunday": "Recargo nocturno dominical/festivo",
+            "overtime_day": "Extra diurna",
+            "overtime_night": "Extra nocturna",
+            "overtime_day_sunday": "Extra diurna dominical/festivo",
+            "overtime_night_sunday": "Extra nocturna dominical/festivo"
         },
         "breaks": {
             "title": "Desglose de Pausas",

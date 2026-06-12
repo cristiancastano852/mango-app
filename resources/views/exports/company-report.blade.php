@@ -82,22 +82,22 @@
                     </tr>
                     @endif
                     <tr>
-                        <td>Ordinarias</td>
+                        <td>Ordinarias diurnas</td>
                         <td class="text-right">{{ $report['totals']['regular_hours'] }}</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['regular'], 0, ',', '.') }}</td>
                     </tr>
                     <tr>
-                        <td>Nocturnas</td>
+                        <td>Recargo nocturno</td>
                         <td class="text-right">{{ $report['totals']['night_hours'] }}</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['night'], 0, ',', '.') }}</td>
                     </tr>
                     <tr>
-                        <td>Noc. Dominicales</td>
+                        <td>Recargo nocturno dominical/festivo</td>
                         <td class="text-right">{{ $report['totals']['night_sunday_hours'] }}</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['night_sunday'], 0, ',', '.') }}</td>
                     </tr>
                     <tr>
-                        <td>Extra Diurnas</td>
+                        <td>Extra diurna</td>
                         <td class="text-right">{{ $report['totals']['overtime_day_hours'] }}</td>
                         <td class="text-right">
                             ${{ number_format($report['cost_summary']['overtime_day'], 0, ',', '.') }}
@@ -105,7 +105,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Extra Nocturnas</td>
+                        <td>Extra nocturna</td>
                         <td class="text-right">{{ $report['totals']['overtime_night_hours'] }}</td>
                         <td class="text-right">
                             ${{ number_format($report['cost_summary']['overtime_night'], 0, ',', '.') }}
@@ -113,7 +113,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Extra Dom Diurnas</td>
+                        <td>Extra diurna dominical/festivo</td>
                         <td class="text-right">{{ $report['totals']['overtime_day_sunday_hours'] }}</td>
                         <td class="text-right">
                             ${{ number_format($report['cost_summary']['overtime_day_sunday'], 0, ',', '.') }}
@@ -121,7 +121,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Extra Dom Nocturnas</td>
+                        <td>Extra nocturna dominical/festivo</td>
                         <td class="text-right">{{ $report['totals']['overtime_night_sunday_hours'] }}</td>
                         <td class="text-right">
                             ${{ number_format($report['cost_summary']['overtime_night_sunday'], 0, ',', '.') }}
@@ -129,7 +129,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Dom/Festivas</td>
+                        <td>Recargo dominical/festivo</td>
                         <td class="text-right">{{ $report['totals']['sunday_holiday_hours'] }}</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['sunday_holiday'], 0, ',', '.') }}</td>
                     </tr>

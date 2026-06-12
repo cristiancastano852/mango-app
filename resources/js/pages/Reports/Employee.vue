@@ -589,20 +589,20 @@ function hourTypeLabel(type: string): string {
                             <table class="w-full text-sm">
                                 <thead>
                                     <tr
-                                        class="border-b text-left text-xs text-muted-foreground"
+                                        class="border-b text-left text-base font-bold tracking-wide text-foreground uppercase"
                                     >
-                                        <th class="pb-2">
+                                        <th class="py-3">
                                             {{ t('reports.costs.hour_type') }}
                                         </th>
-                                        <th class="pb-2 text-right">
+                                        <th class="py-3 text-right">
                                             {{ t('reports.costs.hours') }}
                                         </th>
                                         <th
-                                            class="hidden pb-2 text-right sm:table-cell"
+                                            class="hidden py-3 text-right sm:table-cell"
                                         >
                                             {{ t('reports.costs.surcharge') }}
                                         </th>
-                                        <th class="pb-2 text-right">
+                                        <th class="py-3 text-right">
                                             {{ t('reports.costs.subtotal') }}
                                         </th>
                                     </tr>
