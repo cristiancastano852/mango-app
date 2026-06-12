@@ -650,5 +650,24 @@
             "field_admin_email": "Correo del administrador",
             "create_submit": "Crear empresa"
         }
+    },
+    "daily_work": {
+        "title": "Detalle diario",
+        "days_worked": "{count} días trabajados",
+        "col_day": "Día",
+        "col_schedule": "Horario",
+        "col_worked": "Trabajado",
+        "col_breaks": "Descansos",
+        "not_worked": "No laborado",
+        "in_progress": "En curso",
+        "holiday_badge": "Dom/Festivo",
+        "breaks_title": "Pausas del día",
+        "hour_types_title": "Tipos de hora",
+        "break_paid": "Pagada",
+        "break_unpaid": "No pagada",
+        "break_in_progress": "En curso",
+        "no_breaks": "Sin pausas registradas",
+        "total": "Total",
+        "empty": "Sin días para mostrar en este período"
     }
 }

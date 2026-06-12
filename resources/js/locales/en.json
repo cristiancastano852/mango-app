@@ -650,5 +650,24 @@
             "field_admin_email": "Administrator email",
             "create_submit": "Create company"
         }
+    },
+    "daily_work": {
+        "title": "Daily detail",
+        "days_worked": "{count} days worked",
+        "col_day": "Day",
+        "col_schedule": "Schedule",
+        "col_worked": "Worked",
+        "col_breaks": "Breaks",
+        "not_worked": "Not worked",
+        "in_progress": "In progress",
+        "holiday_badge": "Sun/Holiday",
+        "breaks_title": "Breaks of the day",
+        "hour_types_title": "Hour types",
+        "break_paid": "Paid",
+        "break_unpaid": "Unpaid",
+        "break_in_progress": "In progress",
+        "no_breaks": "No breaks recorded",
+        "total": "Total",
+        "empty": "No days to show in this period"
     }
 }

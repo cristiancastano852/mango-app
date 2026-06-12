@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Domain\Company\Models\Company;
 use App\Domain\Employee\Models\Employee;
 use App\Domain\Organization\Models\Department;
+use App\Domain\TimeTracking\Actions\GenerateEmployeeReport;
 use App\Domain\TimeTracking\Models\TimeEntry;
+use App\Exports\EmployeeReportExport;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -127,6 +129,64 @@ class ReportExportTest extends TestCase
         ]));
         $pdf->assertOk();
         $pdf->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_employee_excel_daily_sheet_has_schedule_and_excludes_in_progress(): void
+    {
+        // Turno abierto en otro día del mismo mes: no debe aparecer en el detalle diario.
+        $openDate = now()->day === 1 ? now()->addDay() : now()->subDay();
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => $openDate->toDateString(),
+            'clock_in' => $openDate->copy()->setTime(8, 0),
+            'clock_out' => null,
+            'gross_hours' => 0,
+            'break_hours' => 0,
+            'net_hours' => 0,
+            'status' => 'pending',
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->startOfMonth(),
+            now()->endOfMonth(),
+        );
+
+        $dailyRows = (new EmployeeReportExport($report))->sheets()[1]->array();
+
+        $this->assertCount(1, $dailyRows);
+        $this->assertEquals(now()->toDateString(), $dailyRows[0][0]);
+        $this->assertEquals('8:00 AM', $dailyRows[0][1]);
+        $this->assertEquals('5:00 PM', $dailyRows[0][2]);
+    }
+
+    public function test_employee_pdf_view_has_schedule_and_excludes_in_progress(): void
+    {
+        $openDate = now()->day === 1 ? now()->addDay() : now()->subDay();
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => $openDate->toDateString(),
+            'clock_in' => $openDate->copy()->setTime(8, 0),
+            'clock_out' => null,
+            'gross_hours' => 0,
+            'break_hours' => 0,
+            'net_hours' => 0,
+            'status' => 'pending',
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->startOfMonth(),
+            now()->endOfMonth(),
+        );
+
+        $html = view('exports.employee-report', ['report' => $report])->render();
+
+        $this->assertStringContainsString('8:00 AM', $html);
+        $this->assertStringContainsString('5:00 PM', $html);
+        $this->assertStringNotContainsString($openDate->toDateString(), $html);
     }
 
     // --- Employee PDF ---

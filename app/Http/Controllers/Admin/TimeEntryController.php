@@ -18,7 +18,12 @@ class TimeEntryController extends Controller
 {
     public function index(Request $request): Response
     {
-        $entries = TimeEntry::with(['employee.user', 'editedBy'])
+        $entries = TimeEntry::with([
+            'employee.user',
+            'editedBy',
+            'breaks' => fn ($q) => $q->orderBy('started_at'),
+            'breaks.breakType',
+        ])
             ->when($request->input('employee_id'), fn ($q, $id) => $q->where('employee_id', $id))
             ->when($request->input('date_from'), fn ($q, $from) => $q->whereDate('date', '>=', $from))
             ->when($request->input('date_to'), fn ($q, $to) => $q->whereDate('date', '<=', $to))
@@ -29,13 +34,16 @@ class TimeEntryController extends Controller
             ->through(fn (TimeEntry $entry) => [
                 'id' => $entry->id,
                 'date' => $entry->date,
-                'clock_in' => $entry->clock_in?->format('H:i'),
-                'clock_out' => $entry->clock_out?->format('H:i'),
+                'clock_in' => $entry->clock_in?->toIso8601String(),
+                'clock_out' => $entry->clock_out?->toIso8601String(),
+                'gross_hours' => $entry->gross_hours,
+                'break_hours' => $entry->break_hours,
                 'net_hours' => $entry->net_hours,
                 'status' => $entry->status,
                 'edit_reason' => $entry->edit_reason,
                 'employee' => $entry->employee,
                 'edited_by' => $entry->editedBy,
+                'breaks' => $entry->breaks->map(fn ($break) => $break->toDisplayArray()),
             ]);
 
         return Inertia::render('Admin/TimeEntries/Index', [

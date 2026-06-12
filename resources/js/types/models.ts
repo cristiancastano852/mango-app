@@ -114,6 +114,36 @@ export type TimeEntry = {
     breaks: BreakEntry[];
 };
 
+export type DailyBreak = {
+    name: string | null;
+    icon: string | null;
+    color: string | null;
+    is_paid: boolean;
+    started_at: string | null;
+    ended_at: string | null;
+    duration_minutes: number | null;
+    in_progress: boolean;
+};
+
+export type DailyWorkDay = {
+    date: string;
+    clock_in: string | null;
+    clock_out: string | null;
+    status: string;
+    gross_hours: number | null;
+    break_hours: number | null;
+    net_hours: number | null;
+    regular_hours: number | null;
+    night_hours: number | null;
+    sunday_holiday_hours: number | null;
+    night_sunday_hours: number | null;
+    overtime_day_hours: number | null;
+    overtime_night_hours: number | null;
+    overtime_day_sunday_hours: number | null;
+    overtime_night_sunday_hours: number | null;
+    breaks: DailyBreak[];
+};
+
 export type PaginatedData<T> = {
     data: T[];
     current_page: number;

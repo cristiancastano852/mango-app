@@ -19,6 +19,7 @@ import {
     exportEmployeeExcel,
     exportEmployeePdf,
 } from '@/actions/App/Http/Controllers/ReportController';
+import DailyWorkTable from '@/components/DailyWorkTable.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,7 +32,7 @@ import {
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDecimalHours } from '@/lib/utils';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, DailyWorkDay } from '@/types';
 import DateRangeFilter from './partials/DateRangeFilter.vue';
 import OvertimePaymentToggle from './partials/OvertimePaymentToggle.vue';
 
@@ -84,6 +85,7 @@ type Report = {
         pay_overtime: boolean;
         details: CostDetail[];
     };
+    daily_breakdown: DailyWorkDay[];
     period: { start: string; end: string };
 };
 
@@ -782,6 +784,13 @@ function hourTypeLabel(type: string): string {
                         </div>
                     </CardContent>
                 </Card>
+
+                <!-- Detalle diario del período -->
+                <DailyWorkTable
+                    :days="report.daily_breakdown"
+                    :period="report.period"
+                    fill-missing-days
+                />
             </template>
         </div>
     </AppLayout>

@@ -221,6 +221,7 @@
                 <thead>
                     <tr>
                         <th>Fecha</th>
+                        <th>Horario</th>
                         <th class="text-right">Brutas</th>
                         <th class="text-right">Pausas</th>
                         <th class="text-right">Netas</th>
@@ -232,8 +233,14 @@
                 </thead>
                 <tbody>
                     @foreach($report['daily_breakdown'] as $day)
+                    @continue(($day['status'] ?? null) === 'in_progress')
                     <tr>
                         <td>{{ $day['date'] }}</td>
+                        <td>
+                            {{ isset($day['clock_in']) ? \Carbon\Carbon::parse($day['clock_in'])->format('g:i A') : '—' }}
+                            –
+                            {{ isset($day['clock_out']) ? \Carbon\Carbon::parse($day['clock_out'])->format('g:i A') : '—' }}
+                        </td>
                         <td class="text-right">{{ $day['gross_hours'] }}</td>
                         <td class="text-right">{{ $day['break_hours'] }}</td>
                         <td class="text-right">{{ $day['net_hours'] }}</td>

@@ -53,4 +53,25 @@ class BreakEntry extends Model
     {
         return $this->belongsTo(BreakType::class);
     }
+
+    /**
+     * Shape único de una pausa para vistas y reportes (requiere breakType cargado).
+     *
+     * @return array{name: ?string, icon: ?string, color: ?string, is_paid: bool, started_at: ?string, ended_at: ?string, duration_minutes: ?int, in_progress: bool}
+     */
+    public function toDisplayArray(): array
+    {
+        $inProgress = $this->ended_at === null;
+
+        return [
+            'name' => $this->breakType?->name,
+            'icon' => $this->breakType?->icon,
+            'color' => $this->breakType?->color,
+            'is_paid' => (bool) $this->breakType?->is_paid,
+            'started_at' => $this->started_at?->toIso8601String(),
+            'ended_at' => $this->ended_at?->toIso8601String(),
+            'duration_minutes' => $inProgress ? null : (int) $this->duration_minutes,
+            'in_progress' => $inProgress,
+        ];
+    }
 }

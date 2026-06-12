@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Domain\Company\Models\Company;
 use App\Domain\Employee\Models\Employee;
 use App\Domain\Organization\Models\Department;
+use App\Domain\TimeTracking\Models\BreakEntry;
+use App\Domain\TimeTracking\Models\BreakType;
 use App\Domain\TimeTracking\Models\TimeEntry;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -70,7 +72,7 @@ class ReportControllerTest extends TestCase
 
     public function test_employee_report_returns_correct_data(): void
     {
-        TimeEntry::withoutGlobalScopes()->create([
+        $entry = TimeEntry::withoutGlobalScopes()->create([
             'employee_id' => $this->employee->id,
             'company_id' => $this->company->id,
             'date' => now()->toDateString(),
@@ -86,6 +88,26 @@ class ReportControllerTest extends TestCase
             'status' => 'calculated',
         ]);
 
+        $lunchType = BreakType::withoutGlobalScopes()->create([
+            'company_id' => $this->company->id,
+            'name' => 'Almuerzo',
+            'slug' => 'almuerzo',
+            'icon' => '🍽️',
+            'color' => '#FF9800',
+            'is_paid' => false,
+            'is_active' => true,
+        ]);
+
+        BreakEntry::withoutGlobalScopes()->create([
+            'time_entry_id' => $entry->id,
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'break_type_id' => $lunchType->id,
+            'started_at' => now()->setTime(12, 0),
+            'ended_at' => now()->setTime(13, 0),
+            'duration_minutes' => 60,
+        ]);
+
         $response = $this->actingAs($this->adminUser)->get(route('reports.employee', [
             'date_range' => 'month',
             'employee_id' => $this->employee->id,
@@ -97,11 +119,31 @@ class ReportControllerTest extends TestCase
             ->has('report')
             ->has('report.totals')
             ->has('report.cost_summary')
-            ->where('report.daily_breakdown', [])
             ->where('report.breaks_by_type', [])
             ->has('report.employee')
             ->has('filters')
             ->has('employees')
+            // El desglose diario llega completo a la vista, campo a campo.
+            ->has('report.daily_breakdown', 1)
+            ->where('report.daily_breakdown.0.date', now()->toDateString())
+            ->where('report.daily_breakdown.0.clock_in', now()->setTime(8, 0)->toIso8601String())
+            ->where('report.daily_breakdown.0.clock_out', now()->setTime(17, 0)->toIso8601String())
+            ->where('report.daily_breakdown.0.status', 'calculated')
+            // JSON serializa floats enteros como int (9.0 → 9).
+            ->where('report.daily_breakdown.0.gross_hours', 9)
+            ->where('report.daily_breakdown.0.break_hours', 1)
+            ->where('report.daily_breakdown.0.net_hours', 8)
+            ->where('report.daily_breakdown.0.regular_hours', 8)
+            ->where('report.daily_breakdown.0.night_hours', 0)
+            ->has('report.daily_breakdown.0.breaks', 1)
+            ->where('report.daily_breakdown.0.breaks.0.name', 'Almuerzo')
+            ->where('report.daily_breakdown.0.breaks.0.icon', '🍽️')
+            ->where('report.daily_breakdown.0.breaks.0.color', '#FF9800')
+            ->where('report.daily_breakdown.0.breaks.0.is_paid', false)
+            ->where('report.daily_breakdown.0.breaks.0.started_at', now()->setTime(12, 0)->toIso8601String())
+            ->where('report.daily_breakdown.0.breaks.0.ended_at', now()->setTime(13, 0)->toIso8601String())
+            ->where('report.daily_breakdown.0.breaks.0.duration_minutes', 60)
+            ->where('report.daily_breakdown.0.breaks.0.in_progress', false)
         );
     }
 
