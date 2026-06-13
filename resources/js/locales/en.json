@@ -657,17 +657,21 @@
         "col_day": "Day",
         "col_schedule": "Schedule",
         "col_worked": "Worked",
-        "col_breaks": "Breaks",
         "not_worked": "Not worked",
         "in_progress": "In progress",
         "holiday_badge": "Sun/Holiday",
         "breaks_title": "Breaks of the day",
         "hour_types_title": "Hour types",
-        "break_paid": "Paid",
-        "break_unpaid": "Unpaid",
+        "break_paid": "Paid · doesn't deduct",
+        "break_unpaid": "Unpaid · deducts",
         "break_in_progress": "In progress",
         "no_breaks": "No breaks recorded",
         "total": "Total",
-        "empty": "No days to show in this period"
+        "empty": "No days to show in this period",
+        "col_employee": "Employee",
+        "col_status": "Status",
+        "col_paid_breaks": "Paid breaks",
+        "col_unpaid_breaks": "Unpaid breaks",
+        "paid_hint": "Paid breaks don't reduce worked time; unpaid breaks do."
     }
 }

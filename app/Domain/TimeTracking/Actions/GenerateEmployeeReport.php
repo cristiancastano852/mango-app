@@ -181,7 +181,7 @@ class GenerateEmployeeReport
      * cada entry equivale a un día; los turnos en curso (sin clock_out) se incluyen con
      * status 'in_progress' y horas en null — los totales del período no los consideran.
      *
-     * @return array<array{date: string, clock_in: ?string, clock_out: ?string, status: string, gross_hours: ?float, break_hours: ?float, net_hours: ?float, regular_hours: ?float, night_hours: ?float, sunday_holiday_hours: ?float, night_sunday_hours: ?float, overtime_day_hours: ?float, overtime_night_hours: ?float, overtime_day_sunday_hours: ?float, overtime_night_sunday_hours: ?float, breaks: array}>
+     * @return array<array{date: string, clock_in: ?string, clock_out: ?string, status: string, gross_hours: ?float, break_hours: ?float, paid_break_hours: ?float, net_hours: ?float, regular_hours: ?float, night_hours: ?float, sunday_holiday_hours: ?float, night_sunday_hours: ?float, overtime_day_hours: ?float, overtime_night_hours: ?float, overtime_day_sunday_hours: ?float, overtime_night_sunday_hours: ?float, breaks: array}>
      */
     private function getDailyBreakdown(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): array
     {
@@ -216,6 +216,7 @@ class GenerateEmployeeReport
             'clock_in' => $entry->clock_in?->toIso8601String(),
             'clock_out' => $entry->clock_out?->toIso8601String(),
             'status' => $inProgress ? 'in_progress' : $entry->status,
+            'paid_break_hours' => $inProgress ? null : $entry->paidBreakHours(),
             'breaks' => $entry->breaks->map(fn (BreakEntry $break) => $break->toDisplayArray())->all(),
         ];
 

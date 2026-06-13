@@ -86,4 +86,18 @@ class TimeEntry extends Model
     {
         return $this->hasMany(BreakEntry::class);
     }
+
+    /**
+     * Horas de pausas pagadas finalizadas (no descuentan del tiempo trabajado;
+     * el complemento break_hours solo suma las no pagadas). Requiere breaks.breakType cargados.
+     */
+    public function paidBreakHours(): float
+    {
+        return round(
+            $this->breaks
+                ->filter(fn (BreakEntry $break) => $break->ended_at !== null && (bool) $break->breakType?->is_paid)
+                ->sum(fn (BreakEntry $break) => max(0, (int) $break->duration_minutes)) / 60,
+            2,
+        );
+    }
 }

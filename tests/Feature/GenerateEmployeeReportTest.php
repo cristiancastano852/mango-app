@@ -440,6 +440,8 @@ class GenerateEmployeeReportTest extends TestCase
         $this->assertEquals('calculated', $day['status']);
         $this->assertEquals(9.18, $day['gross_hours']);
         $this->assertEquals(1.25, $day['break_hours']);
+        // Solo el café (15 min) es pagado; el almuerzo (60 min) no.
+        $this->assertEquals(0.25, $day['paid_break_hours']);
         $this->assertEquals(7.93, $day['net_hours']);
         $this->assertEquals(7.93, $day['regular_hours']);
         $this->assertEquals(0.0, $day['night_hours']);
@@ -554,6 +556,7 @@ class GenerateEmployeeReportTest extends TestCase
         $this->assertNull($open['clock_out']);
         $this->assertNull($open['net_hours']);
         $this->assertNull($open['gross_hours']);
+        $this->assertNull($open['paid_break_hours']);
     }
 
     public function test_export_only_data_is_omitted_when_not_requested(): void

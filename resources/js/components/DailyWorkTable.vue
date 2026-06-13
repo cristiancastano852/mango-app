@@ -112,33 +112,54 @@ const workedDays = computed(() =>
 
 const totals = computed(() => ({
     net: workedDays.value.reduce((sum, day) => sum + (day.net_hours ?? 0), 0),
-    breaks: workedDays.value.reduce(
+    paidBreaks: workedDays.value.reduce(
+        (sum, day) => sum + (day.paid_break_hours ?? 0),
+        0,
+    ),
+    unpaidBreaks: workedDays.value.reduce(
         (sum, day) => sum + (day.break_hours ?? 0),
         0,
     ),
 }));
+
+const gridCols = 'sm:grid-cols-[8.5rem_1fr_6.5rem_7rem_7rem_2rem]';
 </script>
 
 <template>
     <Card>
-        <CardHeader class="flex flex-row items-center justify-between pb-2">
-            <CardTitle class="flex items-center gap-2 text-sm font-medium">
-                <CalendarRange class="size-4 text-primary" />
-                {{ t('daily_work.title') }}
-            </CardTitle>
-            <Badge variant="secondary" class="font-normal">
-                {{ t('daily_work.days_worked', { count: workedDays.length }) }}
-            </Badge>
+        <CardHeader class="pb-2">
+            <div class="flex flex-row items-center justify-between">
+                <CardTitle class="flex items-center gap-2 text-sm font-medium">
+                    <CalendarRange class="size-4 text-primary" />
+                    {{ t('daily_work.title') }}
+                </CardTitle>
+                <Badge variant="secondary" class="font-normal">
+                    {{
+                        t('daily_work.days_worked', {
+                            count: workedDays.length,
+                        })
+                    }}
+                </Badge>
+            </div>
+            <p class="text-xs text-muted-foreground">
+                {{ t('daily_work.paid_hint') }}
+            </p>
         </CardHeader>
         <CardContent class="p-0">
             <!-- Encabezados (desktop) -->
             <div
-                class="hidden grid-cols-[10rem_1fr_7rem_7rem_2rem] gap-2 border-b px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase sm:grid"
+                class="hidden gap-2 border-b px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase sm:grid"
+                :class="gridCols"
             >
                 <span>{{ t('daily_work.col_day') }}</span>
                 <span>{{ t('daily_work.col_schedule') }}</span>
                 <span class="text-right">{{ t('daily_work.col_worked') }}</span>
-                <span class="text-right">{{ t('daily_work.col_breaks') }}</span>
+                <span class="text-right">{{
+                    t('daily_work.col_paid_breaks')
+                }}</span>
+                <span class="text-right">{{
+                    t('daily_work.col_unpaid_breaks')
+                }}</span>
                 <span />
             </div>
 
@@ -154,7 +175,8 @@ const totals = computed(() => ({
                     <!-- Día sin registro -->
                     <div
                         v-if="!row.day"
-                        class="grid grid-cols-2 items-center gap-2 px-4 py-2.5 opacity-60 sm:grid-cols-[10rem_1fr_7rem_7rem_2rem]"
+                        class="grid grid-cols-2 items-center gap-2 px-4 py-2.5 opacity-60"
+                        :class="gridCols"
                     >
                         <span class="text-sm text-muted-foreground">{{
                             formatDayLabel(row.date)
@@ -171,7 +193,8 @@ const totals = computed(() => ({
                     <div v-else>
                         <button
                             type="button"
-                            class="grid w-full grid-cols-2 items-center gap-2 px-4 py-2.5 text-left transition-colors hover:bg-muted/50 sm:grid-cols-[10rem_1fr_7rem_7rem_2rem]"
+                            class="grid w-full grid-cols-2 items-center gap-2 px-4 py-2.5 text-left transition-colors hover:bg-muted/50"
+                            :class="gridCols"
                             :aria-expanded="expanded.has(row.date)"
                             @click="toggle(row.date)"
                         >
@@ -228,6 +251,19 @@ const totals = computed(() => ({
                             </span>
 
                             <span
+                                class="flex items-center justify-start gap-1.5 text-sm font-medium text-teal-600 tabular-nums sm:justify-end dark:text-teal-400"
+                            >
+                                <Coffee class="size-3.5" />
+                                <template
+                                    v-if="row.day.status === 'in_progress'"
+                                    >—</template
+                                >
+                                <template v-else>{{
+                                    formatDecimalHours(row.day.paid_break_hours)
+                                }}</template>
+                            </span>
+
+                            <span
                                 class="flex items-center justify-start gap-1.5 text-sm font-medium text-amber-600 tabular-nums sm:justify-end dark:text-amber-400"
                             >
                                 <Coffee class="size-3.5" />
@@ -260,7 +296,8 @@ const totals = computed(() => ({
             <!-- Totales -->
             <div
                 v-if="workedDays.length > 0"
-                class="grid grid-cols-2 items-center gap-2 border-t bg-muted/30 px-4 py-3 text-sm font-semibold sm:grid-cols-[10rem_1fr_7rem_7rem_2rem]"
+                class="grid grid-cols-2 items-center gap-2 border-t bg-muted/30 px-4 py-3 text-sm font-semibold"
+                :class="gridCols"
             >
                 <span>{{ t('daily_work.total') }}</span>
                 <span />
@@ -270,9 +307,14 @@ const totals = computed(() => ({
                     {{ formatDecimalHours(totals.net) }}
                 </span>
                 <span
+                    class="text-right text-teal-600 tabular-nums dark:text-teal-400"
+                >
+                    {{ formatDecimalHours(totals.paidBreaks) }}
+                </span>
+                <span
                     class="text-right text-amber-600 tabular-nums dark:text-amber-400"
                 >
-                    {{ formatDecimalHours(totals.breaks) }}
+                    {{ formatDecimalHours(totals.unpaidBreaks) }}
                 </span>
                 <span />
             </div>

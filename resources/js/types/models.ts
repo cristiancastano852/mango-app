@@ -132,6 +132,7 @@ export type DailyWorkDay = {
     status: string;
     gross_hours: number | null;
     break_hours: number | null;
+    paid_break_hours: number | null;
     net_hours: number | null;
     regular_hours: number | null;
     night_hours: number | null;

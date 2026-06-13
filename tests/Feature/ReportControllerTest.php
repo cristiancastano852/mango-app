@@ -135,6 +135,8 @@ class ReportControllerTest extends TestCase
             ->where('report.daily_breakdown.0.net_hours', 8)
             ->where('report.daily_breakdown.0.regular_hours', 8)
             ->where('report.daily_breakdown.0.night_hours', 0)
+            // El almuerzo es no pagado: no suma a descansos pagados.
+            ->where('report.daily_breakdown.0.paid_break_hours', 0)
             ->has('report.daily_breakdown.0.breaks', 1)
             ->where('report.daily_breakdown.0.breaks.0.name', 'Almuerzo')
             ->where('report.daily_breakdown.0.breaks.0.icon', '🍽️')

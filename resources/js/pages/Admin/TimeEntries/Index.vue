@@ -51,6 +51,7 @@ type EntryRow = {
     clock_out: string | null;
     gross_hours: string;
     break_hours: string;
+    paid_break_hours: number;
     net_hours: string;
     status: string;
     edit_reason: string | null;
@@ -136,6 +137,9 @@ function formatDayLabel(date: string): string {
     const label = dayFormatter.value.format(new Date(year, month - 1, day));
     return label.charAt(0).toUpperCase() + label.slice(1);
 }
+
+const gridCols =
+    'lg:grid-cols-[2rem_minmax(9rem,1fr)_12.5rem_5.5rem_6.5rem_6.5rem_11.5rem]';
 
 const expanded = ref(new Set<number>());
 
@@ -247,9 +251,34 @@ function performDelete() {
             <!-- Table -->
             <Card>
                 <CardContent class="p-0">
+                    <!-- Encabezados (desktop) -->
+                    <div
+                        class="hidden items-center gap-3 border-b px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase lg:grid"
+                        :class="gridCols"
+                    >
+                        <span />
+                        <span>{{ t('daily_work.col_employee') }}</span>
+                        <span>{{ t('daily_work.col_schedule') }}</span>
+                        <span class="text-right">{{
+                            t('daily_work.col_worked')
+                        }}</span>
+                        <span class="text-right">{{
+                            t('daily_work.col_paid_breaks')
+                        }}</span>
+                        <span class="text-right">{{
+                            t('daily_work.col_unpaid_breaks')
+                        }}</span>
+                        <span class="text-right">{{
+                            t('daily_work.col_status')
+                        }}</span>
+                    </div>
+
                     <div class="divide-y">
                         <div v-for="entry in entries.data" :key="entry.id">
-                            <div class="flex items-center gap-3 px-4 py-3">
+                            <div
+                                class="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
+                                :class="gridCols"
+                            >
                                 <Button
                                     variant="ghost"
                                     size="icon"
@@ -267,7 +296,7 @@ function performDelete() {
                                     />
                                 </Button>
 
-                                <div class="min-w-0 flex-1">
+                                <div class="min-w-0">
                                     <p class="truncate font-medium">
                                         {{ entry.employee.user.name }}
                                     </p>
@@ -277,7 +306,7 @@ function performDelete() {
                                 </div>
 
                                 <div
-                                    class="hidden items-center gap-1.5 text-sm text-muted-foreground tabular-nums sm:flex"
+                                    class="hidden items-center gap-1.5 text-sm text-muted-foreground tabular-nums lg:flex"
                                 >
                                     <LogIn class="size-3.5 text-emerald-500" />
                                     {{ formatTime12h(entry.clock_in) }}
@@ -299,7 +328,7 @@ function performDelete() {
                                 </div>
 
                                 <div
-                                    class="hidden items-center gap-1.5 text-sm font-semibold text-emerald-600 tabular-nums sm:flex dark:text-emerald-400"
+                                    class="hidden items-center justify-end gap-1.5 text-sm font-semibold text-emerald-600 tabular-nums lg:flex dark:text-emerald-400"
                                 >
                                     <Clock class="size-3.5" />
                                     {{
@@ -312,32 +341,51 @@ function performDelete() {
                                 </div>
 
                                 <div
-                                    class="hidden items-center gap-1.5 text-sm font-medium text-amber-600 tabular-nums md:flex dark:text-amber-400"
+                                    class="hidden items-center justify-end gap-1.5 text-sm font-medium text-teal-600 tabular-nums lg:flex dark:text-teal-400"
+                                >
+                                    <Coffee class="size-3.5" />
+                                    {{
+                                        formatDecimalHours(
+                                            entry.paid_break_hours,
+                                        )
+                                    }}
+                                </div>
+
+                                <div
+                                    class="hidden items-center justify-end gap-1.5 text-sm font-medium text-amber-600 tabular-nums lg:flex dark:text-amber-400"
                                 >
                                     <Coffee class="size-3.5" />
                                     {{ formatDecimalHours(entry.break_hours) }}
                                 </div>
 
-                                <Badge
-                                    :variant="statusVariant(entry.status)"
-                                    class="shrink-0 text-xs"
+                                <div
+                                    class="flex items-center justify-end gap-1"
                                 >
-                                    {{ statusLabel(entry.status) }}
-                                </Badge>
+                                    <Badge
+                                        :variant="statusVariant(entry.status)"
+                                        class="shrink-0 text-xs"
+                                    >
+                                        {{ statusLabel(entry.status) }}
+                                    </Badge>
 
-                                <Button variant="ghost" size="icon" as-child>
-                                    <Link :href="editEntry(entry.id).url">
-                                        <Pencil class="size-4" />
-                                    </Link>
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    class="text-muted-foreground hover:text-destructive"
-                                    @click="confirmDelete(entry)"
-                                >
-                                    <Trash2 class="size-4" />
-                                </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        as-child
+                                    >
+                                        <Link :href="editEntry(entry.id).url">
+                                            <Pencil class="size-4" />
+                                        </Link>
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        class="text-muted-foreground hover:text-destructive"
+                                        @click="confirmDelete(entry)"
+                                    >
+                                        <Trash2 class="size-4" />
+                                    </Button>
+                                </div>
                             </div>
 
                             <DailyWorkDayDetail

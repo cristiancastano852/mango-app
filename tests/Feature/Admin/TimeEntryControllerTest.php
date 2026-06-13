@@ -154,6 +154,24 @@ class TimeEntryControllerTest extends TestCase
             'duration_minutes' => 60,
         ]);
 
+        $paidType = BreakType::create([
+            'company_id' => $this->company->id,
+            'name' => 'Café',
+            'slug' => 'cafe',
+            'is_paid' => true,
+            'is_active' => true,
+        ]);
+
+        BreakEntry::create([
+            'time_entry_id' => $entry->id,
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'break_type_id' => $paidType->id,
+            'started_at' => '2026-06-01 15:00:00',
+            'ended_at' => '2026-06-01 15:15:00',
+            'duration_minutes' => 15,
+        ]);
+
         $response = $this->actingAs($this->adminUser)
             ->get(route('admin.time-entries.index'));
 
@@ -163,14 +181,18 @@ class TimeEntryControllerTest extends TestCase
             ->where('entries.data.0.clock_out', Carbon::parse('2026-06-01 17:00:00')->toIso8601String())
             ->where('entries.data.0.gross_hours', '9.00')
             ->where('entries.data.0.break_hours', '1.00')
+            // Solo el café (15 min) es pagado.
+            ->where('entries.data.0.paid_break_hours', 0.25)
             ->where('entries.data.0.net_hours', '8.00')
-            ->has('entries.data.0.breaks', 1)
+            ->has('entries.data.0.breaks', 2)
             ->where('entries.data.0.breaks.0.name', 'Almuerzo')
             ->where('entries.data.0.breaks.0.icon', '🍽️')
             ->where('entries.data.0.breaks.0.color', '#FF9800')
             ->where('entries.data.0.breaks.0.is_paid', false)
             ->where('entries.data.0.breaks.0.duration_minutes', 60)
             ->where('entries.data.0.breaks.0.in_progress', false)
+            ->where('entries.data.0.breaks.1.name', 'Café')
+            ->where('entries.data.0.breaks.1.is_paid', true)
         );
     }
 

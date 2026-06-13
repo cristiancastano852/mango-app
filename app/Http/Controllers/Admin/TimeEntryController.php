@@ -38,6 +38,7 @@ class TimeEntryController extends Controller
                 'clock_out' => $entry->clock_out?->toIso8601String(),
                 'gross_hours' => $entry->gross_hours,
                 'break_hours' => $entry->break_hours,
+                'paid_break_hours' => $entry->paidBreakHours(),
                 'net_hours' => $entry->net_hours,
                 'status' => $entry->status,
                 'edit_reason' => $entry->edit_reason,
