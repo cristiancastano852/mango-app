@@ -28,4 +28,9 @@
 ## 5. Verificación final
 
 - [x] 5.1 Correr suite afectada completa: `php artisan test --compact --filter='GenerateEmployeeReportTest|ReportControllerTest|TimeEntryControllerTest|ReportExportTest'` + `vendor/bin/pint --dirty --format agent` + `npm run build`.
-- [ ] 5.2 Revisión manual de ambas vistas (datos reales de dev): AM/PM correcto, "No laborado" sin días futuros, turno en curso visible sin sumar totales, expandibles, dark mode; en time-entries confirmar que crear/editar/eliminar siguen funcionando y que expandir una fila no se traga el click de las acciones.
+- [x] 5.2 Revisión manual de ambas vistas (datos reales de dev): AM/PM correcto, "No laborado" sin días futuros, turno en curso visible sin sumar totales, expandibles, dark mode; en time-entries confirmar que crear/editar/eliminar siguen funcionando y que expandir una fila no se traga el click de las acciones.
+
+## 6. Ajustes post-revisión
+
+- [x] 6.1 Separar descansos en pagados y no pagados: `TimeEntry::paidBreakHours()` (helper compartido), campo `paid_break_hours` en `daily_breakdown` y en el index de time-entries; dos columnas con colores distintos (teal pagados, ámbar no pagados) y totales en ambas tablas; nota explicativa "los pagados no descuentan"; tests actualizados.
+- [x] 6.2 Encabezados de columna en `/admin/time-entries` (Empleado, Horario, Trabajado, Descansos pagados, Descansos no pagados, Estado) con layout grid alineado al de la tabla del reporte.

@@ -54,7 +54,7 @@ Un registro sin `clock_out` dentro del rango SHALL aparecer en el desglose diari
 
 ### Requirement: Tabla de detalle diario en el reporte de empleado
 
-La vista del reporte de empleado SHALL renderizar, debajo del resumen de costos, una tabla de detalle diario con columnas: día, horario (entrada → salida en formato 12h AM/PM), tiempo trabajado y tiempo de descansos en formato `Xh Ym`. Cada fila con registro SHALL ser expandible para mostrar el detalle de pausas (con icono y color del tipo) y los tipos de hora del día con valor mayor a cero. Los días con horas en domingo/festivo SHALL mostrar un indicador visual distintivo, y los días con horas extra SHALL mostrar un indicador de extras.
+La vista del reporte de empleado SHALL renderizar, debajo del resumen de costos, una tabla de detalle diario con columnas: día, horario (entrada → salida en formato 12h AM/PM), tiempo trabajado, descansos pagados y descansos no pagados en formato `Xh Ym`, diferenciando visualmente los descansos pagados (no descuentan tiempo trabajado) de los no pagados (sí descuentan), con una nota explicativa para el usuario. Cada fila con registro SHALL ser expandible para mostrar el detalle de pausas (con icono y color del tipo) y los tipos de hora del día con valor mayor a cero. Los días con horas en domingo/festivo SHALL mostrar un indicador visual distintivo, y los días con horas extra SHALL mostrar un indicador de extras.
 
 #### Scenario: Tabla visible con datos
 
@@ -87,12 +87,12 @@ La tabla de detalle diario del reporte SHALL mostrar los días del rango sin reg
 
 ### Requirement: Detalle enriquecido en el listado de registros
 
-El listado de `/admin/time-entries` SHALL mostrar por cada registro el horario en formato 12h AM/PM, el tiempo trabajado y el total de descansos en formato `Xh Ym`, y SHALL permitir expandir el registro para ver el detalle de sus pausas (icono, color, horario, duración) sin navegación adicional. Los registros en curso SHALL seguir mostrándose con su hora de entrada. La obtención de las pausas SHALL realizarse con eager loading acotado a la página (sin N+1).
+El listado de `/admin/time-entries` SHALL mostrar encabezados de columna (empleado, horario, trabajado, descansos pagados, descansos no pagados, estado) y por cada registro el horario en formato 12h AM/PM, el tiempo trabajado, los descansos pagados y los descansos no pagados en formato `Xh Ym`, y SHALL permitir expandir el registro para ver el detalle de sus pausas (icono, color, horario, duración) sin navegación adicional. Los registros en curso SHALL seguir mostrándose con su hora de entrada. La obtención de las pausas SHALL realizarse con eager loading acotado a la página (sin N+1).
 
 #### Scenario: Fila enriquecida
 
 - **WHEN** el admin abre el listado de registros
-- **THEN** cada fila muestra horario AM/PM (ej. `7:00 AM → 4:11 PM`), trabajado `7h 11m` y descansos `1h 0m`
+- **THEN** la tabla muestra encabezados de columna y cada fila muestra horario AM/PM (ej. `7:00 AM → 4:11 PM`), trabajado `7h 11m`, descansos pagados `0h 15m` y descansos no pagados `1h 0m`
 
 #### Scenario: Expandir pausas
 
