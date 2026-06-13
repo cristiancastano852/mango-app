@@ -369,6 +369,196 @@ class GenerateEmployeeReportTest extends TestCase
         $this->assertEquals(9.0, $result['daily_breakdown'][1]['net_hours']);
     }
 
+    public function test_daily_breakdown_includes_schedule_and_breaks_detail(): void
+    {
+        $lunchType = BreakType::withoutGlobalScopes()->create([
+            'company_id' => $this->company->id,
+            'name' => 'Almuerzo',
+            'slug' => 'almuerzo',
+            'icon' => '🍽️',
+            'color' => '#FF9800',
+            'is_paid' => false,
+            'is_active' => true,
+        ]);
+
+        $coffeeType = BreakType::withoutGlobalScopes()->create([
+            'company_id' => $this->company->id,
+            'name' => 'Café',
+            'slug' => 'cafe',
+            'icon' => '☕',
+            'color' => '#4CAF50',
+            'is_paid' => true,
+            'is_active' => true,
+        ]);
+
+        $entry = TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-03-05',
+            'clock_in' => '2026-03-05 07:00:00',
+            'clock_out' => '2026-03-05 16:11:00',
+            'gross_hours' => 9.18,
+            'break_hours' => 1.25,
+            'net_hours' => 7.93,
+            'regular_hours' => 7.93,
+            'status' => 'calculated',
+        ]);
+
+        // Creadas en desorden para verificar orden por started_at.
+        BreakEntry::withoutGlobalScopes()->create([
+            'time_entry_id' => $entry->id,
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'break_type_id' => $coffeeType->id,
+            'started_at' => '2026-03-05 15:00:00',
+            'ended_at' => '2026-03-05 15:15:00',
+            'duration_minutes' => 15,
+        ]);
+
+        BreakEntry::withoutGlobalScopes()->create([
+            'time_entry_id' => $entry->id,
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'break_type_id' => $lunchType->id,
+            'started_at' => '2026-03-05 12:00:00',
+            'ended_at' => '2026-03-05 13:00:00',
+            'duration_minutes' => 60,
+        ]);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-07'),
+        );
+
+        $this->assertCount(1, $result['daily_breakdown']);
+
+        $day = $result['daily_breakdown'][0];
+        $this->assertEquals('2026-03-05', $day['date']);
+        $this->assertEquals('2026-03-05T07:00:00-05:00', $day['clock_in']);
+        $this->assertEquals('2026-03-05T16:11:00-05:00', $day['clock_out']);
+        $this->assertEquals('calculated', $day['status']);
+        $this->assertEquals(9.18, $day['gross_hours']);
+        $this->assertEquals(1.25, $day['break_hours']);
+        // Solo el café (15 min) es pagado; el almuerzo (60 min) no.
+        $this->assertEquals(0.25, $day['paid_break_hours']);
+        $this->assertEquals(7.93, $day['net_hours']);
+        $this->assertEquals(7.93, $day['regular_hours']);
+        $this->assertEquals(0.0, $day['night_hours']);
+
+        // Pausas ordenadas por started_at, con todos los campos del tipo.
+        $this->assertCount(2, $day['breaks']);
+        $this->assertEquals([
+            'name' => 'Almuerzo',
+            'icon' => '🍽️',
+            'color' => '#FF9800',
+            'is_paid' => false,
+            'started_at' => '2026-03-05T12:00:00-05:00',
+            'ended_at' => '2026-03-05T13:00:00-05:00',
+            'duration_minutes' => 60,
+            'in_progress' => false,
+        ], $day['breaks'][0]);
+        $this->assertEquals('Café', $day['breaks'][1]['name']);
+        $this->assertTrue($day['breaks'][1]['is_paid']);
+        $this->assertEquals(15, $day['breaks'][1]['duration_minutes']);
+    }
+
+    public function test_daily_breakdown_marks_break_without_end_as_in_progress(): void
+    {
+        $breakType = BreakType::withoutGlobalScopes()->create([
+            'company_id' => $this->company->id,
+            'name' => 'Descanso',
+            'slug' => 'descanso',
+            'is_paid' => false,
+            'is_active' => true,
+        ]);
+
+        $entry = TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-03-05',
+            'clock_in' => '2026-03-05 08:00:00',
+            'clock_out' => '2026-03-05 17:00:00',
+            'gross_hours' => 9.0,
+            'break_hours' => 0,
+            'net_hours' => 9.0,
+            'regular_hours' => 9.0,
+            'status' => 'calculated',
+        ]);
+
+        BreakEntry::withoutGlobalScopes()->create([
+            'time_entry_id' => $entry->id,
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'break_type_id' => $breakType->id,
+            'started_at' => '2026-03-05 12:00:00',
+            'ended_at' => null,
+            'duration_minutes' => null,
+        ]);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-07'),
+        );
+
+        $break = $result['daily_breakdown'][0]['breaks'][0];
+        $this->assertTrue($break['in_progress']);
+        $this->assertNull($break['ended_at']);
+        $this->assertNull($break['duration_minutes']);
+    }
+
+    public function test_daily_breakdown_includes_in_progress_entry_without_counting_totals(): void
+    {
+        // Turno finalizado.
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-03-04',
+            'clock_in' => '2026-03-04 08:00:00',
+            'clock_out' => '2026-03-04 16:00:00',
+            'gross_hours' => 8.0,
+            'break_hours' => 0,
+            'net_hours' => 8.0,
+            'regular_hours' => 8.0,
+            'status' => 'calculated',
+        ]);
+
+        // Turno abierto (sin clock_out).
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-03-05',
+            'clock_in' => '2026-03-05 08:00:00',
+            'clock_out' => null,
+            'gross_hours' => 0,
+            'break_hours' => 0,
+            'net_hours' => 0,
+            'status' => 'pending',
+        ]);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-07'),
+        );
+
+        // Los totales solo consideran el turno finalizado.
+        $this->assertEquals(1, $result['totals']['days_worked']);
+        $this->assertEquals(8.0, $result['totals']['net_hours']);
+
+        // El breakdown incluye ambos días; el abierto va marcado y sin horas.
+        $this->assertCount(2, $result['daily_breakdown']);
+        $open = $result['daily_breakdown'][1];
+        $this->assertEquals('2026-03-05', $open['date']);
+        $this->assertEquals('in_progress', $open['status']);
+        $this->assertEquals('2026-03-05T08:00:00-05:00', $open['clock_in']);
+        $this->assertNull($open['clock_out']);
+        $this->assertNull($open['net_hours']);
+        $this->assertNull($open['gross_hours']);
+        $this->assertNull($open['paid_break_hours']);
+    }
+
     public function test_export_only_data_is_omitted_when_not_requested(): void
     {
         TimeEntry::withoutGlobalScopes()->create([

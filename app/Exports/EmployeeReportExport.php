@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -122,6 +123,8 @@ class EmployeeReportDailySheet implements FromArray, ShouldAutoSize, WithHeading
     {
         return [
             'Fecha',
+            'Entrada',
+            'Salida',
             'Horas brutas',
             'Pausas',
             'Horas netas',
@@ -138,8 +141,15 @@ class EmployeeReportDailySheet implements FromArray, ShouldAutoSize, WithHeading
 
     public function array(): array
     {
+        $finishedDays = array_filter(
+            $this->report['daily_breakdown'],
+            fn (array $day) => ($day['status'] ?? null) !== 'in_progress',
+        );
+
         return array_map(fn (array $day) => [
             $day['date'],
+            isset($day['clock_in']) ? Carbon::parse($day['clock_in'])->format('g:i A') : '',
+            isset($day['clock_out']) ? Carbon::parse($day['clock_out'])->format('g:i A') : '',
             $day['gross_hours'],
             $day['break_hours'],
             $day['net_hours'],
@@ -151,7 +161,7 @@ class EmployeeReportDailySheet implements FromArray, ShouldAutoSize, WithHeading
             $day['overtime_night_hours'],
             $day['overtime_day_sunday_hours'],
             $day['overtime_night_sunday_hours'],
-        ], $this->report['daily_breakdown']);
+        ], array_values($finishedDays));
     }
 
     public function styles(Worksheet $sheet): array

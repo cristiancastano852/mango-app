@@ -650,5 +650,28 @@
             "field_admin_email": "Correo del administrador",
             "create_submit": "Crear empresa"
         }
+    },
+    "daily_work": {
+        "title": "Detalle diario",
+        "days_worked": "{count} días trabajados",
+        "col_day": "Día",
+        "col_schedule": "Horario",
+        "col_worked": "Trabajado",
+        "not_worked": "No laborado",
+        "in_progress": "En curso",
+        "holiday_badge": "Dom/Festivo",
+        "breaks_title": "Pausas del día",
+        "hour_types_title": "Tipos de hora",
+        "break_paid": "Pagada · no descuenta",
+        "break_unpaid": "No pagada · descuenta",
+        "break_in_progress": "En curso",
+        "no_breaks": "Sin pausas registradas",
+        "total": "Total",
+        "empty": "Sin días para mostrar en este período",
+        "col_employee": "Empleado",
+        "col_status": "Estado",
+        "col_paid_breaks": "Descansos pagados",
+        "col_unpaid_breaks": "Descansos no pagados",
+        "paid_hint": "Los descansos pagados no descuentan del tiempo trabajado; los no pagados sí."
     }
 }

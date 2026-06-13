@@ -66,7 +66,7 @@ class ReportController extends Controller
             $startDate,
             $endDate,
             $payOvertime,
-            includeDailyBreakdown: false,
+            includeDailyBreakdown: true,
             includeBreaksByType: false,
         );
 

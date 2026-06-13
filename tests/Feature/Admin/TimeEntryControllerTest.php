@@ -10,6 +10,7 @@ use App\Domain\TimeTracking\Models\TimeEntry;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -126,6 +127,125 @@ class TimeEntryControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/TimeEntries/Index')
             ->where('entries.total', 2));
+    }
+
+    public function test_index_includes_schedule_hours_and_breaks_detail(): void
+    {
+        $entry = $this->entryOn('2026-06-01');
+        $entry->update(['break_hours' => 1.0]);
+
+        $breakType = BreakType::create([
+            'company_id' => $this->company->id,
+            'name' => 'Almuerzo',
+            'slug' => 'almuerzo',
+            'icon' => '🍽️',
+            'color' => '#FF9800',
+            'is_paid' => false,
+            'is_active' => true,
+        ]);
+
+        BreakEntry::create([
+            'time_entry_id' => $entry->id,
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'break_type_id' => $breakType->id,
+            'started_at' => '2026-06-01 12:00:00',
+            'ended_at' => '2026-06-01 13:00:00',
+            'duration_minutes' => 60,
+        ]);
+
+        $paidType = BreakType::create([
+            'company_id' => $this->company->id,
+            'name' => 'Café',
+            'slug' => 'cafe',
+            'is_paid' => true,
+            'is_active' => true,
+        ]);
+
+        BreakEntry::create([
+            'time_entry_id' => $entry->id,
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'break_type_id' => $paidType->id,
+            'started_at' => '2026-06-01 15:00:00',
+            'ended_at' => '2026-06-01 15:15:00',
+            'duration_minutes' => 15,
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('admin.time-entries.index'));
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/TimeEntries/Index')
+            ->where('entries.data.0.clock_in', Carbon::parse('2026-06-01 08:00:00')->toIso8601String())
+            ->where('entries.data.0.clock_out', Carbon::parse('2026-06-01 17:00:00')->toIso8601String())
+            ->where('entries.data.0.gross_hours', '9.00')
+            ->where('entries.data.0.break_hours', '1.00')
+            // Solo el café (15 min) es pagado.
+            ->where('entries.data.0.paid_break_hours', 0.25)
+            ->where('entries.data.0.net_hours', '8.00')
+            ->has('entries.data.0.breaks', 2)
+            ->where('entries.data.0.breaks.0.name', 'Almuerzo')
+            ->where('entries.data.0.breaks.0.icon', '🍽️')
+            ->where('entries.data.0.breaks.0.color', '#FF9800')
+            ->where('entries.data.0.breaks.0.is_paid', false)
+            ->where('entries.data.0.breaks.0.duration_minutes', 60)
+            ->where('entries.data.0.breaks.0.in_progress', false)
+            ->where('entries.data.0.breaks.1.name', 'Café')
+            ->where('entries.data.0.breaks.1.is_paid', true)
+        );
+    }
+
+    public function test_index_loads_breaks_without_n_plus_one(): void
+    {
+        $breakType = BreakType::create([
+            'company_id' => $this->company->id,
+            'name' => 'Almuerzo',
+            'slug' => 'almuerzo',
+            'is_paid' => false,
+            'is_active' => true,
+        ]);
+
+        $makeEntriesWithBreaks = function (int $fromDay, int $toDay) use ($breakType): void {
+            foreach (range($fromDay, $toDay) as $day) {
+                $date = sprintf('2026-06-%02d', $day);
+                $entry = $this->entryOn($date);
+                BreakEntry::create([
+                    'time_entry_id' => $entry->id,
+                    'employee_id' => $this->employee->id,
+                    'company_id' => $this->company->id,
+                    'break_type_id' => $breakType->id,
+                    'started_at' => "{$date} 12:00:00",
+                    'ended_at' => "{$date} 13:00:00",
+                    'duration_minutes' => 60,
+                ]);
+            }
+        };
+
+        $countQueries = function (): int {
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            $this->actingAs($this->adminUser)
+                ->get(route('admin.time-entries.index'))
+                ->assertOk();
+            $count = count(DB::getQueryLog());
+            DB::disableQueryLog();
+
+            return $count;
+        };
+
+        $makeEntriesWithBreaks(1, 2);
+
+        // Warm-up: la primera request cachea roles/permisos y haría ruido en el conteo.
+        $this->actingAs($this->adminUser)->get(route('admin.time-entries.index'));
+
+        $queriesWithFewEntries = $countQueries();
+
+        $makeEntriesWithBreaks(3, 20);
+        $queriesWithFullPage = $countQueries();
+
+        // Eager loading: el número de queries no crece con la cantidad de registros.
+        $this->assertEquals($queriesWithFewEntries, $queriesWithFullPage);
     }
 
     public function test_non_admin_cannot_access_time_entries(): void

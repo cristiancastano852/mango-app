@@ -5,6 +5,7 @@ namespace App\Domain\TimeTracking\Actions;
 use App\Domain\Company\Models\SurchargeRule;
 use App\Domain\Employee\Models\Employee;
 use App\Domain\Shared\Scopes\CompanyScope;
+use App\Domain\TimeTracking\Models\BreakEntry;
 use App\Domain\TimeTracking\Models\TimeEntry;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -176,48 +177,53 @@ class GenerateEmployeeReport
     }
 
     /**
-     * Obtiene el desglose diario para gráficas de tendencia.
-     * Una query con GROUP BY date, ordenada cronológicamente.
+     * Obtiene el desglose diario con horario y pausas. Gracias al unique(employee_id, date)
+     * cada entry equivale a un día; los turnos en curso (sin clock_out) se incluyen con
+     * status 'in_progress' y horas en null — los totales del período no los consideran.
      *
-     * @return array<array{date: string, gross_hours: float, net_hours: float, regular_hours: float, night_hours: float, sunday_holiday_hours: float, night_sunday_hours: float, overtime_day_hours: float, overtime_night_hours: float, overtime_day_sunday_hours: float, overtime_night_sunday_hours: float}>
+     * @return array<array{date: string, clock_in: ?string, clock_out: ?string, status: string, gross_hours: ?float, break_hours: ?float, paid_break_hours: ?float, net_hours: ?float, regular_hours: ?float, night_hours: ?float, sunday_holiday_hours: ?float, night_sunday_hours: ?float, overtime_day_hours: ?float, overtime_night_hours: ?float, overtime_day_sunday_hours: ?float, overtime_night_sunday_hours: ?float, breaks: array}>
      */
     private function getDailyBreakdown(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): array
     {
         return TimeEntry::withoutGlobalScopes([CompanyScope::class])
+            ->with([
+                'breaks' => fn ($query) => $query->withoutGlobalScopes()->orderBy('started_at'),
+                'breaks.breakType' => fn ($query) => $query->withoutGlobalScopes(),
+            ])
             ->where('employee_id', $employeeId)
             ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->whereNotNull('clock_out')
-            ->groupBy('date')
-            ->selectRaw('
-                date,
-                SUM(gross_hours) as gross_hours,
-                SUM(break_hours) as break_hours,
-                SUM(net_hours) as net_hours,
-                SUM(regular_hours) as regular_hours,
-                SUM(night_hours) as night_hours,
-                SUM(sunday_holiday_hours) as sunday_holiday_hours,
-                SUM(night_sunday_hours) as night_sunday_hours,
-                SUM(overtime_day_hours) as overtime_day_hours,
-                SUM(overtime_night_hours) as overtime_night_hours,
-                SUM(overtime_day_sunday_hours) as overtime_day_sunday_hours,
-                SUM(overtime_night_sunday_hours) as overtime_night_sunday_hours
-            ')
             ->orderBy('date')
             ->get()
-            ->map(fn ($row) => [
-                'date' => $row->date instanceof Carbon ? $row->date->toDateString() : (string) $row->date,
-                'gross_hours' => round((float) $row->gross_hours, 2),
-                'break_hours' => round((float) $row->break_hours, 2),
-                'net_hours' => round((float) $row->net_hours, 2),
-                'regular_hours' => round((float) $row->regular_hours, 2),
-                'night_hours' => round((float) $row->night_hours, 2),
-                'sunday_holiday_hours' => round((float) $row->sunday_holiday_hours, 2),
-                'night_sunday_hours' => round((float) $row->night_sunday_hours, 2),
-                'overtime_day_hours' => round((float) $row->overtime_day_hours, 2),
-                'overtime_night_hours' => round((float) $row->overtime_night_hours, 2),
-                'overtime_day_sunday_hours' => round((float) $row->overtime_day_sunday_hours, 2),
-                'overtime_night_sunday_hours' => round((float) $row->overtime_night_sunday_hours, 2),
-            ])
+            ->map(fn (TimeEntry $entry) => $this->mapDay($entry))
             ->toArray();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapDay(TimeEntry $entry): array
+    {
+        $inProgress = $entry->clock_out === null;
+
+        $hours = [
+            'gross_hours', 'break_hours', 'net_hours', 'regular_hours', 'night_hours',
+            'sunday_holiday_hours', 'night_sunday_hours', 'overtime_day_hours',
+            'overtime_night_hours', 'overtime_day_sunday_hours', 'overtime_night_sunday_hours',
+        ];
+
+        $day = [
+            'date' => substr((string) $entry->date, 0, 10),
+            'clock_in' => $entry->clock_in?->toIso8601String(),
+            'clock_out' => $entry->clock_out?->toIso8601String(),
+            'status' => $inProgress ? 'in_progress' : $entry->status,
+            'paid_break_hours' => $inProgress ? null : $entry->paidBreakHours(),
+            'breaks' => $entry->breaks->map(fn (BreakEntry $break) => $break->toDisplayArray())->all(),
+        ];
+
+        foreach ($hours as $field) {
+            $day[$field] = $inProgress ? null : round((float) $entry->{$field}, 2);
+        }
+
+        return $day;
     }
 }

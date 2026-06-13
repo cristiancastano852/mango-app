@@ -1,7 +1,16 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { CalendarPlus, Pencil, Trash2 } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
+import {
+    CalendarPlus,
+    ChevronDown,
+    Clock,
+    Coffee,
+    LogIn,
+    LogOut,
+    Pencil,
+    Trash2,
+} from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
     create as createEntry,
@@ -9,6 +18,7 @@ import {
     edit as editEntry,
     index as timeEntriesIndex,
 } from '@/actions/App/Http/Controllers/Admin/TimeEntryController';
+import DailyWorkDayDetail from '@/components/DailyWorkDayDetail.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,20 +40,24 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { formatDecimalHours } from '@/lib/utils';
+import { formatDecimalHours, formatTime12h } from '@/lib/utils';
 import { dashboard } from '@/routes';
-import type { BreadcrumbItem, PaginatedData } from '@/types';
+import type { BreadcrumbItem, DailyBreak, PaginatedData } from '@/types';
 
 type EntryRow = {
     id: number;
     date: string;
     clock_in: string | null;
     clock_out: string | null;
+    gross_hours: string;
+    break_hours: string;
+    paid_break_hours: number;
     net_hours: string;
     status: string;
     edit_reason: string | null;
     employee: { id: number; user: { name: string } };
     edited_by: { name: string } | null;
+    breaks: DailyBreak[];
 };
 
 type SimpleEmployee = { id: number; name: string };
@@ -55,7 +69,7 @@ type Props = {
 };
 
 const props = defineProps<Props>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: t('common.dashboard'), href: dashboard() },
@@ -76,7 +90,10 @@ function applyFilters() {
     router.get(
         timeEntriesIndex.url(),
         {
-            employee_id: employeeFilter.value === 'all' ? undefined : employeeFilter.value,
+            employee_id:
+                employeeFilter.value === 'all'
+                    ? undefined
+                    : employeeFilter.value,
             date_from: dateFrom.value || undefined,
             date_to: dateTo.value || undefined,
         },
@@ -90,7 +107,10 @@ function onEmployeeChange(value: string) {
 }
 
 function statusVariant(status: string) {
-    const map: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    const map: Record<
+        string,
+        'default' | 'secondary' | 'destructive' | 'outline'
+    > = {
         pending: 'secondary',
         calculated: 'default',
         edited: 'outline',
@@ -100,6 +120,36 @@ function statusVariant(status: string) {
 
 function statusLabel(status: string) {
     return t(`time_entries.status.${status}`, status);
+}
+
+const dayFormatter = computed(
+    () =>
+        new Intl.DateTimeFormat(locale.value, {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+        }),
+);
+
+function formatDayLabel(date: string): string {
+    const [year, month, day] = date.slice(0, 10).split('-').map(Number);
+    const label = dayFormatter.value.format(new Date(year, month - 1, day));
+    return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+const gridCols =
+    'lg:grid-cols-[2rem_minmax(9rem,1fr)_12.5rem_5.5rem_6.5rem_6.5rem_11.5rem]';
+
+const expanded = ref(new Set<number>());
+
+function toggleExpanded(id: number) {
+    if (expanded.value.has(id)) {
+        expanded.value.delete(id);
+    } else {
+        expanded.value.add(id);
+    }
+    expanded.value = new Set(expanded.value);
 }
 
 const deleteForm = useForm({});
@@ -128,10 +178,16 @@ function performDelete() {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-4 md:p-6">
             <!-- Header -->
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div
+                class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+            >
                 <div>
-                    <h1 class="text-2xl font-bold tracking-tight">{{ t('time_entries.title') }}</h1>
-                    <p class="text-muted-foreground mt-1 text-sm">{{ t('time_entries.subtitle') }}</p>
+                    <h1 class="text-2xl font-bold tracking-tight">
+                        {{ t('time_entries.title') }}
+                    </h1>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        {{ t('time_entries.subtitle') }}
+                    </p>
                 </div>
                 <Button as-child>
                     <Link :href="createEntry().url">
@@ -144,13 +200,22 @@ function performDelete() {
             <!-- Filters -->
             <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div class="flex flex-col gap-1.5">
-                    <Label class="text-xs">{{ t('time_entries.filter_employee') }}</Label>
-                    <Select :model-value="employeeFilter" @update:model-value="onEmployeeChange">
+                    <Label class="text-xs">{{
+                        t('time_entries.filter_employee')
+                    }}</Label>
+                    <Select
+                        :model-value="employeeFilter"
+                        @update:model-value="onEmployeeChange"
+                    >
                         <SelectTrigger class="w-full sm:w-[200px]">
-                            <SelectValue :placeholder="t('time_entries.filter_employee')" />
+                            <SelectValue
+                                :placeholder="t('time_entries.filter_employee')"
+                            />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">{{ t('common.all') }}</SelectItem>
+                            <SelectItem value="all">{{
+                                t('common.all')
+                            }}</SelectItem>
                             <SelectItem
                                 v-for="emp in employees"
                                 :key="emp.id"
@@ -162,60 +227,176 @@ function performDelete() {
                     </Select>
                 </div>
                 <div class="flex flex-col gap-1.5">
-                    <Label class="text-xs">{{ t('time_entries.filter_date_from') }}</Label>
-                    <Input v-model="dateFrom" type="date" class="w-full sm:w-[170px]" />
+                    <Label class="text-xs">{{
+                        t('time_entries.filter_date_from')
+                    }}</Label>
+                    <Input
+                        v-model="dateFrom"
+                        type="date"
+                        class="w-full sm:w-[170px]"
+                    />
                 </div>
                 <div class="flex flex-col gap-1.5">
-                    <Label class="text-xs">{{ t('time_entries.filter_date_to') }}</Label>
-                    <Input v-model="dateTo" type="date" class="w-full sm:w-[170px]" />
+                    <Label class="text-xs">{{
+                        t('time_entries.filter_date_to')
+                    }}</Label>
+                    <Input
+                        v-model="dateTo"
+                        type="date"
+                        class="w-full sm:w-[170px]"
+                    />
                 </div>
             </div>
 
             <!-- Table -->
             <Card>
                 <CardContent class="p-0">
+                    <!-- Encabezados (desktop) -->
+                    <div
+                        class="hidden items-center gap-3 border-b px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase lg:grid"
+                        :class="gridCols"
+                    >
+                        <span />
+                        <span>{{ t('daily_work.col_employee') }}</span>
+                        <span>{{ t('daily_work.col_schedule') }}</span>
+                        <span class="text-right">{{
+                            t('daily_work.col_worked')
+                        }}</span>
+                        <span class="text-right">{{
+                            t('daily_work.col_paid_breaks')
+                        }}</span>
+                        <span class="text-right">{{
+                            t('daily_work.col_unpaid_breaks')
+                        }}</span>
+                        <span class="text-right">{{
+                            t('daily_work.col_status')
+                        }}</span>
+                    </div>
+
                     <div class="divide-y">
-                        <div
-                            v-for="entry in entries.data"
-                            :key="entry.id"
-                            class="flex items-center gap-4 px-4 py-3"
-                        >
-                            <div class="min-w-0 flex-1">
-                                <p class="truncate font-medium">{{ entry.employee.user.name }}</p>
-                                <p class="text-muted-foreground text-sm">{{ entry.date }}</p>
-                            </div>
-
-                            <div class="text-muted-foreground hidden text-sm sm:block">
-                                {{ entry.clock_in ?? '—' }}
-                                <span v-if="entry.clock_out"> → {{ entry.clock_out }}</span>
-                            </div>
-
-                            <div class="hidden text-sm font-medium tabular-nums sm:block">
-                                {{ formatDecimalHours(entry.net_hours) }}
-                            </div>
-
-                            <Badge :variant="statusVariant(entry.status)" class="shrink-0 text-xs">
-                                {{ statusLabel(entry.status) }}
-                            </Badge>
-
-                            <Button variant="ghost" size="icon" as-child>
-                                <Link :href="editEntry(entry.id).url">
-                                    <Pencil class="size-4" />
-                                </Link>
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                class="text-muted-foreground hover:text-destructive"
-                                @click="confirmDelete(entry)"
+                        <div v-for="entry in entries.data" :key="entry.id">
+                            <div
+                                class="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3"
+                                :class="gridCols"
                             >
-                                <Trash2 class="size-4" />
-                            </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    class="size-7 shrink-0"
+                                    :aria-expanded="expanded.has(entry.id)"
+                                    @click="toggleExpanded(entry.id)"
+                                >
+                                    <ChevronDown
+                                        class="size-4 text-muted-foreground transition-transform"
+                                        :class="{
+                                            'rotate-180': expanded.has(
+                                                entry.id,
+                                            ),
+                                        }"
+                                    />
+                                </Button>
+
+                                <div class="min-w-0">
+                                    <p class="truncate font-medium">
+                                        {{ entry.employee.user.name }}
+                                    </p>
+                                    <p class="text-sm text-muted-foreground">
+                                        {{ formatDayLabel(entry.date) }}
+                                    </p>
+                                </div>
+
+                                <div
+                                    class="hidden items-center gap-1.5 text-sm text-muted-foreground tabular-nums lg:flex"
+                                >
+                                    <LogIn class="size-3.5 text-emerald-500" />
+                                    {{ formatTime12h(entry.clock_in) }}
+                                    <template v-if="entry.clock_out">
+                                        <span class="text-muted-foreground/50"
+                                            >→</span
+                                        >
+                                        <LogOut
+                                            class="size-3.5 text-rose-400"
+                                        />
+                                        {{ formatTime12h(entry.clock_out) }}
+                                    </template>
+                                    <Badge
+                                        v-else
+                                        class="ml-1 animate-pulse bg-sky-100 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300"
+                                    >
+                                        {{ t('daily_work.in_progress') }}
+                                    </Badge>
+                                </div>
+
+                                <div
+                                    class="hidden items-center justify-end gap-1.5 text-sm font-semibold text-emerald-600 tabular-nums lg:flex dark:text-emerald-400"
+                                >
+                                    <Clock class="size-3.5" />
+                                    {{
+                                        entry.clock_out
+                                            ? formatDecimalHours(
+                                                  entry.net_hours,
+                                              )
+                                            : '—'
+                                    }}
+                                </div>
+
+                                <div
+                                    class="hidden items-center justify-end gap-1.5 text-sm font-medium text-teal-600 tabular-nums lg:flex dark:text-teal-400"
+                                >
+                                    <Coffee class="size-3.5" />
+                                    {{
+                                        formatDecimalHours(
+                                            entry.paid_break_hours,
+                                        )
+                                    }}
+                                </div>
+
+                                <div
+                                    class="hidden items-center justify-end gap-1.5 text-sm font-medium text-amber-600 tabular-nums lg:flex dark:text-amber-400"
+                                >
+                                    <Coffee class="size-3.5" />
+                                    {{ formatDecimalHours(entry.break_hours) }}
+                                </div>
+
+                                <div
+                                    class="flex items-center justify-end gap-1"
+                                >
+                                    <Badge
+                                        :variant="statusVariant(entry.status)"
+                                        class="shrink-0 text-xs"
+                                    >
+                                        {{ statusLabel(entry.status) }}
+                                    </Badge>
+
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        as-child
+                                    >
+                                        <Link :href="editEntry(entry.id).url">
+                                            <Pencil class="size-4" />
+                                        </Link>
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        class="text-muted-foreground hover:text-destructive"
+                                        @click="confirmDelete(entry)"
+                                    >
+                                        <Trash2 class="size-4" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <DailyWorkDayDetail
+                                v-if="expanded.has(entry.id)"
+                                :breaks="entry.breaks"
+                            />
                         </div>
 
                         <div
                             v-if="entries.data.length === 0"
-                            class="text-muted-foreground p-8 text-center text-sm"
+                            class="p-8 text-center text-sm text-muted-foreground"
                         >
                             {{ t('time_entries.no_entries') }}
                         </div>
@@ -228,9 +409,25 @@ function performDelete() {
                 <Button
                     v-for="page in entries.last_page"
                     :key="page"
-                    :variant="page === entries.current_page ? 'default' : 'outline'"
+                    :variant="
+                        page === entries.current_page ? 'default' : 'outline'
+                    "
                     size="sm"
-                    @click="router.get(timeEntriesIndex.url(), { employee_id: employeeFilter === 'all' ? undefined : employeeFilter, date_from: dateFrom || undefined, date_to: dateTo || undefined, page }, { preserveState: true })"
+                    @click="
+                        router.get(
+                            timeEntriesIndex.url(),
+                            {
+                                employee_id:
+                                    employeeFilter === 'all'
+                                        ? undefined
+                                        : employeeFilter,
+                                date_from: dateFrom || undefined,
+                                date_to: dateTo || undefined,
+                                page,
+                            },
+                            { preserveState: true },
+                        )
+                    "
                 >
                     {{ page }}
                 </Button>
@@ -238,17 +435,32 @@ function performDelete() {
         </div>
 
         <!-- Delete confirmation -->
-        <Dialog :open="entryToDelete !== null" @update:open="(v) => { if (!v) entryToDelete = null; }">
+        <Dialog
+            :open="entryToDelete !== null"
+            @update:open="
+                (v) => {
+                    if (!v) entryToDelete = null;
+                }
+            "
+        >
             <DialogContent class="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>{{ t('time_entries.delete_confirm_title') }}</DialogTitle>
-                    <DialogDescription>{{ t('time_entries.delete_confirm_message') }}</DialogDescription>
+                    <DialogTitle>{{
+                        t('time_entries.delete_confirm_title')
+                    }}</DialogTitle>
+                    <DialogDescription>{{
+                        t('time_entries.delete_confirm_message')
+                    }}</DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
                     <Button variant="outline" @click="entryToDelete = null">
                         {{ t('common.cancel') }}
                     </Button>
-                    <Button variant="destructive" :disabled="deleteForm.processing" @click="performDelete">
+                    <Button
+                        variant="destructive"
+                        :disabled="deleteForm.processing"
+                        @click="performDelete"
+                    >
                         {{ t('time_entries.delete_action') }}
                     </Button>
                 </DialogFooter>

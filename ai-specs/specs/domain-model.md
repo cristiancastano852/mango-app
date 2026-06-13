@@ -14,8 +14,8 @@
 ## TimeTracking (app/Domain/TimeTracking/)
 - Actions (clock): ClockIn, ClockOut, StartBreak, EndBreak, AdminClockIn
 - Actions (cálculo): CalculateWorkHours — clasificación minuto a minuto en regular/night/sunday_holiday/overtime; RecalculateTimeEntry — recomputa gross/break (solo pausas no pagadas finalizadas)/net, invoca CalculateWorkHours y marca status='edited' (usada por edición admin de registros y pausas)
-- Actions (reportes): GenerateCompanyReport, GenerateEmployeeReport, CalculateReportCosts (acepta flag payOvertime), ResolveOvertimePaymentDecision (precedencia request → decisión guardada → default de compañía)
-- Models: TimeEntry (SoftDeletes; unique employee_id+date+active_marker — 1 activo/día), BreakEntry, BreakType
+- Actions (reportes): GenerateCompanyReport, GenerateEmployeeReport (daily_breakdown enriquecido: horario ISO 8601, status con 'in_progress' derivado para turnos abiertos —no suman a totals— y breaks[] anidadas), CalculateReportCosts (acepta flag payOvertime), ResolveOvertimePaymentDecision (precedencia request → decisión guardada → default de compañía)
+- Models: TimeEntry (SoftDeletes; unique employee_id+date+active_marker — 1 activo/día), BreakEntry (toDisplayArray() — shape único de pausa para vistas/reportes), BreakType
 
 ## Organization (app/Domain/Organization/)
 - Models: Department, Location, Position, Schedule
