@@ -456,11 +456,62 @@ class GenerateEmployeeReportTest extends TestCase
             'started_at' => '2026-03-05T12:00:00-05:00',
             'ended_at' => '2026-03-05T13:00:00-05:00',
             'duration_minutes' => 60,
+            'overage_minutes' => 0,
             'in_progress' => false,
         ], $day['breaks'][0]);
         $this->assertEquals('Café', $day['breaks'][1]['name']);
         $this->assertTrue($day['breaks'][1]['is_paid']);
         $this->assertEquals(15, $day['breaks'][1]['duration_minutes']);
+    }
+
+    public function test_report_exposes_paid_break_overage(): void
+    {
+        $paidType = BreakType::withoutGlobalScopes()->create([
+            'company_id' => $this->company->id,
+            'name' => 'Descanso',
+            'slug' => 'descanso',
+            'icon' => '☕',
+            'color' => '#3B82F6',
+            'is_paid' => true,
+            'max_duration_minutes' => 15,
+            'is_active' => true,
+        ]);
+
+        $entry = TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-03-05',
+            'clock_in' => '2026-03-05 12:00:00',
+            'clock_out' => '2026-03-05 20:00:00',
+            'gross_hours' => 8.0,
+            'break_hours' => 0.0,
+            'paid_break_overage_hours' => 0.17,
+            'net_hours' => 7.83,
+            'regular_hours' => 7.83,
+            'status' => 'calculated',
+        ]);
+
+        BreakEntry::withoutGlobalScopes()->create([
+            'time_entry_id' => $entry->id,
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'break_type_id' => $paidType->id,
+            'started_at' => '2026-03-05 14:00:00',
+            'ended_at' => '2026-03-05 14:25:00',
+            'duration_minutes' => 25,
+        ]);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-07'),
+        );
+
+        $this->assertEquals(0.17, $result['totals']['paid_break_overage_hours']);
+
+        $day = $result['daily_breakdown'][0];
+        $this->assertEquals(0.17, $day['paid_break_overage_hours']);
+        $this->assertEquals(10, $day['breaks'][0]['overage_minutes']);
     }
 
     public function test_daily_breakdown_marks_break_without_end_as_in_progress(): void

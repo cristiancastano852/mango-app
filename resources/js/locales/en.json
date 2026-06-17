@@ -662,7 +662,7 @@
         "holiday_badge": "Sun/Holiday",
         "breaks_title": "Breaks of the day",
         "hour_types_title": "Hour types",
-        "break_paid": "Paid · doesn't deduct",
+        "break_paid": "Paid",
         "break_unpaid": "Unpaid · deducts",
         "break_in_progress": "In progress",
         "no_breaks": "No breaks recorded",
@@ -672,6 +672,8 @@
         "col_status": "Status",
         "col_paid_breaks": "Paid breaks",
         "col_unpaid_breaks": "Unpaid breaks",
-        "paid_hint": "Paid breaks don't reduce worked time; unpaid breaks do."
+        "paid_hint": "Paid breaks don't reduce worked time, except for any time over their limit, which is deducted.",
+        "overage_short": "excess ded.",
+        "overage_deducted": "Excess deducted"
     }
 }

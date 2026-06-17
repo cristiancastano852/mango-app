@@ -39,6 +39,7 @@ class TimeEntryController extends Controller
                 'gross_hours' => $entry->gross_hours,
                 'break_hours' => $entry->break_hours,
                 'paid_break_hours' => $entry->paidBreakHours(),
+                'paid_break_overage_hours' => $entry->paid_break_overage_hours,
                 'net_hours' => $entry->net_hours,
                 'status' => $entry->status,
                 'edit_reason' => $entry->edit_reason,

@@ -148,6 +148,14 @@ function breakTint(color: string | null): Record<string, string> {
                                 : t('daily_work.break_unpaid')
                         }}
                     </Badge>
+                    <Badge
+                        v-if="brk.overage_minutes > 0"
+                        class="bg-rose-100 text-[10px] font-medium text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
+                    >
+                        {{ t('daily_work.overage_deducted') }}: −{{
+                            formatMinutes(brk.overage_minutes)
+                        }}
+                    </Badge>
                 </li>
             </ul>
         </div>

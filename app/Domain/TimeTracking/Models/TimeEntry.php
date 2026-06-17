@@ -29,6 +29,7 @@ class TimeEntry extends Model
         'clock_out',
         'gross_hours',
         'break_hours',
+        'paid_break_overage_hours',
         'net_hours',
         'regular_hours',
         'night_hours',
@@ -51,6 +52,8 @@ class TimeEntry extends Model
             'clock_out' => 'datetime',
             'gross_hours' => 'decimal:2',
             'break_hours' => 'decimal:2',
+            // Exceso de pausas pagadas descontado del tiempo trabajado (parte que supera max_duration_minutes)
+            'paid_break_overage_hours' => 'decimal:2',
             'net_hours' => 'decimal:2',
             // Semana + diurno + dentro de límite
             'regular_hours' => 'decimal:2',
@@ -97,6 +100,25 @@ class TimeEntry extends Model
             $this->breaks
                 ->filter(fn (BreakEntry $break) => $break->ended_at !== null && (bool) $break->breakType?->is_paid)
                 ->sum(fn (BreakEntry $break) => max(0, (int) $break->duration_minutes)) / 60,
+            2,
+        );
+    }
+
+    /**
+     * Horas de exceso de pausas pagadas que SÍ se descuentan del tiempo trabajado:
+     * por cada pausa pagada finalizada con max_duration_minutes definido, la porción que
+     * supera ese límite (max(0, duration - max_duration_minutes)). Las pausas pagadas sin
+     * límite y las no pagadas no aportan. Consulta la relación para ser robusto sin eager loading.
+     */
+    public function paidBreakOverageHours(): float
+    {
+        return round(
+            $this->breaks()
+                ->whereNotNull('ended_at')
+                ->whereHas('breakType', fn ($query) => $query->where('is_paid', true)->whereNotNull('max_duration_minutes'))
+                ->with('breakType')
+                ->get()
+                ->sum(fn (BreakEntry $break) => max(0, (int) $break->duration_minutes - (int) $break->breakType->max_duration_minutes)) / 60,
             2,
         );
     }

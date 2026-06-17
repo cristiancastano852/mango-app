@@ -52,6 +52,7 @@ type EntryRow = {
     gross_hours: string;
     break_hours: string;
     paid_break_hours: number;
+    paid_break_overage_hours: string;
     net_hours: string;
     status: string;
     edit_reason: string | null;
@@ -341,14 +342,33 @@ function performDelete() {
                                 </div>
 
                                 <div
-                                    class="hidden items-center justify-end gap-1.5 text-sm font-medium text-teal-600 tabular-nums lg:flex dark:text-teal-400"
+                                    class="hidden flex-col items-end justify-center gap-0.5 text-sm tabular-nums lg:flex"
                                 >
-                                    <Coffee class="size-3.5" />
-                                    {{
-                                        formatDecimalHours(
-                                            entry.paid_break_hours,
-                                        )
-                                    }}
+                                    <span
+                                        class="flex items-center gap-1.5 font-medium text-teal-600 dark:text-teal-400"
+                                    >
+                                        <Coffee class="size-3.5" />
+                                        {{
+                                            formatDecimalHours(
+                                                entry.paid_break_hours,
+                                            )
+                                        }}
+                                    </span>
+                                    <span
+                                        v-if="
+                                            Number(
+                                                entry.paid_break_overage_hours,
+                                            ) > 0
+                                        "
+                                        class="text-[11px] font-medium text-rose-600 dark:text-rose-400"
+                                    >
+                                        −{{
+                                            formatDecimalHours(
+                                                entry.paid_break_overage_hours,
+                                            )
+                                        }}
+                                        {{ t('daily_work.overage_short') }}
+                                    </span>
                                 </div>
 
                                 <div
