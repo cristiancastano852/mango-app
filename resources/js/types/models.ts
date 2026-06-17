@@ -100,6 +100,7 @@ export type TimeEntry = {
     clock_out: string | null;
     gross_hours: string;
     break_hours: string;
+    paid_break_overage_hours: string;
     net_hours: string;
     regular_hours: string;
     night_hours: string;
@@ -122,6 +123,7 @@ export type DailyBreak = {
     started_at: string | null;
     ended_at: string | null;
     duration_minutes: number | null;
+    overage_minutes: number;
     in_progress: boolean;
 };
 
@@ -133,6 +135,7 @@ export type DailyWorkDay = {
     gross_hours: number | null;
     break_hours: number | null;
     paid_break_hours: number | null;
+    paid_break_overage_hours: number | null;
     net_hours: number | null;
     regular_hours: number | null;
     night_hours: number | null;

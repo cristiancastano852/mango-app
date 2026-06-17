@@ -116,6 +116,10 @@ const totals = computed(() => ({
         (sum, day) => sum + (day.paid_break_hours ?? 0),
         0,
     ),
+    paidBreakOverage: workedDays.value.reduce(
+        (sum, day) => sum + (day.paid_break_overage_hours ?? 0),
+        0,
+    ),
     unpaidBreaks: workedDays.value.reduce(
         (sum, day) => sum + (day.break_hours ?? 0),
         0,
@@ -251,16 +255,36 @@ const gridCols = 'sm:grid-cols-[8.5rem_1fr_6.5rem_7rem_7rem_2rem]';
                             </span>
 
                             <span
-                                class="flex items-center justify-start gap-1.5 text-sm font-medium text-teal-600 tabular-nums sm:justify-end dark:text-teal-400"
+                                class="flex flex-col items-start gap-0.5 text-sm sm:items-end"
                             >
-                                <Coffee class="size-3.5" />
-                                <template
-                                    v-if="row.day.status === 'in_progress'"
-                                    >—</template
+                                <span
+                                    class="flex items-center gap-1.5 font-medium text-teal-600 tabular-nums dark:text-teal-400"
                                 >
-                                <template v-else>{{
-                                    formatDecimalHours(row.day.paid_break_hours)
-                                }}</template>
+                                    <Coffee class="size-3.5" />
+                                    <template
+                                        v-if="row.day.status === 'in_progress'"
+                                        >—</template
+                                    >
+                                    <template v-else>{{
+                                        formatDecimalHours(
+                                            row.day.paid_break_hours,
+                                        )
+                                    }}</template>
+                                </span>
+                                <span
+                                    v-if="
+                                        (row.day.paid_break_overage_hours ?? 0) >
+                                        0
+                                    "
+                                    class="text-[11px] font-medium text-rose-600 tabular-nums dark:text-rose-400"
+                                >
+                                    −{{
+                                        formatDecimalHours(
+                                            row.day.paid_break_overage_hours,
+                                        )
+                                    }}
+                                    {{ t('daily_work.overage_short') }}
+                                </span>
                             </span>
 
                             <span
@@ -307,9 +331,18 @@ const gridCols = 'sm:grid-cols-[8.5rem_1fr_6.5rem_7rem_7rem_2rem]';
                     {{ formatDecimalHours(totals.net) }}
                 </span>
                 <span
-                    class="text-right text-teal-600 tabular-nums dark:text-teal-400"
+                    class="flex flex-col items-end gap-0.5 text-right tabular-nums"
                 >
-                    {{ formatDecimalHours(totals.paidBreaks) }}
+                    <span class="text-teal-600 dark:text-teal-400">
+                        {{ formatDecimalHours(totals.paidBreaks) }}
+                    </span>
+                    <span
+                        v-if="totals.paidBreakOverage > 0"
+                        class="text-[11px] font-medium text-rose-600 dark:text-rose-400"
+                    >
+                        −{{ formatDecimalHours(totals.paidBreakOverage) }}
+                        {{ t('daily_work.overage_short') }}
+                    </span>
                 </span>
                 <span
                     class="text-right text-amber-600 tabular-nums dark:text-amber-400"

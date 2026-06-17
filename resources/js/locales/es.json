@@ -662,7 +662,7 @@
         "holiday_badge": "Dom/Festivo",
         "breaks_title": "Pausas del día",
         "hour_types_title": "Tipos de hora",
-        "break_paid": "Pagada · no descuenta",
+        "break_paid": "Pagada",
         "break_unpaid": "No pagada · descuenta",
         "break_in_progress": "En curso",
         "no_breaks": "Sin pausas registradas",
@@ -672,6 +672,8 @@
         "col_status": "Estado",
         "col_paid_breaks": "Descansos pagados",
         "col_unpaid_breaks": "Descansos no pagados",
-        "paid_hint": "Los descansos pagados no descuentan del tiempo trabajado; los no pagados sí."
+        "paid_hint": "Los descansos pagados no descuentan del tiempo trabajado, salvo el tiempo que exceda su límite, que sí se descuenta.",
+        "overage_short": "exceso desc.",
+        "overage_deducted": "Exceso descontado"
     }
 }
