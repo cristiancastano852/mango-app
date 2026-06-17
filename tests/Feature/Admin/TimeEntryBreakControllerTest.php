@@ -128,6 +128,78 @@ class TimeEntryBreakControllerTest extends TestCase
         $this->assertEquals(9.0, (float) $this->entry->net_hours);
     }
 
+    public function test_editing_paid_break_to_exceed_limit_recomputes_overage(): void
+    {
+        $paidType = BreakType::factory()->create([
+            'company_id' => $this->company->id,
+            'is_paid' => true,
+            'max_duration_minutes' => 15,
+        ]);
+
+        $break = BreakEntry::factory()->forTimeEntry($this->entry)->create([
+            'break_type_id' => $paidType->id,
+            'started_at' => '2026-06-01 12:00:00',
+            'ended_at' => '2026-06-01 12:10:00',
+            'duration_minutes' => 10,
+        ]);
+
+        $this->actingAs($this->adminUser)
+            ->put(route('admin.time-entries.breaks.update', [$this->entry, $break]), [
+                'break_type_id' => $paidType->id,
+                'started_at' => '2026-06-01 12:00',
+                'ended_at' => '2026-06-01 12:30',
+            ])->assertRedirect();
+
+        $this->entry->refresh();
+        // 30 min - 15 límite = 15 min de exceso = 0.25h
+        $this->assertEqualsWithDelta(0.25, (float) $this->entry->paid_break_overage_hours, 0.001);
+        $this->assertEqualsWithDelta(8.75, (float) $this->entry->net_hours, 0.001);
+    }
+
+    public function test_changing_type_to_limited_paid_deducts_overage(): void
+    {
+        $break = $this->makeBreak($this->breakType(isPaid: false)); // 60 min no pagada
+        $limitedPaid = BreakType::factory()->create([
+            'company_id' => $this->company->id,
+            'is_paid' => true,
+            'max_duration_minutes' => 15,
+        ]);
+
+        $this->actingAs($this->adminUser)
+            ->put(route('admin.time-entries.breaks.update', [$this->entry, $break]), [
+                'break_type_id' => $limitedPaid->id,
+                'started_at' => '2026-06-01 12:00',
+                'ended_at' => '2026-06-01 13:00',
+            ])->assertRedirect();
+
+        $this->entry->refresh();
+        $this->assertEquals(0.0, (float) $this->entry->break_hours);
+        // 60 min - 15 límite = 45 min de exceso = 0.75h
+        $this->assertEqualsWithDelta(0.75, (float) $this->entry->paid_break_overage_hours, 0.001);
+        $this->assertEqualsWithDelta(8.25, (float) $this->entry->net_hours, 0.001);
+    }
+
+    public function test_adding_paid_break_over_limit_deducts_only_overage(): void
+    {
+        $paidType = BreakType::factory()->create([
+            'company_id' => $this->company->id,
+            'is_paid' => true,
+            'max_duration_minutes' => 15,
+        ]);
+
+        $this->actingAs($this->adminUser)
+            ->post(route('admin.time-entries.breaks.store', $this->entry), [
+                'break_type_id' => $paidType->id,
+                'started_at' => '2026-06-01 12:00',
+                'ended_at' => '2026-06-01 12:25',
+            ])->assertRedirect();
+
+        $this->entry->refresh();
+        $this->assertEquals(0.0, (float) $this->entry->break_hours);
+        $this->assertEqualsWithDelta(0.17, (float) $this->entry->paid_break_overage_hours, 0.001);
+        $this->assertEqualsWithDelta(8.83, (float) $this->entry->net_hours, 0.001);
+    }
+
     public function test_admin_can_delete_break(): void
     {
         $break = $this->makeBreak($this->breakType(isPaid: false));

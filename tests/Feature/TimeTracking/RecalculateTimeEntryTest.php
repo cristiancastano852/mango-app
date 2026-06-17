@@ -65,6 +65,22 @@ class RecalculateTimeEntryTest extends TestCase
         ]);
     }
 
+    private function addPaidBreakOverLimit(TimeEntry $entry): BreakEntry
+    {
+        $type = BreakType::factory()->create([
+            'company_id' => $this->company->id,
+            'is_paid' => true,
+            'max_duration_minutes' => 15,
+        ]);
+
+        return BreakEntry::factory()->forTimeEntry($entry)->create([
+            'break_type_id' => $type->id,
+            'started_at' => '2026-06-01 12:00:00',
+            'ended_at' => '2026-06-01 12:25:00',
+            'duration_minutes' => 25,
+        ]);
+    }
+
     public function test_recalculates_entry_without_breaks(): void
     {
         $entry = $this->makeEntry();
@@ -102,6 +118,41 @@ class RecalculateTimeEntryTest extends TestCase
         $this->assertEquals(9.0, (float) $entry->gross_hours);
         $this->assertEquals(0.0, (float) $entry->break_hours);
         $this->assertEquals(9.0, (float) $entry->net_hours);
+    }
+
+    public function test_paid_break_over_limit_deducts_only_the_overage(): void
+    {
+        $entry = $this->makeEntry();
+        $this->addPaidBreakOverLimit($entry);
+
+        app(RecalculateTimeEntry::class)->execute($entry->fresh());
+
+        $entry->refresh();
+        $this->assertEquals(9.0, (float) $entry->gross_hours);
+        $this->assertEquals(0.0, (float) $entry->break_hours);
+        $this->assertEqualsWithDelta(0.17, (float) $entry->paid_break_overage_hours, 0.001);
+        $this->assertEqualsWithDelta(8.83, (float) $entry->net_hours, 0.001);
+
+        $this->assertDatabaseHas('time_entries', [
+            'id' => $entry->id,
+            'status' => 'edited',
+            'paid_break_overage_hours' => 0.17,
+        ]);
+    }
+
+    public function test_unpaid_and_paid_overage_both_deduct(): void
+    {
+        $entry = $this->makeEntry();
+        $this->addBreak($entry, isPaid: false); // 60 min no pagada
+        $this->addPaidBreakOverLimit($entry);   // 25 min pagada, límite 15 → 10 exceso
+
+        app(RecalculateTimeEntry::class)->execute($entry->fresh());
+
+        $entry->refresh();
+        $this->assertEquals(1.0, (float) $entry->break_hours);
+        $this->assertEqualsWithDelta(0.17, (float) $entry->paid_break_overage_hours, 0.001);
+        // 9 - 1 - 0.17 = 7.83
+        $this->assertEqualsWithDelta(7.83, (float) $entry->net_hours, 0.001);
     }
 
     public function test_open_entry_without_clock_out_is_left_untouched(): void

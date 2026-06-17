@@ -41,12 +41,15 @@ class ClockOut
             2
         );
 
-        $netHours = round(max(0, $grossHours - $breakHours), 2);
+        $paidBreakOverageHours = $timeEntry->paidBreakOverageHours();
+
+        $netHours = round(max(0, $grossHours - $breakHours - $paidBreakOverageHours), 2);
 
         $timeEntry->update([
             'clock_out' => $clockOut,
             'gross_hours' => $grossHours,
             'break_hours' => $breakHours,
+            'paid_break_overage_hours' => $paidBreakOverageHours,
             'net_hours' => $netHours,
         ]);
 

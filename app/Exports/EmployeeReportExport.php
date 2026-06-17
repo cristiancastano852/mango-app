@@ -58,6 +58,7 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
             ['Días trabajados', $totals['days_worked'], '', ''],
             ['Horas brutas', $totals['gross_hours'], '', ''],
             ['Horas en pausas', $totals['break_hours'], '', ''],
+            ['Exceso pausas pagadas (descontado)', $totals['paid_break_overage_hours'] ?? 0, '', ''],
             ['Horas netas', $totals['net_hours'], '', ''],
             [],
         ];

@@ -25,7 +25,7 @@ class GenerateEmployeeReport
      *
      * @return array{
      *     employee: array{id: int, name: string, department: ?string, position: ?string, hourly_rate: float, salary_type: string, monthly_base_salary: ?float},
-     *     totals: array{days_worked: int, gross_hours: float, break_hours: float, net_hours: float, regular_hours: float, night_hours: float, sunday_holiday_hours: float, night_sunday_hours: float, overtime_day_hours: float, overtime_night_hours: float, overtime_day_sunday_hours: float, overtime_night_sunday_hours: float},
+     *     totals: array{days_worked: int, gross_hours: float, break_hours: float, paid_break_overage_hours: float, net_hours: float, regular_hours: float, night_hours: float, sunday_holiday_hours: float, night_sunday_hours: float, overtime_day_hours: float, overtime_night_hours: float, overtime_day_sunday_hours: float, overtime_night_sunday_hours: float},
      *     breaks_by_type: array<int, array{name: string, is_paid: bool, icon: string, color: string, total_minutes: float, count: int}>,
      *     daily_breakdown: array,
      *     cost_summary: array,
@@ -94,6 +94,7 @@ class GenerateEmployeeReport
                 'days_worked' => (int) ($totals->days_worked ?? 0),
                 'gross_hours' => round((float) ($totals->total_gross ?? 0), 2),
                 'break_hours' => round((float) ($totals->total_breaks ?? 0), 2),
+                'paid_break_overage_hours' => round((float) ($totals->total_paid_break_overage ?? 0), 2),
                 'net_hours' => round((float) ($totals->total_net ?? 0), 2),
                 'regular_hours' => round((float) ($totals->total_regular ?? 0), 2),
                 'night_hours' => round((float) ($totals->total_night ?? 0), 2),
@@ -127,6 +128,7 @@ class GenerateEmployeeReport
                 COUNT(*) as days_worked,
                 COALESCE(SUM(gross_hours), 0) as total_gross,
                 COALESCE(SUM(break_hours), 0) as total_breaks,
+                COALESCE(SUM(paid_break_overage_hours), 0) as total_paid_break_overage,
                 COALESCE(SUM(net_hours), 0) as total_net,
                 COALESCE(SUM(regular_hours), 0) as total_regular,
                 COALESCE(SUM(night_hours), 0) as total_night,
@@ -181,7 +183,7 @@ class GenerateEmployeeReport
      * cada entry equivale a un día; los turnos en curso (sin clock_out) se incluyen con
      * status 'in_progress' y horas en null — los totales del período no los consideran.
      *
-     * @return array<array{date: string, clock_in: ?string, clock_out: ?string, status: string, gross_hours: ?float, break_hours: ?float, paid_break_hours: ?float, net_hours: ?float, regular_hours: ?float, night_hours: ?float, sunday_holiday_hours: ?float, night_sunday_hours: ?float, overtime_day_hours: ?float, overtime_night_hours: ?float, overtime_day_sunday_hours: ?float, overtime_night_sunday_hours: ?float, breaks: array}>
+     * @return array<array{date: string, clock_in: ?string, clock_out: ?string, status: string, gross_hours: ?float, break_hours: ?float, paid_break_hours: ?float, paid_break_overage_hours: ?float, net_hours: ?float, regular_hours: ?float, night_hours: ?float, sunday_holiday_hours: ?float, night_sunday_hours: ?float, overtime_day_hours: ?float, overtime_night_hours: ?float, overtime_day_sunday_hours: ?float, overtime_night_sunday_hours: ?float, breaks: array}>
      */
     private function getDailyBreakdown(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): array
     {
@@ -206,8 +208,8 @@ class GenerateEmployeeReport
         $inProgress = $entry->clock_out === null;
 
         $hours = [
-            'gross_hours', 'break_hours', 'net_hours', 'regular_hours', 'night_hours',
-            'sunday_holiday_hours', 'night_sunday_hours', 'overtime_day_hours',
+            'gross_hours', 'break_hours', 'paid_break_overage_hours', 'net_hours', 'regular_hours',
+            'night_hours', 'sunday_holiday_hours', 'night_sunday_hours', 'overtime_day_hours',
             'overtime_night_hours', 'overtime_day_sunday_hours', 'overtime_night_sunday_hours',
         ];
 
