@@ -16,6 +16,8 @@
 - employee_code (nullable), document_number (string 50, nullable), hire_date (date nullable), hourly_rate (decimal 10,2 nullable) — valor hora usado para recargos y extras en ambos modos
 - monthly_base_salary (decimal 10,2 nullable) — salario base mensual; obligatorio cuando salary_type = monthly
 - salary_type (default: hourly) — `hourly` (cálculo por horas) | `monthly` (salario base fijo), schedule_id (nullable → schedules), location_id (nullable → locations)
+- dominical_payment_mode (string, default hour) — `hour` (recargo dominical por hora) | `day` (recargo plano por dominical); sembrado del default de la compañía al crear
+- dominical_day_value (decimal 12,2, default 0) — monto plano del recargo dominical por día (modo `day`); sembrado del default de la compañía
 - timestamps
 - indexes: company_id, (company_id, user_id)
 - unique: (document_number, company_id)
@@ -24,8 +26,13 @@
 - id, employee_id → employees, company_id → companies
 - date (date), clock_in (timestamp nullable), clock_out (timestamp nullable)
 - gross_hours (decimal 5,2 default 0), break_hours (decimal 5,2 default 0), net_hours (decimal 5,2 default 0)
-- regular_hours, night_hours, sunday_holiday_hours, night_sunday_hours (decimal 5,2 default 0)
-- overtime_day_hours, overtime_night_hours, overtime_day_sunday_hours, overtime_night_sunday_hours (decimal 5,2 default 0)
+- regular_hours, night_hours (decimal 5,2 default 0) — semana
+- dominical_hours, night_dominical_hours (decimal 5,2 default 0) — día dominical configurable (renombrados desde sunday_holiday_hours / night_sunday_hours)
+- holiday_hours, night_holiday_hours (decimal 5,2 default 0) — festivo, separado del dominical (festivo siempre paga)
+- overtime_day_hours, overtime_night_hours (decimal 5,2 default 0) — extra semana
+- overtime_day_dominical_hours, overtime_night_dominical_hours (decimal 5,2 default 0) — extra dominical (renombrados desde overtime_*_sunday_hours)
+- overtime_day_holiday_hours, overtime_night_holiday_hours (decimal 5,2 default 0) — extra festivo
+- la suma de los 12 buckets = net_hours
 - status (string, default: pending) — valores persistidos: pending (creado/clock-in), calculated (tras CalculateWorkHours), edited (tras RecalculateTimeEntry)
 - edited_by (nullable → users), edit_reason (text nullable), pin_verified (boolean default false)
 - timestamps, deleted_at (soft deletes)
@@ -73,6 +80,11 @@
 - night_start_time (time, default '21:00'), night_end_time (time, default '06:00')
 - default_monthly_salary (decimal 10,2, default SMLV) — salario base mensual por defecto para empleados nuevos; sembrado con el SMLV vigente, editable por admin
 - default_hourly_rate (decimal 10,2, default round(SMLV/220)) — valor hora por defecto para empleados nuevos; derivado del SMLV con divisor 220 al sembrar, editable por admin
+- transport_allowance (decimal 10,2) — auxilio de transporte mensual por defecto
+- dominical_weekday (tinyint, default 0) — día de la semana que recibe el recargo dominical (0=Dom … 6=Sáb); solo empresa
+- pay_dominical_by_default (boolean default true) — pagar dominicales por defecto; si false se tratan como día normal (los festivos siempre pagan)
+- default_dominical_payment_mode (string default hour) — modo de pago dominical por defecto (`hour`|`day`); siembra a employees
+- default_dominical_day_value (decimal 12,2 default 0) — valor plano por día dominical por defecto; siembra a employees
 - timestamps
 
 ## overtime_payment_decisions
@@ -82,6 +94,15 @@
 - exported_by (nullable → users), exported_at (timestamp nullable)
 - timestamps
 - unique: (company_id, employee_id, start_date, end_date) → upsert al exportar (gana la última)
+- indexes: (company_id, employee_id)
+
+## dominical_payment_decisions
+- id, company_id → companies, employee_id (NOT NULL → employees) — decisión por empleado; el reporte de empresa la resuelve por empleado (no hay decisión a nivel empresa)
+- start_date (date), end_date (date) — periodo resuelto del reporte
+- payable_count (unsignedInteger nullable) — cuántos dominicales pagar (K); NULL = todos los trabajados. Solo aplica en modo `day`
+- exported_by (nullable → users), exported_at (timestamp nullable)
+- timestamps
+- unique: (company_id, employee_id, start_date, end_date) → upsert al exportar el reporte de empleado (gana la última)
 - indexes: (company_id, employee_id)
 
 ## holidays

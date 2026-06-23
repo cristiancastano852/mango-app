@@ -187,12 +187,12 @@ class PaidBreakOverageTest extends TestCase
         $entry->refresh();
         $sum = (float) $entry->regular_hours
             + (float) $entry->night_hours
-            + (float) $entry->sunday_holiday_hours
-            + (float) $entry->night_sunday_hours
+            + (float) $entry->dominical_hours
+            + (float) $entry->night_dominical_hours
             + (float) $entry->overtime_day_hours
             + (float) $entry->overtime_night_hours
-            + (float) $entry->overtime_day_sunday_hours
-            + (float) $entry->overtime_night_sunday_hours;
+            + (float) $entry->overtime_day_dominical_hours
+            + (float) $entry->overtime_night_dominical_hours;
 
         $this->assertEqualsWithDelta((float) $entry->net_hours, $sum, 0.01);
 

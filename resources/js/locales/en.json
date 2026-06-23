@@ -255,7 +255,11 @@
             "monthly_base_salary": "Monthly base salary (COP)",
             "hourly_rate_hint": "Used for surcharges and overtime in both modes.",
             "receives_transport_allowance": "Receives transport allowance",
-            "receives_transport_allowance_hint": "Added to pay, prorated per period. Monthly salary only."
+            "receives_transport_allowance_hint": "Added to pay, prorated per period. Monthly salary only.",
+            "dominical_payment_mode": "Sunday payment mode",
+            "dominical_mode_hour": "Per hour",
+            "dominical_mode_day": "Per day (fixed amount)",
+            "dominical_day_value": "Per-Sunday value (COP)"
         }
     },
     "time_clock": {
@@ -410,18 +414,25 @@
             "regular_hours": "Regular hours",
             "night_hours": "Night hours",
             "overtime_day_hours": "Day overtime hours",
-            "sunday_holiday_hours": "Sunday/Holiday hours"
+            "dominical_hours": "Sunday hours"
         },
         "hours": {
             "title": "Hours Breakdown",
             "regular": "Regular",
             "night": "Night",
-            "sunday_holiday": "Sun/Holiday",
-            "night_sunday": "Night Sun/Holiday",
+            "dominical": "Sunday",
+            "night_dominical": "Night Sunday",
+            "holiday": "Holiday",
+            "night_holiday": "Night Holiday",
             "overtime_day": "Day Overtime",
             "overtime_night": "Night Overtime",
-            "overtime_day_sunday": "Sun/Holiday Day OT",
-            "overtime_night_sunday": "Sun/Holiday Night OT"
+            "overtime_day_dominical": "Sunday Day OT",
+            "overtime_night_dominical": "Sunday Night OT",
+            "overtime_day_holiday": "Holiday Day OT",
+            "overtime_night_holiday": "Holiday Night OT"
+        },
+        "dominical": {
+            "payable_count_label": "Sundays to pay"
         },
         "breaks": {
             "title": "Breaks Breakdown",
@@ -659,7 +670,8 @@
         "col_worked": "Worked",
         "not_worked": "Not worked",
         "in_progress": "In progress",
-        "holiday_badge": "Sun/Holiday",
+        "holiday_badge": "Holiday",
+        "dominical_badge": "Sunday",
         "breaks_title": "Breaks of the day",
         "hour_types_title": "Hour types",
         "break_paid": "Paid",

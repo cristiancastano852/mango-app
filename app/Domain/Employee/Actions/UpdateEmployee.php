@@ -37,6 +37,8 @@ class UpdateEmployee
                 'salary_type' => $salaryType,
                 'monthly_base_salary' => array_key_exists('monthly_base_salary', $data) ? $data['monthly_base_salary'] : $employee->monthly_base_salary,
                 'receives_transport_allowance' => $receivesTransportAllowance,
+                'dominical_payment_mode' => array_key_exists('dominical_payment_mode', $data) ? $data['dominical_payment_mode'] : $employee->dominical_payment_mode,
+                'dominical_day_value' => array_key_exists('dominical_day_value', $data) ? $data['dominical_day_value'] : $employee->dominical_day_value,
                 'schedule_id' => array_key_exists('schedule_id', $data) ? $data['schedule_id'] : $employee->schedule_id,
                 'location_id' => array_key_exists('location_id', $data) ? $data['location_id'] : $employee->location_id,
             ]);

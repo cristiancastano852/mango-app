@@ -66,7 +66,7 @@ class ReportExportTest extends TestCase
             'regular_hours' => 8.0,
             'night_hours' => 0,
             'overtime_day_hours' => 0,
-            'sunday_holiday_hours' => 0,
+            'dominical_hours' => 0,
             'status' => 'completed',
             'pin_verified' => true,
         ]);
@@ -111,7 +111,7 @@ class ReportExportTest extends TestCase
             'regular_hours' => 0,
             'night_hours' => 10.0,
             'overtime_day_hours' => 0,
-            'sunday_holiday_hours' => 0,
+            'dominical_hours' => 0,
             'status' => 'completed',
             'pin_verified' => true,
         ]);
@@ -451,9 +451,11 @@ class ReportExportTest extends TestCase
     private function zeroTotals(): array
     {
         return [
-            'days_worked' => 0, 'gross_hours' => 0, 'break_hours' => 0, 'net_hours' => 0,
-            'regular_hours' => 0, 'night_hours' => 0, 'sunday_holiday_hours' => 0, 'night_sunday_hours' => 0,
-            'overtime_day_hours' => 0, 'overtime_night_hours' => 0, 'overtime_day_sunday_hours' => 0, 'overtime_night_sunday_hours' => 0,
+            'days_worked' => 0, 'gross_hours' => 0, 'break_hours' => 0, 'paid_break_overage_hours' => 0, 'net_hours' => 0,
+            'regular_hours' => 0, 'night_hours' => 0, 'dominical_hours' => 0, 'night_dominical_hours' => 0,
+            'holiday_hours' => 0, 'night_holiday_hours' => 0,
+            'overtime_day_hours' => 0, 'overtime_night_hours' => 0, 'overtime_day_dominical_hours' => 0, 'overtime_night_dominical_hours' => 0,
+            'overtime_day_holiday_hours' => 0, 'overtime_night_holiday_hours' => 0, 'dominical_worked_days' => 0,
         ];
     }
 
@@ -463,11 +465,14 @@ class ReportExportTest extends TestCase
     private function monthlyCostSummary(float $transportAllowance): array
     {
         return [
-            'regular' => 0, 'night' => 0, 'sunday_holiday' => 0, 'night_sunday' => 0,
-            'overtime_day' => 0, 'overtime_night' => 0, 'overtime_day_sunday' => 0, 'overtime_night_sunday' => 0,
+            'regular' => 0, 'night' => 0, 'dominical' => 0, 'night_dominical' => 0,
+            'holiday' => 0, 'night_holiday' => 0,
+            'overtime_day' => 0, 'overtime_night' => 0, 'overtime_day_dominical' => 0, 'overtime_night_dominical' => 0,
+            'overtime_day_holiday' => 0, 'overtime_night_holiday' => 0,
             'base' => 1000000.0, 'transport_allowance' => $transportAllowance,
             'total' => 1000000.0 + $transportAllowance,
-            'salary_type' => 'monthly', 'pay_overtime' => true,
+            'salary_type' => 'monthly', 'pay_overtime' => true, 'pay_dominical' => true,
+            'dominical_mode' => 'hour', 'dominical_day_value' => 0, 'dominical_worked_days' => 0, 'dominical_paid_days' => 0,
             'details' => [],
         ];
     }

@@ -255,7 +255,11 @@
             "monthly_base_salary": "Salario base mensual (COP)",
             "hourly_rate_hint": "Usado para recargos y horas extra en ambos modos.",
             "receives_transport_allowance": "Recibe auxilio de transporte",
-            "receives_transport_allowance_hint": "Se suma al pago, prorrateado por periodo. Solo aplica a salario mensual."
+            "receives_transport_allowance_hint": "Se suma al pago, prorrateado por periodo. Solo aplica a salario mensual.",
+            "dominical_payment_mode": "Modo de pago dominical",
+            "dominical_mode_hour": "Por hora",
+            "dominical_mode_day": "Por día (monto fijo)",
+            "dominical_day_value": "Valor por día dominical (COP)"
         }
     },
     "time_clock": {
@@ -410,18 +414,25 @@
             "regular_hours": "Horas ordinarias",
             "night_hours": "Horas nocturnas",
             "overtime_day_hours": "Horas extra diurnas",
-            "sunday_holiday_hours": "Horas dom/festivo"
+            "dominical_hours": "Horas dominicales"
         },
         "hours": {
             "title": "Desglose de Horas",
             "regular": "Ordinarias diurnas",
             "night": "Recargo nocturno",
-            "sunday_holiday": "Recargo dominical/festivo",
-            "night_sunday": "Recargo nocturno dominical/festivo",
+            "dominical": "Recargo dominical",
+            "night_dominical": "Recargo nocturno dominical",
+            "holiday": "Recargo festivo",
+            "night_holiday": "Recargo nocturno festivo",
             "overtime_day": "Extra diurna",
             "overtime_night": "Extra nocturna",
-            "overtime_day_sunday": "Extra diurna dominical/festivo",
-            "overtime_night_sunday": "Extra nocturna dominical/festivo"
+            "overtime_day_dominical": "Extra diurna dominical",
+            "overtime_night_dominical": "Extra nocturna dominical",
+            "overtime_day_holiday": "Extra diurna festivo",
+            "overtime_night_holiday": "Extra nocturna festivo"
+        },
+        "dominical": {
+            "payable_count_label": "Dominicales a pagar"
         },
         "breaks": {
             "title": "Desglose de Pausas",
@@ -659,7 +670,8 @@
         "col_worked": "Trabajado",
         "not_worked": "No laborado",
         "in_progress": "En curso",
-        "holiday_badge": "Dom/Festivo",
+        "holiday_badge": "Festivo",
+        "dominical_badge": "Dominical",
         "breaks_title": "Pausas del día",
         "hour_types_title": "Tipos de hora",
         "break_paid": "Pagada",

@@ -30,6 +30,10 @@ type SurchargeRule = {
     default_monthly_salary: string;
     default_hourly_rate: string;
     transport_allowance: string;
+    dominical_weekday: number;
+    pay_dominical_by_default: boolean;
+    default_dominical_payment_mode: string;
+    default_dominical_day_value: string;
 };
 
 const props = defineProps<{ rule: SurchargeRule }>();
@@ -264,6 +268,81 @@ const maxWeeklyMinutes = computed(
                         />
                     </div>
                     <InputError :message="errors.pay_overtime_by_default" />
+
+                    <div class="space-y-4 rounded-lg border p-4">
+                        <h3 class="text-base font-medium">Dominicales</h3>
+
+                        <div class="grid gap-2">
+                            <Label for="dominical_weekday">Día dominical</Label>
+                            <select
+                                id="dominical_weekday"
+                                name="dominical_weekday"
+                                class="block w-full rounded-md border bg-background px-3 py-2 text-sm"
+                                :value="rule.dominical_weekday"
+                            >
+                                <option :value="0">Domingo</option>
+                                <option :value="1">Lunes</option>
+                                <option :value="2">Martes</option>
+                                <option :value="3">Miércoles</option>
+                                <option :value="4">Jueves</option>
+                                <option :value="5">Viernes</option>
+                                <option :value="6">Sábado</option>
+                            </select>
+                            <p class="text-sm text-muted-foreground">
+                                Día de la semana que recibe el recargo dominical. Por defecto, domingo.
+                            </p>
+                            <InputError :message="errors.dominical_weekday" />
+                        </div>
+
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="space-y-1">
+                                <Label for="pay_dominical_by_default" class="text-base">Pagar dominicales por defecto</Label>
+                                <p class="max-w-prose text-sm text-muted-foreground">
+                                    Si lo desactivas, los dominicales se tratan como un día normal (sin recargo
+                                    dominical). Los festivos siempre se pagan.
+                                </p>
+                            </div>
+                            <input type="hidden" name="pay_dominical_by_default" value="0" />
+                            <Checkbox
+                                id="pay_dominical_by_default"
+                                name="pay_dominical_by_default"
+                                value="1"
+                                :default-checked="rule.pay_dominical_by_default"
+                            />
+                        </div>
+                        <InputError :message="errors.pay_dominical_by_default" />
+
+                        <div class="grid gap-2">
+                            <Label for="default_dominical_payment_mode">Modo de pago dominical (por defecto)</Label>
+                            <select
+                                id="default_dominical_payment_mode"
+                                name="default_dominical_payment_mode"
+                                class="block w-full rounded-md border bg-background px-3 py-2 text-sm"
+                                :value="rule.default_dominical_payment_mode"
+                            >
+                                <option value="hour">Por hora</option>
+                                <option value="day">Por día (monto fijo)</option>
+                            </select>
+                            <InputError :message="errors.default_dominical_payment_mode" />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="default_dominical_day_value">Valor por día dominical (COP)</Label>
+                            <Input
+                                id="default_dominical_day_value"
+                                name="default_dominical_day_value"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                :default-value="rule.default_dominical_day_value"
+                                class="block w-full"
+                            />
+                            <p class="text-sm text-muted-foreground">
+                                Recargo plano por cada dominical trabajado cuando el modo es "por día".
+                            </p>
+                            <InputError :message="errors.default_dominical_day_value" />
+                        </div>
+                    </div>
 
                     <div class="flex items-center gap-4 pt-2">
                         <Button :disabled="processing">Guardar</Button>

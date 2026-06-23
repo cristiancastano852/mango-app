@@ -229,7 +229,7 @@ class GenerateCompanyReportTest extends TestCase
             'regular_hours' => 4.0,
             'night_hours' => 2.0,
             'overtime_day_hours' => 2.0,
-            'sunday_holiday_hours' => 0,
+            'dominical_hours' => 0,
             'status' => 'calculated',
         ]);
 
@@ -413,7 +413,7 @@ class GenerateCompanyReportTest extends TestCase
             'regular_hours' => $regularHours,
             'night_hours' => $nightHours,
             'overtime_day_hours' => 0,
-            'sunday_holiday_hours' => 0,
+            'dominical_hours' => 0,
             'status' => 'calculated',
         ]);
     }

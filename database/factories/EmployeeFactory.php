@@ -63,4 +63,15 @@ class EmployeeFactory extends Factory
             'monthly_base_salary' => null,
         ]);
     }
+
+    /**
+     * Empleado con recargo dominical pagado por día (monto fijo plano por dominical).
+     */
+    public function dominicalByDay(float $dayValue): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'dominical_payment_mode' => 'day',
+            'dominical_day_value' => $dayValue,
+        ]);
+    }
 }

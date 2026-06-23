@@ -28,6 +28,10 @@ class SurchargeRule extends Model
         'default_monthly_salary',
         'default_hourly_rate',
         'transport_allowance',
+        'dominical_weekday',
+        'pay_dominical_by_default',
+        'default_dominical_payment_mode',
+        'default_dominical_day_value',
     ];
 
     protected function casts(): array
@@ -46,6 +50,9 @@ class SurchargeRule extends Model
             'default_monthly_salary' => 'decimal:2',
             'default_hourly_rate' => 'decimal:2',
             'transport_allowance' => 'decimal:2',
+            'dominical_weekday' => 'integer',
+            'pay_dominical_by_default' => 'boolean',
+            'default_dominical_day_value' => 'decimal:2',
         ];
     }
 

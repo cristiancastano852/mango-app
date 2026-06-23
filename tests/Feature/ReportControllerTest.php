@@ -84,7 +84,7 @@ class ReportControllerTest extends TestCase
             'regular_hours' => 8.0,
             'overtime_day_hours' => 0,
             'night_hours' => 0,
-            'sunday_holiday_hours' => 0,
+            'dominical_hours' => 0,
             'status' => 'calculated',
         ]);
 
@@ -287,7 +287,7 @@ class ReportControllerTest extends TestCase
             'regular_hours' => 8.0,
             'overtime_day_hours' => 0,
             'night_hours' => 0,
-            'sunday_holiday_hours' => 0,
+            'dominical_hours' => 0,
             'status' => 'calculated',
         ]);
 

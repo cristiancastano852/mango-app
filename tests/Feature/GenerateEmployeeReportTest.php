@@ -66,7 +66,7 @@ class GenerateEmployeeReportTest extends TestCase
                 'regular_hours' => 7.0,
                 'night_hours' => 1.0,
                 'overtime_day_hours' => 0,
-                'sunday_holiday_hours' => 0,
+                'dominical_hours' => 0,
                 'status' => 'calculated',
             ]);
         }
@@ -656,7 +656,7 @@ class GenerateEmployeeReportTest extends TestCase
             'regular_hours' => 6.0,
             'night_hours' => 2.0,
             'overtime_day_hours' => 0,
-            'sunday_holiday_hours' => 0,
+            'dominical_hours' => 0,
             'status' => 'calculated',
         ]);
 
@@ -894,7 +894,7 @@ class GenerateEmployeeReportTest extends TestCase
             'regular_hours' => $regular,
             'night_hours' => $night,
             'overtime_day_hours' => $overtimeDay,
-            'sunday_holiday_hours' => 0,
+            'dominical_hours' => 0,
             'status' => 'calculated',
         ]);
     }

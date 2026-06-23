@@ -11,9 +11,10 @@ use Carbon\Carbon;
 class CalculateWorkHours
 {
     /**
-     * Clasifica y distribuye los minutos trabajados en un TimeEntry en 8 tipos de hora
-     * mutuamente excluyentes (semana/dom-fest × diurno/nocturno × dentro-límite/extra).
-     * Luego actualiza el registro en BD.
+     * Clasifica y distribuye los minutos trabajados en un TimeEntry en 12 tipos de hora
+     * mutuamente excluyentes (semana/dominical/festivo × diurno/nocturno × dentro-límite/extra).
+     * El día dominical es configurable (surcharge_rules.dominical_weekday) y festivo gana sobre
+     * dominical. Luego actualiza el registro en BD.
      *
      * Flujo general:
      *   1. Validar que el turno esté completo (tiene clock_out y horas > 0).
@@ -73,16 +74,21 @@ class CalculateWorkHours
         $netRatio = $grossHours > 0 ? $netHours / $grossHours : 1.0;
 
         $holidayDates = $this->loadHolidayDates($entry->company_id, $clockIn);
+        $dominicalWeekday = (int) ($rules?->dominical_weekday ?? 0);
 
         $buckets = [
             'regular' => 0.0,
             'night' => 0.0,
-            'sunday_holiday' => 0.0,
-            'night_sunday' => 0.0,
+            'dominical' => 0.0,
+            'night_dominical' => 0.0,
+            'holiday' => 0.0,
+            'night_holiday' => 0.0,
             'overtime_day' => 0.0,
             'overtime_night' => 0.0,
-            'overtime_day_sunday' => 0.0,
-            'overtime_night_sunday' => 0.0,
+            'overtime_day_dominical' => 0.0,
+            'overtime_night_dominical' => 0.0,
+            'overtime_day_holiday' => 0.0,
+            'overtime_night_holiday' => 0.0,
         ];
 
         // Dos acumuladores: semanal (corre toda la semana) y diario (se reinicia en medianoche).
@@ -126,20 +132,25 @@ class CalculateWorkHours
             $isNight = $nightStartMinutes > $nightEndMinutes
                 ? ($segMinuteOfDay >= $nightStartMinutes || $segMinuteOfDay < $nightEndMinutes)
                 : ($segMinuteOfDay >= $nightStartMinutes && $segMinuteOfDay < $nightEndMinutes);
-            $isSundayOrHoliday = $segStart->dayOfWeek === Carbon::SUNDAY
-                || in_array($segStart->toDateString(), $holidayDates);
+            // Festivo gana sobre dominical: un día que es ambos se cobra como festivo (siempre paga).
+            $isHoliday = in_array($segStart->toDateString(), $holidayDates);
+            $isDominical = ! $isHoliday && $segStart->dayOfWeek === $dominicalWeekday;
 
             // Overtime si supera el límite diario o el semanal (lo que llegue primero).
             $isOvertime = $accumulatedDailyNetMinutes >= $dailyLimitMinutes
                 || $accumulatedWeeklyNetMinutes >= $weeklyLimitMinutes;
 
             match (true) {
-                $isOvertime && $isSundayOrHoliday && $isNight => $buckets['overtime_night_sunday'] += $netContrib,
-                $isOvertime && $isSundayOrHoliday => $buckets['overtime_day_sunday'] += $netContrib,
+                $isOvertime && $isHoliday && $isNight => $buckets['overtime_night_holiday'] += $netContrib,
+                $isOvertime && $isHoliday => $buckets['overtime_day_holiday'] += $netContrib,
+                $isOvertime && $isDominical && $isNight => $buckets['overtime_night_dominical'] += $netContrib,
+                $isOvertime && $isDominical => $buckets['overtime_day_dominical'] += $netContrib,
                 $isOvertime && $isNight => $buckets['overtime_night'] += $netContrib,
                 $isOvertime => $buckets['overtime_day'] += $netContrib,
-                $isSundayOrHoliday && $isNight => $buckets['night_sunday'] += $netContrib,
-                $isSundayOrHoliday => $buckets['sunday_holiday'] += $netContrib,
+                $isHoliday && $isNight => $buckets['night_holiday'] += $netContrib,
+                $isHoliday => $buckets['holiday'] += $netContrib,
+                $isDominical && $isNight => $buckets['night_dominical'] += $netContrib,
+                $isDominical => $buckets['dominical'] += $netContrib,
                 $isNight => $buckets['night'] += $netContrib,
                 default => $buckets['regular'] += $netContrib,
             };
@@ -151,12 +162,16 @@ class CalculateWorkHours
         $entry->update([
             'regular_hours' => round($buckets['regular'] / 60, 2),
             'night_hours' => round($buckets['night'] / 60, 2),
-            'sunday_holiday_hours' => round($buckets['sunday_holiday'] / 60, 2),
-            'night_sunday_hours' => round($buckets['night_sunday'] / 60, 2),
+            'dominical_hours' => round($buckets['dominical'] / 60, 2),
+            'night_dominical_hours' => round($buckets['night_dominical'] / 60, 2),
+            'holiday_hours' => round($buckets['holiday'] / 60, 2),
+            'night_holiday_hours' => round($buckets['night_holiday'] / 60, 2),
             'overtime_day_hours' => round($buckets['overtime_day'] / 60, 2),
             'overtime_night_hours' => round($buckets['overtime_night'] / 60, 2),
-            'overtime_day_sunday_hours' => round($buckets['overtime_day_sunday'] / 60, 2),
-            'overtime_night_sunday_hours' => round($buckets['overtime_night_sunday'] / 60, 2),
+            'overtime_day_dominical_hours' => round($buckets['overtime_day_dominical'] / 60, 2),
+            'overtime_night_dominical_hours' => round($buckets['overtime_night_dominical'] / 60, 2),
+            'overtime_day_holiday_hours' => round($buckets['overtime_day_holiday'] / 60, 2),
+            'overtime_night_holiday_hours' => round($buckets['overtime_night_holiday'] / 60, 2),
             'status' => 'calculated',
         ]);
 

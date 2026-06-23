@@ -131,12 +131,12 @@ class NegativeBreakDurationRegressionTest extends TestCase
             'net_hours' => 7.16,      // gross - break (antes 7.66, inflado)
             'regular_hours' => 4.66,  // diurno 14:10 → 19:00
             'night_hours' => 2.50,    // nocturno 19:00 → 21:35
-            'sunday_holiday_hours' => 0.00,
-            'night_sunday_hours' => 0.00,
+            'dominical_hours' => 0.00,
+            'night_dominical_hours' => 0.00,
             'overtime_day_hours' => 0.00,
             'overtime_night_hours' => 0.00,
-            'overtime_day_sunday_hours' => 0.00,
-            'overtime_night_sunday_hours' => 0.00,
+            'overtime_day_dominical_hours' => 0.00,
+            'overtime_night_dominical_hours' => 0.00,
             'status' => 'calculated',
             'edited_by' => null,
             'edit_reason' => null,
@@ -204,12 +204,12 @@ class NegativeBreakDurationRegressionTest extends TestCase
             'net_hours' => 7.41,      // net == gross
             'regular_hours' => 4.82,  // netRatio 1.0: diurno 14:10 → 19:00 sin encoger
             'night_hours' => 2.58,    // nocturno 19:00 → 21:35
-            'sunday_holiday_hours' => 0.00,
-            'night_sunday_hours' => 0.00,
+            'dominical_hours' => 0.00,
+            'night_dominical_hours' => 0.00,
             'overtime_day_hours' => 0.00,
             'overtime_night_hours' => 0.00,
-            'overtime_day_sunday_hours' => 0.00,
-            'overtime_night_sunday_hours' => 0.00,
+            'overtime_day_dominical_hours' => 0.00,
+            'overtime_night_dominical_hours' => 0.00,
             'status' => 'calculated',
             'edited_by' => null,
             'edit_reason' => null,
@@ -265,11 +265,11 @@ class NegativeBreakDurationRegressionTest extends TestCase
     {
         return (float) $entry->regular_hours
             + (float) $entry->night_hours
-            + (float) $entry->sunday_holiday_hours
-            + (float) $entry->night_sunday_hours
+            + (float) $entry->dominical_hours
+            + (float) $entry->night_dominical_hours
             + (float) $entry->overtime_day_hours
             + (float) $entry->overtime_night_hours
-            + (float) $entry->overtime_day_sunday_hours
-            + (float) $entry->overtime_night_sunday_hours;
+            + (float) $entry->overtime_day_dominical_hours
+            + (float) $entry->overtime_night_dominical_hours;
     }
 }

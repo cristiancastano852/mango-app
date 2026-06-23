@@ -33,6 +33,10 @@ class UpdateSurchargeRuleRequest extends FormRequest
             'default_monthly_salary' => ['required', 'numeric', 'min:0'],
             'default_hourly_rate' => ['required', 'numeric', 'min:0'],
             'transport_allowance' => ['required', 'numeric', 'min:0'],
+            'dominical_weekday' => ['required', 'integer', 'min:0', 'max:6'],
+            'pay_dominical_by_default' => ['required', 'boolean'],
+            'default_dominical_payment_mode' => ['required', Rule::in(['hour', 'day'])],
+            'default_dominical_day_value' => ['required', 'numeric', 'min:0'],
         ];
 
         // Admin can only target their own company; super-admin must explicitly supply which company.
@@ -69,6 +73,16 @@ class UpdateSurchargeRuleRequest extends FormRequest
             'transport_allowance.required' => 'El auxilio de transporte es obligatorio.',
             'transport_allowance.numeric' => 'El auxilio de transporte debe ser numérico.',
             'transport_allowance.min' => 'El auxilio de transporte no puede ser negativo.',
+            'dominical_weekday.required' => 'Debes indicar qué día es el dominical.',
+            'dominical_weekday.min' => 'El día dominical no es válido.',
+            'dominical_weekday.max' => 'El día dominical no es válido.',
+            'pay_dominical_by_default.required' => 'Debes indicar si se pagan los dominicales por defecto.',
+            'pay_dominical_by_default.boolean' => 'El valor de pago de dominicales no es válido.',
+            'default_dominical_payment_mode.required' => 'Debes indicar el modo de pago dominical.',
+            'default_dominical_payment_mode.in' => 'El modo de pago dominical debe ser por hora o por día.',
+            'default_dominical_day_value.required' => 'El valor del dominical por día es obligatorio.',
+            'default_dominical_day_value.numeric' => 'El valor del dominical por día debe ser numérico.',
+            'default_dominical_day_value.min' => 'El valor del dominical por día no puede ser negativo.',
             'company_id.in' => 'No puedes modificar la configuración de otra empresa.',
         ];
     }

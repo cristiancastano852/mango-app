@@ -38,6 +38,8 @@ type Props = {
         salary_type: string;
         monthly_base_salary?: string;
         receives_transport_allowance?: boolean;
+        dominical_payment_mode?: string;
+        dominical_day_value?: string;
         // TODO: Schedules feature temporarily disabled — restore schedule_id when resuming
         // schedule_id: string;
         // LOCATIONS FEATURE DISABLED — restore location_id when re-enabling.
@@ -196,6 +198,24 @@ const showPasswordText = ref(false);
                 <Input id="hourly_rate" v-model="form.hourly_rate" type="number" step="0.01" min="0" />
                 <p class="text-muted-foreground text-xs">{{ t('employees.form.hourly_rate_hint') }}</p>
                 <InputError :message="form.errors.hourly_rate" />
+            </div>
+            <div class="space-y-2">
+                <Label for="dominical_payment_mode">{{ t('employees.form.dominical_payment_mode') }}</Label>
+                <Select v-model="form.dominical_payment_mode">
+                    <SelectTrigger id="dominical_payment_mode">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="hour">{{ t('employees.form.dominical_mode_hour') }}</SelectItem>
+                        <SelectItem value="day">{{ t('employees.form.dominical_mode_day') }}</SelectItem>
+                    </SelectContent>
+                </Select>
+                <InputError :message="form.errors.dominical_payment_mode" />
+            </div>
+            <div v-if="form.dominical_payment_mode === 'day'" class="space-y-2">
+                <Label for="dominical_day_value">{{ t('employees.form.dominical_day_value') }}</Label>
+                <Input id="dominical_day_value" v-model="form.dominical_day_value" type="number" step="0.01" min="0" />
+                <InputError :message="form.errors.dominical_day_value" />
             </div>
         </div>
 

@@ -12,12 +12,16 @@ const props = defineProps<{
         DailyWorkDay,
         | 'regular_hours'
         | 'night_hours'
-        | 'sunday_holiday_hours'
-        | 'night_sunday_hours'
+        | 'dominical_hours'
+        | 'night_dominical_hours'
+        | 'holiday_hours'
+        | 'night_holiday_hours'
         | 'overtime_day_hours'
         | 'overtime_night_hours'
-        | 'overtime_day_sunday_hours'
-        | 'overtime_night_sunday_hours'
+        | 'overtime_day_dominical_hours'
+        | 'overtime_night_dominical_hours'
+        | 'overtime_day_holiday_hours'
+        | 'overtime_night_holiday_hours'
     >;
 }>();
 
@@ -39,17 +43,30 @@ const hourTypes = [
             'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300',
     },
     {
-        key: 'sunday_holiday_hours',
-        label: 'reports.hours.sunday_holiday',
+        key: 'dominical_hours',
+        label: 'reports.hours.dominical',
         icon: Calendar,
         classes: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300',
     },
     {
-        key: 'night_sunday_hours',
-        label: 'reports.hours.night_sunday',
+        key: 'night_dominical_hours',
+        label: 'reports.hours.night_dominical',
         icon: Moon,
         classes:
             'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300',
+    },
+    {
+        key: 'holiday_hours',
+        label: 'reports.hours.holiday',
+        icon: Calendar,
+        classes: 'bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-200',
+    },
+    {
+        key: 'night_holiday_hours',
+        label: 'reports.hours.night_holiday',
+        icon: Moon,
+        classes:
+            'bg-purple-50 text-purple-800 dark:bg-purple-950/40 dark:text-purple-200',
     },
     {
         key: 'overtime_day_hours',
@@ -66,18 +83,32 @@ const hourTypes = [
             'bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300',
     },
     {
-        key: 'overtime_day_sunday_hours',
-        label: 'reports.hours.overtime_day_sunday',
+        key: 'overtime_day_dominical_hours',
+        label: 'reports.hours.overtime_day_dominical',
         icon: Zap,
         classes:
             'bg-pink-50 text-pink-700 dark:bg-pink-950/40 dark:text-pink-300',
     },
     {
-        key: 'overtime_night_sunday_hours',
-        label: 'reports.hours.overtime_night_sunday',
+        key: 'overtime_night_dominical_hours',
+        label: 'reports.hours.overtime_night_dominical',
         icon: Zap,
         classes:
             'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300',
+    },
+    {
+        key: 'overtime_day_holiday_hours',
+        label: 'reports.hours.overtime_day_holiday',
+        icon: Zap,
+        classes:
+            'bg-pink-50 text-pink-800 dark:bg-pink-950/40 dark:text-pink-200',
+    },
+    {
+        key: 'overtime_night_holiday_hours',
+        label: 'reports.hours.overtime_night_holiday',
+        icon: Zap,
+        classes:
+            'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200',
     },
 ] as const;
 

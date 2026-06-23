@@ -7,95 +7,176 @@ use App\Domain\Company\Models\SurchargeRule;
 class CalculateReportCosts
 {
     /**
-     * Calcula el costo laboral desglosado por los 8 tipos de hora usando las reglas
+     * Calcula el costo laboral desglosado por los 12 tipos de hora usando las reglas
      * de recargo de la empresa y la tarifa por hora del empleado.
      *
-     * Modos de salario:
-     *  - `hourly`  → cada bucket suma `horas × tarifa × (1 + recargo%)`, con `regular` al 0%.
-     *                No se suma salario base.
-     *  - `monthly` → la hora ordinaria ya está incluida en el salario base, por lo que:
-     *                · `regular` no suma costo por hora (subtotal 0; las horas quedan informativas).
-     *                · los recargos (`night`, `sunday_holiday`, `night_sunday`) suman SOLO el
-     *                  porcentaje: `horas × tarifa × (recargo% / 100)`.
-     *                · las 4 horas extra suman el valor COMPLETO: `horas × tarifa × (1 + recargo%)`,
-     *                  porque están fuera de la jornada que cubre el salario base.
-     *                · el `total` incluye además el salario base prorrateado del periodo (`$baseSalary`)
-     *                  y el auxilio de transporte prorrateado del periodo (`$transportAllowance`).
+     * Familias premium:
+     *  - `*_holiday` (festivo): SIEMPRE se pagan, con el mismo % que el dominical (sunday_holiday/
+     *    night_sunday/overtime_*_sunday). No se ven afectadas por la config dominical.
+     *  - `*_dominical`: configurables vía $dominical.
      *
-     * El auxilio de transporte se suma plano al total como concepto propio: NO es base de
-     * recargos ni de horas extra y NUNCA se multiplica por horas. Solo aplica en modo `monthly`;
-     * en modo `hourly` se ignora aunque se pase un valor.
+     * Config dominical ($dominical):
+     *  - `pay` (bool): si no se paga, las horas dominicales se tratan como día normal:
+     *    diurnas → regular, nocturnas → night (conservan recargo nocturno), overtime → overtime
+     *    de semana. Solo se pierde el recargo dominical.
+     *  - `mode` (`hour`|`day`): en `hour` el recargo dominical es por hora (sunday_holiday/night_sunday).
+     *    En `day` la base de las horas se paga como ordinaria/nocturna y se suma un plus plano
+     *    `min(payable_count, worked_days) × day_value` (solo el recargo). El overtime dominical se
+     *    paga por hora con su recargo dominical en ambos modos.
+     *  - `day_value` (float), `payable_count` (?int, null = todos), `worked_days` (int N).
      *
-     * Cuando $payOvertime es false, las 4 categorías de hora extra se cobran en 0,
-     * se excluyen del total y se marcan como compensated (las horas no se modifican). Aplica en ambos modos.
+     * Modos de salario: `hourly` cobra base+recargo por hora; `monthly` solo el % (la base ya está
+     * en el salario). El overtime siempre se paga completo (1+recargo%); cuando $payOvertime es false
+     * las 6 categorías de overtime se cobran en 0 y se marcan compensated.
      *
-     * @param  float  $hourlyRate  Tarifa/valor por hora del empleado (COP)
-     * @param  array{regular_hours: float, night_hours: float, sunday_holiday_hours: float, night_sunday_hours: float, overtime_day_hours: float, overtime_night_hours: float, overtime_day_sunday_hours: float, overtime_night_sunday_hours: float}  $hourTotals
-     * @param  string  $salaryType  `hourly` | `monthly`
-     * @param  float  $baseSalary  Salario base prorrateado del periodo (solo se suma en modo `monthly`)
-     * @param  float  $transportAllowance  Auxilio de transporte prorrateado del periodo (solo se suma en modo `monthly`)
-     * @return array{regular: float, night: float, sunday_holiday: float, night_sunday: float, overtime_day: float, overtime_night: float, overtime_day_sunday: float, overtime_night_sunday: float, base: float, transport_allowance: float, total: float, salary_type: string, pay_overtime: bool, details: list<array{type: string, hours: float, rate: float, surcharge: float, subtotal: float, compensated: bool}>}
+     * @param  array{regular_hours: float, night_hours: float, dominical_hours: float, night_dominical_hours: float, holiday_hours: float, night_holiday_hours: float, overtime_day_hours: float, overtime_night_hours: float, overtime_day_dominical_hours: float, overtime_night_dominical_hours: float, overtime_day_holiday_hours: float, overtime_night_holiday_hours: float}  $hourTotals
+     * @param  array{pay?: bool, mode?: string, day_value?: float, payable_count?: int|null, worked_days?: int}  $dominical
      */
-    public function execute(float $hourlyRate, array $hourTotals, SurchargeRule $rules, bool $payOvertime = true, string $salaryType = 'hourly', float $baseSalary = 0.0, float $transportAllowance = 0.0): array
+    public function execute(float $hourlyRate, array $hourTotals, SurchargeRule $rules, bool $payOvertime = true, string $salaryType = 'hourly', float $baseSalary = 0.0, float $transportAllowance = 0.0, array $dominical = []): array
     {
-        $regularHours = (float) ($hourTotals['regular_hours'] ?? 0);
-        $nightHours = (float) ($hourTotals['night_hours'] ?? 0);
-        $sundayHolidayHours = (float) ($hourTotals['sunday_holiday_hours'] ?? 0);
-        $nightSundayHours = (float) ($hourTotals['night_sunday_hours'] ?? 0);
-        $overtimeDayHours = (float) ($hourTotals['overtime_day_hours'] ?? 0);
-        $overtimeNightHours = (float) ($hourTotals['overtime_night_hours'] ?? 0);
-        $overtimeDaySundayHours = (float) ($hourTotals['overtime_day_sunday_hours'] ?? 0);
-        $overtimeNightSundayHours = (float) ($hourTotals['overtime_night_sunday_hours'] ?? 0);
+        $h = fn (string $key): float => (float) ($hourTotals[$key] ?? 0);
+
+        $regularHours = $h('regular_hours');
+        $nightHours = $h('night_hours');
+        $dominicalHours = $h('dominical_hours');
+        $nightDominicalHours = $h('night_dominical_hours');
+        $holidayHours = $h('holiday_hours');
+        $nightHolidayHours = $h('night_holiday_hours');
+        $overtimeDayHours = $h('overtime_day_hours');
+        $overtimeNightHours = $h('overtime_night_hours');
+        $overtimeDayDominicalHours = $h('overtime_day_dominical_hours');
+        $overtimeNightDominicalHours = $h('overtime_night_dominical_hours');
+        $overtimeDayHolidayHours = $h('overtime_day_holiday_hours');
+        $overtimeNightHolidayHours = $h('overtime_night_holiday_hours');
 
         $isMonthly = $salaryType === 'monthly';
         $baseSalary = $isMonthly ? $baseSalary : 0.0;
         $transportAllowance = $isMonthly ? $transportAllowance : 0.0;
 
-        // En modo monthly los recargos suman solo el porcentaje (la hora base ya está en el salario);
-        // en modo hourly suman el valor completo (1 + recargo%).
-        $surchargeFactor = fn (float $percent): float => $isMonthly ? ($percent / 100) : (1 + $percent / 100);
+        // Tarifa de una hora "ordinaria": en monthly ya está en el salario base.
+        $regularRate = $isMonthly ? 0.0 : $hourlyRate;
+        // Factor para recargos por hora: monthly suma solo el %, hourly suma base + %.
+        $premiumFactor = fn (float $percent): float => $isMonthly ? ($percent / 100) : (1 + $percent / 100);
+        // Overtime siempre completo (fuera de la jornada base), gated por $payOvertime.
+        $otCost = fn (float $hours, float $percent): float => $payOvertime ? $hours * $hourlyRate * (1 + $percent / 100) : 0.0;
 
-        // La hora ordinaria no se cobra por hora en modo monthly (está dentro del salario base).
-        $regularCost = $isMonthly ? 0.0 : $regularHours * $hourlyRate;
-        $nightCost = $nightHours * $hourlyRate * $surchargeFactor((float) $rules->night_surcharge);
-        $sundayHolidayCost = $sundayHolidayHours * $hourlyRate * $surchargeFactor((float) $rules->sunday_holiday);
-        $nightSundayCost = $nightSundayHours * $hourlyRate * $surchargeFactor((float) $rules->night_sunday);
+        $nightPct = (float) $rules->night_surcharge;
+        $dominicalPct = (float) $rules->sunday_holiday;
+        $nightDominicalPct = (float) $rules->night_sunday;
+        $otDayPct = (float) $rules->overtime_day;
+        $otNightPct = (float) $rules->overtime_night;
+        $otDayDominicalPct = (float) $rules->overtime_day_sunday;
+        $otNightDominicalPct = (float) $rules->overtime_night_sunday;
 
-        // Las horas extra siempre se pagan completas (fuera de la jornada base). Cuando no se pagan,
-        // se cobran en 0 pero las horas siguen visibles.
-        $overtimeDayCost = $payOvertime ? $overtimeDayHours * $hourlyRate * (1 + (float) $rules->overtime_day / 100) : 0.0;
-        $overtimeNightCost = $payOvertime ? $overtimeNightHours * $hourlyRate * (1 + (float) $rules->overtime_night / 100) : 0.0;
-        $overtimeDaySundayCost = $payOvertime ? $overtimeDaySundayHours * $hourlyRate * (1 + (float) $rules->overtime_day_sunday / 100) : 0.0;
-        $overtimeNightSundayCost = $payOvertime ? $overtimeNightSundayHours * $hourlyRate * (1 + (float) $rules->overtime_night_sunday / 100) : 0.0;
+        // --- Semana ---
+        $regularCost = $regularHours * $regularRate;
+        $nightCost = $nightHours * $hourlyRate * $premiumFactor($nightPct);
+        $overtimeDayCost = $otCost($overtimeDayHours, $otDayPct);
+        $overtimeNightCost = $otCost($overtimeNightHours, $otNightPct);
 
-        $totalCost = $baseSalary + $transportAllowance + $regularCost + $nightCost + $sundayHolidayCost + $nightSundayCost
-            + $overtimeDayCost + $overtimeNightCost + $overtimeDaySundayCost + $overtimeNightSundayCost;
+        // --- Festivo (siempre paga, mismo % que dominical) ---
+        $holidayCost = $holidayHours * $hourlyRate * $premiumFactor($dominicalPct);
+        $nightHolidayCost = $nightHolidayHours * $hourlyRate * $premiumFactor($nightDominicalPct);
+        $overtimeDayHolidayCost = $otCost($overtimeDayHolidayHours, $otDayDominicalPct);
+        $overtimeNightHolidayCost = $otCost($overtimeNightHolidayHours, $otNightDominicalPct);
 
-        $overtimeCompensated = ! $payOvertime;
+        // --- Dominical (configurable) ---
+        $payDominical = (bool) ($dominical['pay'] ?? true);
+        $dominicalMode = $dominical['mode'] ?? 'hour';
+        $dominicalDayValue = (float) ($dominical['day_value'] ?? 0);
+        $workedDominicalDays = (int) ($dominical['worked_days'] ?? 0);
+        $payableCount = $dominical['payable_count'] ?? null;
+        $paidDominicalDays = $payableCount === null
+            ? $workedDominicalDays
+            : max(0, min((int) $payableCount, $workedDominicalDays));
+
+        if (! $payDominical) {
+            // Día normal: base ordinaria/nocturna, overtime de semana. Solo se pierde el recargo dominical.
+            $dominicalCost = $dominicalHours * $regularRate;
+            $dominicalSurcharge = 0.0;
+            $nightDominicalCost = $nightDominicalHours * $hourlyRate * $premiumFactor($nightPct);
+            $nightDominicalSurcharge = $nightPct;
+            $overtimeDayDominicalCost = $otCost($overtimeDayDominicalHours, $otDayPct);
+            $overtimeDayDominicalSurcharge = $otDayPct;
+            $overtimeNightDominicalCost = $otCost($overtimeNightDominicalHours, $otNightPct);
+            $overtimeNightDominicalSurcharge = $otNightPct;
+        } else {
+            // Overtime dominical: por hora con recargo dominical en ambos modos.
+            $overtimeDayDominicalCost = $otCost($overtimeDayDominicalHours, $otDayDominicalPct);
+            $overtimeDayDominicalSurcharge = $otDayDominicalPct;
+            $overtimeNightDominicalCost = $otCost($overtimeNightDominicalHours, $otNightDominicalPct);
+            $overtimeNightDominicalSurcharge = $otNightDominicalPct;
+
+            if ($dominicalMode === 'day') {
+                // Base como ordinario/nocturno + plus plano por dominical pagado (solo el recargo).
+                $flatPremium = $paidDominicalDays * $dominicalDayValue;
+                $dominicalCost = $dominicalHours * $regularRate + $flatPremium;
+                $dominicalSurcharge = 0.0;
+                $nightDominicalCost = $nightDominicalHours * $hourlyRate * $premiumFactor($nightPct);
+                $nightDominicalSurcharge = $nightPct;
+            } else {
+                $dominicalCost = $dominicalHours * $hourlyRate * $premiumFactor($dominicalPct);
+                $dominicalSurcharge = $dominicalPct;
+                $nightDominicalCost = $nightDominicalHours * $hourlyRate * $premiumFactor($nightDominicalPct);
+                $nightDominicalSurcharge = $nightDominicalPct;
+            }
+        }
+
+        $totalCost = $baseSalary + $transportAllowance
+            + $regularCost + $nightCost
+            + $dominicalCost + $nightDominicalCost
+            + $holidayCost + $nightHolidayCost
+            + $overtimeDayCost + $overtimeNightCost
+            + $overtimeDayDominicalCost + $overtimeNightDominicalCost
+            + $overtimeDayHolidayCost + $overtimeNightHolidayCost;
+
+        $otCompensated = ! $payOvertime;
+
+        $detail = fn (string $type, float $hours, float $surcharge, float $subtotal, bool $compensated = false): array => [
+            'type' => $type,
+            'hours' => $hours,
+            'rate' => $hourlyRate,
+            'surcharge' => $surcharge,
+            'subtotal' => round($subtotal, 2),
+            'compensated' => $compensated,
+        ];
 
         return [
             'regular' => round($regularCost, 2),
             'night' => round($nightCost, 2),
-            'sunday_holiday' => round($sundayHolidayCost, 2),
-            'night_sunday' => round($nightSundayCost, 2),
+            'dominical' => round($dominicalCost, 2),
+            'night_dominical' => round($nightDominicalCost, 2),
+            'holiday' => round($holidayCost, 2),
+            'night_holiday' => round($nightHolidayCost, 2),
             'overtime_day' => round($overtimeDayCost, 2),
             'overtime_night' => round($overtimeNightCost, 2),
-            'overtime_day_sunday' => round($overtimeDaySundayCost, 2),
-            'overtime_night_sunday' => round($overtimeNightSundayCost, 2),
+            'overtime_day_dominical' => round($overtimeDayDominicalCost, 2),
+            'overtime_night_dominical' => round($overtimeNightDominicalCost, 2),
+            'overtime_day_holiday' => round($overtimeDayHolidayCost, 2),
+            'overtime_night_holiday' => round($overtimeNightHolidayCost, 2),
             'base' => round($baseSalary, 2),
             'transport_allowance' => round($transportAllowance, 2),
             'total' => round($totalCost, 2),
             'salary_type' => $salaryType,
             'pay_overtime' => $payOvertime,
+            'pay_dominical' => $payDominical,
+            'dominical_mode' => $dominicalMode,
+            'dominical_day_value' => round($dominicalDayValue, 2),
+            'dominical_worked_days' => $workedDominicalDays,
+            'dominical_paid_days' => $paidDominicalDays,
             'details' => [
-                ['type' => 'regular', 'hours' => $regularHours, 'rate' => $hourlyRate, 'surcharge' => 0, 'subtotal' => round($regularCost, 2), 'compensated' => false],
-                ['type' => 'night', 'hours' => $nightHours, 'rate' => $hourlyRate, 'surcharge' => (float) $rules->night_surcharge, 'subtotal' => round($nightCost, 2), 'compensated' => false],
-                ['type' => 'sunday_holiday', 'hours' => $sundayHolidayHours, 'rate' => $hourlyRate, 'surcharge' => (float) $rules->sunday_holiday, 'subtotal' => round($sundayHolidayCost, 2), 'compensated' => false],
-                ['type' => 'night_sunday', 'hours' => $nightSundayHours, 'rate' => $hourlyRate, 'surcharge' => (float) $rules->night_sunday, 'subtotal' => round($nightSundayCost, 2), 'compensated' => false],
-                ['type' => 'overtime_day', 'hours' => $overtimeDayHours, 'rate' => $hourlyRate, 'surcharge' => (float) $rules->overtime_day, 'subtotal' => round($overtimeDayCost, 2), 'compensated' => $overtimeCompensated],
-                ['type' => 'overtime_night', 'hours' => $overtimeNightHours, 'rate' => $hourlyRate, 'surcharge' => (float) $rules->overtime_night, 'subtotal' => round($overtimeNightCost, 2), 'compensated' => $overtimeCompensated],
-                ['type' => 'overtime_day_sunday', 'hours' => $overtimeDaySundayHours, 'rate' => $hourlyRate, 'surcharge' => (float) $rules->overtime_day_sunday, 'subtotal' => round($overtimeDaySundayCost, 2), 'compensated' => $overtimeCompensated],
-                ['type' => 'overtime_night_sunday', 'hours' => $overtimeNightSundayHours, 'rate' => $hourlyRate, 'surcharge' => (float) $rules->overtime_night_sunday, 'subtotal' => round($overtimeNightSundayCost, 2), 'compensated' => $overtimeCompensated],
+                $detail('regular', $regularHours, 0, $regularCost),
+                $detail('night', $nightHours, $nightPct, $nightCost),
+                $detail('dominical', $dominicalHours, $dominicalSurcharge, $dominicalCost),
+                $detail('night_dominical', $nightDominicalHours, $nightDominicalSurcharge, $nightDominicalCost),
+                $detail('holiday', $holidayHours, $dominicalPct, $holidayCost),
+                $detail('night_holiday', $nightHolidayHours, $nightDominicalPct, $nightHolidayCost),
+                $detail('overtime_day', $overtimeDayHours, $otDayPct, $overtimeDayCost, $otCompensated),
+                $detail('overtime_night', $overtimeNightHours, $otNightPct, $overtimeNightCost, $otCompensated),
+                $detail('overtime_day_dominical', $overtimeDayDominicalHours, $overtimeDayDominicalSurcharge, $overtimeDayDominicalCost, $otCompensated),
+                $detail('overtime_night_dominical', $overtimeNightDominicalHours, $overtimeNightDominicalSurcharge, $overtimeNightDominicalCost, $otCompensated),
+                $detail('overtime_day_holiday', $overtimeDayHolidayHours, $otDayDominicalPct, $overtimeDayHolidayCost, $otCompensated),
+                $detail('overtime_night_holiday', $overtimeNightHolidayHours, $otNightDominicalPct, $overtimeNightHolidayCost, $otCompensated),
             ],
         ];
     }

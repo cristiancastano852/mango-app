@@ -15,6 +15,8 @@ import EmployeeForm from './partials/EmployeeForm.vue';
 type Props = {
     defaultMonthlySalary: string | null;
     defaultHourlyRate: string | null;
+    defaultDominicalPaymentMode: string | null;
+    defaultDominicalDayValue: string | null;
 };
 const props = defineProps<Props>();
 const { t } = useI18n();
@@ -39,6 +41,8 @@ const form = useForm({
     salary_type: 'monthly',
     monthly_base_salary: props.defaultMonthlySalary ?? '',
     receives_transport_allowance: true,
+    dominical_payment_mode: props.defaultDominicalPaymentMode ?? 'hour',
+    dominical_day_value: props.defaultDominicalDayValue ?? '',
     // LOCATIONS FEATURE DISABLED — restore location_id when re-enabling.
     // location_id: '',
 });
