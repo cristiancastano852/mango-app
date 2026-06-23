@@ -33,7 +33,7 @@ type SurchargeRule = {
     dominical_weekday: number;
     pay_dominical_by_default: boolean;
     default_dominical_payment_mode: string;
-    default_dominical_day_value: string;
+    default_normal_day_value: string;
 };
 
 const props = defineProps<{ rule: SurchargeRule }>();
@@ -321,26 +321,27 @@ const maxWeeklyMinutes = computed(
                                 :value="rule.default_dominical_payment_mode"
                             >
                                 <option value="hour">Por hora</option>
-                                <option value="day">Por día (monto fijo)</option>
+                                <option value="day">Por día (sobre el valor del día normal)</option>
                             </select>
                             <InputError :message="errors.default_dominical_payment_mode" />
                         </div>
 
                         <div class="grid gap-2">
-                            <Label for="default_dominical_day_value">Valor por día dominical (COP)</Label>
+                            <Label for="default_normal_day_value">Valor del día normal (COP)</Label>
                             <Input
-                                id="default_dominical_day_value"
-                                name="default_dominical_day_value"
+                                id="default_normal_day_value"
+                                name="default_normal_day_value"
                                 type="number"
                                 step="0.01"
                                 min="0"
-                                :default-value="rule.default_dominical_day_value"
+                                :default-value="rule.default_normal_day_value"
                                 class="block w-full"
                             />
                             <p class="text-sm text-muted-foreground">
-                                Recargo plano por cada dominical trabajado cuando el modo es "por día".
+                                En modo "por día", el recargo de cada dominical pagado = este valor × el
+                                recargo dominical (%). La base del día se paga aparte (salario/horas).
                             </p>
-                            <InputError :message="errors.default_dominical_day_value" />
+                            <InputError :message="errors.default_normal_day_value" />
                         </div>
                     </div>
 

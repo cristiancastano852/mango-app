@@ -94,7 +94,7 @@ type Report = {
         pay_overtime: boolean;
         pay_dominical: boolean;
         dominical_mode: string;
-        dominical_day_value: number;
+        normal_day_value: number;
         dominical_worked_days: number;
         dominical_paid_days: number;
         details: CostDetail[];

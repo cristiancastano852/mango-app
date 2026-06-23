@@ -258,8 +258,8 @@
             "receives_transport_allowance_hint": "Added to pay, prorated per period. Monthly salary only.",
             "dominical_payment_mode": "Sunday payment mode",
             "dominical_mode_hour": "Per hour",
-            "dominical_mode_day": "Per day (fixed amount)",
-            "dominical_day_value": "Per-Sunday value (COP)"
+            "dominical_mode_day": "Per day (on normal day value)",
+            "normal_day_value": "Normal day value (COP)"
         }
     },
     "time_clock": {

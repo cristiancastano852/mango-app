@@ -61,7 +61,7 @@ class EmployeeController extends Controller
             'defaultMonthlySalary' => $surchargeRule?->default_monthly_salary,
             'defaultHourlyRate' => $surchargeRule?->default_hourly_rate,
             'defaultDominicalPaymentMode' => $surchargeRule?->default_dominical_payment_mode ?? 'hour',
-            'defaultDominicalDayValue' => $surchargeRule?->default_dominical_day_value,
+            'defaultNormalDayValue' => $surchargeRule?->default_normal_day_value,
             // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore these props when re-enabling.
             // 'departments' => Department::select('id', 'name')->get(),
             // 'positions' => Position::select('id', 'name', 'department_id')->get(),

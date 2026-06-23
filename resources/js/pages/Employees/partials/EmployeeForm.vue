@@ -39,7 +39,7 @@ type Props = {
         monthly_base_salary?: string;
         receives_transport_allowance?: boolean;
         dominical_payment_mode?: string;
-        dominical_day_value?: string;
+        normal_day_value?: string;
         // TODO: Schedules feature temporarily disabled — restore schedule_id when resuming
         // schedule_id: string;
         // LOCATIONS FEATURE DISABLED — restore location_id when re-enabling.
@@ -213,9 +213,9 @@ const showPasswordText = ref(false);
                 <InputError :message="form.errors.dominical_payment_mode" />
             </div>
             <div v-if="form.dominical_payment_mode === 'day'" class="space-y-2">
-                <Label for="dominical_day_value">{{ t('employees.form.dominical_day_value') }}</Label>
-                <Input id="dominical_day_value" v-model="form.dominical_day_value" type="number" step="0.01" min="0" />
-                <InputError :message="form.errors.dominical_day_value" />
+                <Label for="normal_day_value">{{ t('employees.form.normal_day_value') }}</Label>
+                <Input id="normal_day_value" v-model="form.normal_day_value" type="number" step="0.01" min="0" />
+                <InputError :message="form.errors.normal_day_value" />
             </div>
         </div>
 

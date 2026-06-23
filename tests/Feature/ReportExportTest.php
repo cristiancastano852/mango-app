@@ -472,7 +472,7 @@ class ReportExportTest extends TestCase
             'base' => 1000000.0, 'transport_allowance' => $transportAllowance,
             'total' => 1000000.0 + $transportAllowance,
             'salary_type' => 'monthly', 'pay_overtime' => true, 'pay_dominical' => true,
-            'dominical_mode' => 'hour', 'dominical_day_value' => 0, 'dominical_worked_days' => 0, 'dominical_paid_days' => 0,
+            'dominical_mode' => 'hour', 'normal_day_value' => 0, 'dominical_worked_days' => 0, 'dominical_paid_days' => 0,
             'details' => [],
         ];
     }

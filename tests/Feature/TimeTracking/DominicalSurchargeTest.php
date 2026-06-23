@@ -43,7 +43,7 @@ class DominicalSurchargeTest extends TestCase
             'hourly_rate' => 10000,
             'salary_type' => 'hourly',
             'dominical_payment_mode' => 'day',
-            'dominical_day_value' => 60000,
+            'normal_day_value' => 60000,
         ]);
     }
 
@@ -88,9 +88,9 @@ class DominicalSurchargeTest extends TestCase
         ]));
 
         $response->assertOk();
-        // base 18h × 10000 = 180000 + plus 3 × 60000 = 180000 → 360000
+        // base 18h × 10000 = 180000 + plus 3 × (60000×0.75)=135000 → 315000
         $response->assertInertia(fn ($page) => $page
-            ->where('report.cost_summary.dominical', 360000)
+            ->where('report.cost_summary.dominical', 315000)
             ->where('report.cost_summary.dominical_worked_days', 3)
             ->where('report.cost_summary.dominical_paid_days', 3)
         );
@@ -114,9 +114,9 @@ class DominicalSurchargeTest extends TestCase
         ]));
 
         $response->assertOk();
-        // base 180000 + plus 1 × 60000 = 240000
+        // base 180000 + plus 1 × (60000×0.75)=45000 → 225000
         $response->assertInertia(fn ($page) => $page
-            ->where('report.cost_summary.dominical', 240000)
+            ->where('report.cost_summary.dominical', 225000)
             ->where('report.cost_summary.dominical_paid_days', 1)
             ->where('filters.dominical_payable_count', 1)
         );
@@ -217,9 +217,9 @@ class DominicalSurchargeTest extends TestCase
 
         $response = $this->actingAs($this->adminUser)->get(route('reports.company', $this->period()));
 
-        // base 180000 + 1 plus de 60000 = 240000 (respeta la decisión guardada del empleado)
+        // base 180000 + 1 plus de 45000 = 225000 (respeta la decisión guardada del empleado)
         $response->assertInertia(fn ($page) => $page
-            ->where('report.cost_summary.dominical', 240000)
+            ->where('report.cost_summary.dominical', 225000)
         );
     }
 

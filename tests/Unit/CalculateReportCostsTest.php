@@ -144,13 +144,13 @@ class CalculateReportCostsTest extends TestCase
     }
 
     // ---------------------------------------------------------------------------
-    // Modo por día: el valor fijo es SOLO el recargo (plus plano). La base de las
-    // horas se paga como ordinario/nocturno y encima min(K,N) × day_value.
+    // Modo por día: day_value es el VALOR DEL DÍA NORMAL; el recargo por día pagado =
+    // valor_día × sunday_holiday% (75%). La base de las horas se paga como ordinario/nocturno.
     // ---------------------------------------------------------------------------
 
     public function test_day_mode_adds_base_plus_flat_premium_hourly(): void
     {
-        // 12h dominicales diurnas (2 días de 6h), tarifa 10000, día = 60000, paga los 2.
+        // 12h dominicales diurnas (2 días de 6h), tarifa 10000, valor día = 60000, paga los 2.
         $result = $this->calculator->execute(10000, [
             'dominical_hours' => 12.0,
         ], $this->rules, dominical: [
@@ -161,10 +161,10 @@ class CalculateReportCostsTest extends TestCase
             'payable_count' => null,
         ]);
 
-        // base 12×10000=120000 + plus 2×60000=120000
-        $this->assertEquals(240000.0, $result['dominical']);
+        // base 12×10000=120000 + plus 2×(60000×0.75)=90000 → 210000
+        $this->assertEquals(210000.0, $result['dominical']);
         $this->assertEquals(2, $result['dominical_paid_days']);
-        $this->assertEquals(240000.0, $result['total']);
+        $this->assertEquals(210000.0, $result['total']);
     }
 
     public function test_day_mode_with_k_less_than_n_pays_fewer_premiums(): void
@@ -180,14 +180,14 @@ class CalculateReportCostsTest extends TestCase
             'payable_count' => 2,
         ]);
 
-        // base 18×10000=180000 + plus 2×60000=120000
-        $this->assertEquals(300000.0, $result['dominical']);
+        // base 18×10000=180000 + plus 2×(60000×0.75)=90000 → 270000
+        $this->assertEquals(270000.0, $result['dominical']);
         $this->assertEquals(2, $result['dominical_paid_days']);
     }
 
     public function test_day_mode_monthly_only_adds_flat_premium(): void
     {
-        // Mensual: la base ya está en el salario; solo entra el plus plano.
+        // Mensual: la base ya está en el salario; solo entra el plus (valor día × %).
         $result = $this->calculator->execute(8000, [
             'dominical_hours' => 12.0,
         ], $this->rules, salaryType: 'monthly', baseSalary: 1000000.0, dominical: [
@@ -198,8 +198,8 @@ class CalculateReportCostsTest extends TestCase
             'payable_count' => null,
         ]);
 
-        $this->assertEquals(120000.0, $result['dominical']); // solo 2×60000
-        $this->assertEquals(1000000.0 + 120000.0, $result['total']);
+        $this->assertEquals(90000.0, $result['dominical']); // 2×(60000×0.75)
+        $this->assertEquals(1000000.0 + 90000.0, $result['total']);
     }
 
     public function test_day_mode_keeps_night_surcharge_on_night_dominical_hours(): void
@@ -216,8 +216,8 @@ class CalculateReportCostsTest extends TestCase
             'payable_count' => null,
         ]);
 
-        // dominical = base 6×10000 + plus 1×60000 = 120000
-        $this->assertEquals(120000.0, $result['dominical']);
+        // dominical = base 6×10000 + plus 1×(60000×0.75)=45000 → 105000
+        $this->assertEquals(105000.0, $result['dominical']);
         // night_dominical = 2 × 10000 × 1.35 (solo nocturno, sin dominical %)
         $this->assertEquals(27000.0, $result['night_dominical']);
     }

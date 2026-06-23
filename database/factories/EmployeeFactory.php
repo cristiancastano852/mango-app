@@ -71,7 +71,7 @@ class EmployeeFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'dominical_payment_mode' => 'day',
-            'dominical_day_value' => $dayValue,
+            'normal_day_value' => $dayValue,
         ]);
     }
 }

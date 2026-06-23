@@ -59,7 +59,7 @@ export type Employee = {
     salary_type: string;
     receives_transport_allowance: boolean;
     dominical_payment_mode: string;
-    dominical_day_value: string | null;
+    normal_day_value: string | null;
     schedule_id: number | null;
     location_id: number | null;
     user: User;

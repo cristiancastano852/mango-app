@@ -47,31 +47,31 @@ El sistema SHALL permitir que cada compañía defina si por defecto paga el reca
 
 ### Requirement: Modo de pago dominical por hora o por día
 
-El sistema SHALL soportar dos modos de pago dominical: `hour` (recargo por hora trabajada, comportamiento actual) y `day` (monto fijo por cada día dominical trabajado, sin importar las horas). El modo y el valor por día SHALL seguir el patrón salario: defaults de compañía (`default_dominical_payment_mode`, `default_dominical_day_value` en `surcharge_rules`) que **siembran** el valor propio del empleado (`dominical_payment_mode`, `dominical_day_value` en `employees`) al crearlo; los cálculos SHALL usar el valor del empleado.
+El sistema SHALL soportar dos modos de pago dominical: `hour` (recargo por hora trabajada, comportamiento actual) y `day` (recargo plano por cada día dominical trabajado, sin importar las horas). El modo y el **valor del día normal** SHALL seguir el patrón salario: defaults de compañía (`default_dominical_payment_mode`, `default_normal_day_value` en `surcharge_rules`) que **siembran** el valor propio del empleado (`dominical_payment_mode`, `normal_day_value` en `employees`) al crearlo; los cálculos SHALL usar el valor del empleado.
 
 **Business Rules:**
-- `default_dominical_payment_mode` default `hour`; `dominical_day_value` en COP.
-- `CreateEmployee` siembra `dominical_payment_mode`/`dominical_day_value` desde los defaults cuando no se especifican (igual que `hourly_rate`).
+- `default_dominical_payment_mode` default `hour`; `normal_day_value` (valor del día normal) en COP.
+- `CreateEmployee` siembra `dominical_payment_mode`/`normal_day_value` desde los defaults cuando no se especifican (igual que `hourly_rate`).
 - En modo `hour`: costo dominical = `dominical_hours × tarifa × (1 + recargo%)` (hourly) o solo el % (monthly).
-- En modo `day`: `dominical_day_value` es **solo el recargo** (plus plano), no el pago total del día. La base por horas SIEMPRE se paga: `dominical_hours` como `regular` y `night_dominical_hours` como `night`; y encima se suma `min(K, N) × dominical_day_value`. Las `overtime_*_dominical` no se afectan por el modo (siguen por hora, gobernadas por el toggle de overtime).
+- En modo `day`: el recargo por cada día dominical pagado = `normal_day_value × (sunday_holiday% / 100)` (el % configurable, 75% por defecto). La base por horas SIEMPRE se paga: `dominical_hours` como `regular` y `night_dominical_hours` como `night`; y encima se suma `min(K, N) × normal_day_value × %`. Las `overtime_*_dominical` no se afectan por el modo (siguen por hora, gobernadas por el toggle de overtime).
 
 #### Scenario: Modo por hora (comportamiento actual)
 - **WHEN** un empleado por hora con `dominical_payment_mode = hour` trabaja 5h dominicales con tarifa 10000 y recargo 75%
 - **THEN** el costo dominical es `5 × 10000 × 1.75 = 87500`
 
-#### Scenario: Modo por día suma base por horas más el plus plano
-- **WHEN** un empleado por hora con `dominical_payment_mode = day`, `dominical_day_value = 60000` y tarifa 10000 trabaja un día dominical de 5h y otro de 7h diurnos, ambos pagados
+#### Scenario: Modo por día suma base por horas más el recargo (valor día × %)
+- **WHEN** un empleado por hora con `dominical_payment_mode = day`, `normal_day_value = 60000`, recargo dominical 75% y tarifa 10000 trabaja un día dominical de 5h y otro de 7h diurnos, ambos pagados
 - **THEN** la base se cobra como ordinaria: `(5 + 7) × 10000 = 120000`
-- **AND** se suma el plus: `2 × 60000 = 120000`
-- **AND** el costo dominical total es `240000`
+- **AND** se suma el recargo: `2 × (60000 × 0.75) = 90000`
+- **AND** el costo dominical total es `210000`
 
-#### Scenario: Modo por día con empleado mensual solo suma el plus
-- **WHEN** un empleado mensual con `dominical_payment_mode = day` y `dominical_day_value = 60000` trabaja 2 dominicales pagados
-- **THEN** la base no suma extra (ya está en el salario) y el costo dominical es `2 × 60000 = 120000`
+#### Scenario: Modo por día con empleado mensual solo suma el recargo
+- **WHEN** un empleado mensual con `dominical_payment_mode = day`, `normal_day_value = 60000` y recargo 75% trabaja 2 dominicales pagados
+- **THEN** la base no suma extra (ya está en el salario) y el costo dominical es `2 × (60000 × 0.75) = 90000`
 
 #### Scenario: El empleado hereda el default al crearse
-- **WHEN** se crea un empleado sin especificar modo/valor dominical y la compañía tiene `default_dominical_payment_mode = day` y `default_dominical_day_value = 50000`
-- **THEN** el empleado queda con `dominical_payment_mode = day` y `dominical_day_value = 50000`
+- **WHEN** se crea un empleado sin especificar modo/valor dominical y la compañía tiene `default_dominical_payment_mode = day` y `default_normal_day_value = 50000`
+- **THEN** el empleado queda con `dominical_payment_mode = day` y `normal_day_value = 50000`
 
 ---
 
@@ -81,7 +81,7 @@ El sistema SHALL ofrecer, **únicamente en el reporte de empleado**, un control 
 
 **Business Rules:**
 - N = número de días dominicales distintos trabajados (por `entry.date`) en el periodo.
-- Se pagan `min(K, N)` plus de `dominical_day_value`; los `(N − K)` no pagados no suman plus (la base de sus horas ya se paga como ordinario).
+- Se pagan `min(K, N)` recargos de `normal_day_value × %`; los `(N − K)` no pagados no suman recargo (la base de sus horas ya se paga como ordinario).
 - En modo `hour` el control se ignora y se pagan todas las horas dominicales (la UI lo deshabilita).
 - El control no afecta los festivos.
 - El total del reporte de empresa siempre cuadra con la suma de los desprendibles de empleado (misma resolución por empleado).
@@ -90,10 +90,10 @@ El sistema SHALL ofrecer, **únicamente en el reporte de empleado**, un control 
 - Disponible para `admin` y `super-admin`; `employee` no accede.
 
 #### Scenario: Reducir el conteo recalcula el total (modo por día, reporte de empleado)
-- **WHEN** un empleado por hora tiene 3 días dominicales (tarifa 10000, ~6h c/u), modo `day`, `dominical_day_value = 60000`, y el admin elige pagar 2
+- **WHEN** un empleado por hora tiene 3 días dominicales (tarifa 10000, ~6h c/u), modo `day`, `normal_day_value = 60000`, recargo 75%, y el admin elige pagar 2
 - **THEN** la base de las horas dominicales se sigue pagando como ordinaria
-- **AND** solo se suman `2 × 60000 = 120000` de plus
-- **AND** el tercer dominical no aporta plus
+- **AND** solo se suman `2 × (60000 × 0.75) = 90000` de recargo
+- **AND** el tercer dominical no aporta recargo
 
 #### Scenario: Por defecto se pagan todos
 - **WHEN** un admin abre el reporte de empleado con 3 dominicales y sin decisión guardada

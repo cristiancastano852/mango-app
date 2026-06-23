@@ -43,7 +43,7 @@ const form = useForm({
     monthly_base_salary: props.employee.monthly_base_salary ?? '',
     receives_transport_allowance: props.employee.receives_transport_allowance ?? true,
     dominical_payment_mode: props.employee.dominical_payment_mode ?? 'hour',
-    dominical_day_value: props.employee.dominical_day_value ?? '',
+    normal_day_value: props.employee.normal_day_value ?? '',
     // LOCATIONS FEATURE DISABLED — restore location_id when re-enabling.
     // location_id: props.employee.location_id ? String(props.employee.location_id) : '',
 });

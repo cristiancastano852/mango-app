@@ -31,7 +31,7 @@ class SurchargeRule extends Model
         'dominical_weekday',
         'pay_dominical_by_default',
         'default_dominical_payment_mode',
-        'default_dominical_day_value',
+        'default_normal_day_value',
     ];
 
     protected function casts(): array
@@ -52,7 +52,7 @@ class SurchargeRule extends Model
             'transport_allowance' => 'decimal:2',
             'dominical_weekday' => 'integer',
             'pay_dominical_by_default' => 'boolean',
-            'default_dominical_day_value' => 'decimal:2',
+            'default_normal_day_value' => 'decimal:2',
         ];
     }
 

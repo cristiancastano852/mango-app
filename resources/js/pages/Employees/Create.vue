@@ -16,7 +16,7 @@ type Props = {
     defaultMonthlySalary: string | null;
     defaultHourlyRate: string | null;
     defaultDominicalPaymentMode: string | null;
-    defaultDominicalDayValue: string | null;
+    defaultNormalDayValue: string | null;
 };
 const props = defineProps<Props>();
 const { t } = useI18n();
@@ -42,7 +42,7 @@ const form = useForm({
     monthly_base_salary: props.defaultMonthlySalary ?? '',
     receives_transport_allowance: true,
     dominical_payment_mode: props.defaultDominicalPaymentMode ?? 'hour',
-    dominical_day_value: props.defaultDominicalDayValue ?? '',
+    normal_day_value: props.defaultNormalDayValue ?? '',
     // LOCATIONS FEATURE DISABLED — restore location_id when re-enabling.
     // location_id: '',
 });

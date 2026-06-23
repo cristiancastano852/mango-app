@@ -51,7 +51,7 @@ class CreateEmployee
                     ? ($data['receives_transport_allowance'] ?? true)
                     : false,
                 'dominical_payment_mode' => $data['dominical_payment_mode'] ?? $defaults?->default_dominical_payment_mode ?? 'hour',
-                'dominical_day_value' => $data['dominical_day_value'] ?? $defaults?->default_dominical_day_value ?? 0,
+                'normal_day_value' => $data['normal_day_value'] ?? $defaults?->default_normal_day_value ?? 0,
                 'schedule_id' => $data['schedule_id'] ?? $this->getDefaultScheduleId($companyId),
                 'location_id' => $data['location_id'] ?? null,
             ]);

@@ -20,10 +20,11 @@ class CalculateReportCosts
      *    diurnas → regular, nocturnas → night (conservan recargo nocturno), overtime → overtime
      *    de semana. Solo se pierde el recargo dominical.
      *  - `mode` (`hour`|`day`): en `hour` el recargo dominical es por hora (sunday_holiday/night_sunday).
-     *    En `day` la base de las horas se paga como ordinaria/nocturna y se suma un plus plano
-     *    `min(payable_count, worked_days) × day_value` (solo el recargo). El overtime dominical se
-     *    paga por hora con su recargo dominical en ambos modos.
-     *  - `day_value` (float), `payable_count` (?int, null = todos), `worked_days` (int N).
+     *    En `day` la base de las horas se paga como ordinaria/nocturna y se suma un plus plano por día
+     *    pagado = `min(payable_count, worked_days) × day_value × (sunday_holiday% / 100)`. El overtime
+     *    dominical se paga por hora con su recargo dominical en ambos modos.
+     *  - `day_value` (float): valor del día normal (input del usuario); el recargo aplica el % sobre él.
+     *  - `payable_count` (?int, null = todos), `worked_days` (int N).
      *
      * Modos de salario: `hourly` cobra base+recargo por hora; `monthly` solo el % (la base ya está
      * en el salario). El overtime siempre se paga completo (1+recargo%); cuando $payOvertime es false
@@ -83,7 +84,7 @@ class CalculateReportCosts
         // --- Dominical (configurable) ---
         $payDominical = (bool) ($dominical['pay'] ?? true);
         $dominicalMode = $dominical['mode'] ?? 'hour';
-        $dominicalDayValue = (float) ($dominical['day_value'] ?? 0);
+        $normalDayValue = (float) ($dominical['day_value'] ?? 0);
         $workedDominicalDays = (int) ($dominical['worked_days'] ?? 0);
         $payableCount = $dominical['payable_count'] ?? null;
         $paidDominicalDays = $payableCount === null
@@ -108,8 +109,9 @@ class CalculateReportCosts
             $overtimeNightDominicalSurcharge = $otNightDominicalPct;
 
             if ($dominicalMode === 'day') {
-                // Base como ordinario/nocturno + plus plano por dominical pagado (solo el recargo).
-                $flatPremium = $paidDominicalDays * $dominicalDayValue;
+                // La base del día ya está cubierta (horas/salario); el recargo dominical se aplica
+                // como un plus plano por día pagado = valor_día_normal × recargo% (sunday_holiday).
+                $flatPremium = $paidDominicalDays * $normalDayValue * ($dominicalPct / 100);
                 $dominicalCost = $dominicalHours * $regularRate + $flatPremium;
                 $dominicalSurcharge = 0.0;
                 $nightDominicalCost = $nightDominicalHours * $hourlyRate * $premiumFactor($nightPct);
@@ -161,7 +163,7 @@ class CalculateReportCosts
             'pay_overtime' => $payOvertime,
             'pay_dominical' => $payDominical,
             'dominical_mode' => $dominicalMode,
-            'dominical_day_value' => round($dominicalDayValue, 2),
+            'normal_day_value' => round($normalDayValue, 2),
             'dominical_worked_days' => $workedDominicalDays,
             'dominical_paid_days' => $paidDominicalDays,
             'details' => [

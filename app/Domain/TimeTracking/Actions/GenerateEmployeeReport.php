@@ -86,7 +86,7 @@ class GenerateEmployeeReport
             [
                 'pay' => (bool) $rules->pay_dominical_by_default,
                 'mode' => $employee->dominical_payment_mode ?? 'hour',
-                'day_value' => (float) $employee->dominical_day_value,
+                'day_value' => (float) $employee->normal_day_value,
                 'payable_count' => $dominicalPayableCount,
                 'worked_days' => $workedDominicalDays,
             ],

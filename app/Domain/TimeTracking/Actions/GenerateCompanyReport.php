@@ -103,7 +103,7 @@ class GenerateCompanyReport
                 [
                     'pay' => (bool) $rules->pay_dominical_by_default,
                     'mode' => $emp->dominical_payment_mode ?? 'hour',
-                    'day_value' => (float) $emp->dominical_day_value,
+                    'day_value' => (float) $emp->normal_day_value,
                     'payable_count' => $dominicalDecisions[$emp->employee_id] ?? null,
                     'worked_days' => (int) ($emp->dominical_worked_days ?? 0),
                 ],
@@ -189,7 +189,7 @@ class GenerateCompanyReport
             ->whereNull('time_entries.deleted_at')
             ->whereNotNull('time_entries.clock_out')
             ->when($departmentId, fn ($q) => $q->where('employees.department_id', $departmentId))
-            ->groupBy('employees.id', 'users.name', 'employees.hourly_rate', 'employees.salary_type', 'employees.monthly_base_salary', 'employees.receives_transport_allowance', 'employees.dominical_payment_mode', 'employees.dominical_day_value', 'departments.name')
+            ->groupBy('employees.id', 'users.name', 'employees.hourly_rate', 'employees.salary_type', 'employees.monthly_base_salary', 'employees.receives_transport_allowance', 'employees.dominical_payment_mode', 'employees.normal_day_value', 'departments.name')
             ->selectRaw('
                 employees.id as employee_id,
                 users.name as employee_name,
@@ -199,7 +199,7 @@ class GenerateCompanyReport
                 employees.monthly_base_salary,
                 employees.receives_transport_allowance,
                 employees.dominical_payment_mode,
-                employees.dominical_day_value,
+                employees.normal_day_value,
                 COUNT(*) as days_worked,
                 COALESCE(SUM(time_entries.gross_hours), 0) as total_gross,
                 COALESCE(SUM(time_entries.break_hours), 0) as total_breaks,
@@ -250,7 +250,7 @@ class GenerateCompanyReport
                 employees.monthly_base_salary,
                 employees.receives_transport_allowance,
                 employees.dominical_payment_mode,
-                employees.dominical_day_value
+                employees.normal_day_value
             ')
             ->get()
             ->map(fn ($e) => (object) [
@@ -262,7 +262,7 @@ class GenerateCompanyReport
                 'monthly_base_salary' => $e->monthly_base_salary,
                 'receives_transport_allowance' => $e->receives_transport_allowance,
                 'dominical_payment_mode' => $e->dominical_payment_mode,
-                'dominical_day_value' => $e->dominical_day_value,
+                'normal_day_value' => $e->normal_day_value,
                 'days_worked' => 0,
                 'total_gross' => 0,
                 'total_breaks' => 0,
