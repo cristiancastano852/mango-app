@@ -53,7 +53,7 @@ El sistema SHALL soportar dos modos de pago dominical: `hour` (recargo por hora 
 - `default_dominical_payment_mode` default `hour`; `normal_day_value` (valor del día normal) en COP.
 - `CreateEmployee` siembra `dominical_payment_mode`/`normal_day_value` desde los defaults cuando no se especifican (igual que `hourly_rate`).
 - En modo `hour`: costo dominical = `dominical_hours × tarifa × (1 + recargo%)` (hourly) o solo el % (monthly).
-- En modo `day`: el recargo por cada día dominical pagado = `normal_day_value × (sunday_holiday% / 100)` (el % configurable, 75% por defecto). La base por horas SIEMPRE se paga: `dominical_hours` como `regular` y `night_dominical_hours` como `night`; y encima se suma `min(K, N) × normal_day_value × %`. Las `overtime_*_dominical` no se afectan por el modo (siguen por hora, gobernadas por el toggle de overtime).
+- En modo `day`: el recargo por cada día dominical pagado = `normal_day_value × (sunday_holiday% / 100)` (el % configurable, 75% por defecto). La base por horas SIEMPRE se paga: `dominical_hours` como `regular` y `night_dominical_hours` como `night`; y encima se suma `K × normal_day_value × %` (K puede exceder N para saldar dominicales de otros periodos). Las `overtime_*_dominical` no se afectan por el modo (siguen por hora, gobernadas por el toggle de overtime).
 
 #### Scenario: Modo por hora (comportamiento actual)
 - **WHEN** un empleado por hora con `dominical_payment_mode = hour` trabaja 5h dominicales con tarifa 10000 y recargo 75%
@@ -81,7 +81,7 @@ El sistema SHALL ofrecer, **únicamente en el reporte de empleado**, un control 
 
 **Business Rules:**
 - N = número de días dominicales distintos trabajados (por `entry.date`) en el periodo.
-- Se pagan `min(K, N)` recargos de `normal_day_value × %`; los `(N − K)` no pagados no suman recargo (la base de sus horas ya se paga como ordinario).
+- Se pagan `K` recargos de `normal_day_value × %` (K editable libremente, puede ser mayor que N); la base de las horas trabajadas se paga siempre como ordinario.
 - En modo `hour` el control se ignora y se pagan todas las horas dominicales (la UI lo deshabilita).
 - El control no afecta los festivos.
 - El total del reporte de empresa siempre cuadra con la suma de los desprendibles de empleado (misma resolución por empleado).
@@ -170,13 +170,21 @@ Cuando un dominical no se paga (switch desactivado, fuera del conteo K en modo p
 
 El sistema SHALL pagar siempre el recargo de las horas festivas, independientemente de la configuración de dominicales (`pay_dominical_by_default`, conteo K o modo). Las horas festivas SHALL clasificarse y costearse aparte de las dominicales y nunca reducirse.
 
+El modo de pago festivo SHALL ser configurable por hora o por día (`default_holiday_payment_mode` en `surcharge_rules`, `holiday_payment_mode` en `employees`, sembrado igual que el dominical), pero **sin conteo editable**: todos los festivos del periodo se pagan. En modo `day` el recargo de cada festivo trabajado = `normal_day_value × (sunday_holiday% / 100)` (la base por horas se paga aparte). Usa el mismo valor del día normal y el mismo % que el dominical.
+
 **Business Rules:**
 - El switch de pago dominical y el conteo K no afectan los festivos.
 - Si un día es festivo y dominical a la vez, gana festivo (siempre se paga).
+- El modo festivo (hora/día) es independiente del modo dominical.
 
 #### Scenario: Festivo se paga aunque los dominicales estén desactivados
 - **WHEN** una compañía tiene `pay_dominical_by_default = false` y un empleado trabaja un festivo
 - **THEN** las horas festivas se pagan con su recargo y suman al total
+
+#### Scenario: Festivo por día paga todos los del periodo (sin conteo)
+- **WHEN** un empleado con `holiday_payment_mode = day`, `normal_day_value = 60000`, recargo 75% trabaja 2 festivos
+- **THEN** la base de las horas se paga como ordinaria
+- **AND** se suma `2 × (60000 × 0.75) = 90000` de recargo festivo (todos, sin opción de reducir)
 
 #### Scenario: Día festivo y dominical a la vez gana festivo
 - **WHEN** el día dominical configurado coincide con un festivo y el empleado trabaja ese día

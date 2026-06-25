@@ -52,6 +52,7 @@ class CreateEmployee
                     : false,
                 'dominical_payment_mode' => $data['dominical_payment_mode'] ?? $defaults?->default_dominical_payment_mode ?? 'hour',
                 'normal_day_value' => $data['normal_day_value'] ?? $defaults?->default_normal_day_value ?? 0,
+                'holiday_payment_mode' => $data['holiday_payment_mode'] ?? $defaults?->default_holiday_payment_mode ?? 'hour',
                 'schedule_id' => $data['schedule_id'] ?? $this->getDefaultScheduleId($companyId),
                 'location_id' => $data['location_id'] ?? null,
             ]);

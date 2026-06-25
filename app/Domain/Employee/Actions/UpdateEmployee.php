@@ -39,6 +39,7 @@ class UpdateEmployee
                 'receives_transport_allowance' => $receivesTransportAllowance,
                 'dominical_payment_mode' => array_key_exists('dominical_payment_mode', $data) ? $data['dominical_payment_mode'] : $employee->dominical_payment_mode,
                 'normal_day_value' => array_key_exists('normal_day_value', $data) ? $data['normal_day_value'] : $employee->normal_day_value,
+                'holiday_payment_mode' => array_key_exists('holiday_payment_mode', $data) ? $data['holiday_payment_mode'] : $employee->holiday_payment_mode,
                 'schedule_id' => array_key_exists('schedule_id', $data) ? $data['schedule_id'] : $employee->schedule_id,
                 'location_id' => array_key_exists('location_id', $data) ? $data['location_id'] : $employee->location_id,
             ]);

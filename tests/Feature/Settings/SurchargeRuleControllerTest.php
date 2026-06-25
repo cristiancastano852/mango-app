@@ -71,6 +71,7 @@ class SurchargeRuleControllerTest extends TestCase
             'pay_dominical_by_default' => true,
             'default_dominical_payment_mode' => 'hour',
             'default_normal_day_value' => 0,
+            'default_holiday_payment_mode' => 'hour',
         ], $overrides);
     }
 

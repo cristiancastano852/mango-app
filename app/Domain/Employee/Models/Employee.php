@@ -39,6 +39,7 @@ class Employee extends Model
         'receives_transport_allowance',
         'dominical_payment_mode',
         'normal_day_value',
+        'holiday_payment_mode',
         'schedule_id',
         'location_id',
     ];

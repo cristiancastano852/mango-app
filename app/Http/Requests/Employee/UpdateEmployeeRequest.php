@@ -30,6 +30,7 @@ class UpdateEmployeeRequest extends FormRequest
             'monthly_base_salary' => ['nullable', 'numeric', 'min:0', 'required_if:salary_type,monthly'],
             'receives_transport_allowance' => ['nullable', 'boolean'],
             'dominical_payment_mode' => ['nullable', 'in:hour,day'],
+            'holiday_payment_mode' => ['nullable', 'in:hour,day'],
             'normal_day_value' => ['nullable', 'numeric', 'min:0'],
             'schedule_id' => ['nullable', 'exists:schedules,id'],
             // LOCATIONS FEATURE DISABLED — restore when the feature is re-enabled.
@@ -45,6 +46,7 @@ class UpdateEmployeeRequest extends FormRequest
         return [
             'salary_type.in' => 'El tipo de salario debe ser por hora o mensual.',
             'dominical_payment_mode.in' => 'El modo de pago dominical debe ser por hora o por día.',
+            'holiday_payment_mode.in' => 'El modo de pago festivo debe ser por hora o por día.',
             'normal_day_value.numeric' => 'El valor del día normal debe ser numérico.',
             'normal_day_value.min' => 'El valor del día normal no puede ser negativo.',
             'monthly_base_salary.required_if' => 'El salario base mensual es obligatorio para empleados con salario mensual.',

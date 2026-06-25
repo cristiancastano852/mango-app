@@ -84,9 +84,9 @@ Nueva columna `pay_dominical_by_default` (boolean, default `true`) en `surcharge
 `CreateEmployee` siembra `dominical_payment_mode`/`normal_day_value` desde los defaults (igual que `hourly_rate ?? default_hourly_rate`). El cálculo siempre lee el valor del empleado.
 
 - **`hour`**: comportamiento actual — `dominical_hours × tarifa × (1 + recargo%)` (hourly) o solo el % (monthly).
-- **`day`**: el input es el **valor del día normal** (`normal_day_value`); el recargo por cada día dominical pagado = `normal_day_value × (sunday_holiday% / 100)` (el % configurable, 75% por defecto). La **base por horas siempre se paga**: las `dominical_hours` se costean como `regular` y las `night_dominical_hours` como `night` (conservando recargo nocturno), igual que un día ordinario; y **encima** se suma `min(K, N) × normal_day_value × %` por los dominicales pagados. Las `overtime_*_dominical` **no** se afectan por el modo: siguen pagándose por hora y gobernadas por el toggle de overtime. Así, reducir K solo quita recargos (no requiere desglose de horas por día).
+- **`day`**: el input es el **valor del día normal** (`normal_day_value`); el recargo por cada día dominical pagado = `normal_day_value × (sunday_holiday% / 100)` (el % configurable, 75% por defecto). La **base por horas siempre se paga**: las `dominical_hours` se costean como `regular` y las `night_dominical_hours` como `night` (conservando recargo nocturno), igual que un día ordinario; y **encima** se suma `K × normal_day_value × %` por los dominicales pagados (K editable, puede exceder N). Las `overtime_*_dominical` **no** se afectan por el modo: siguen pagándose por hora y gobernadas por el toggle de overtime. Así, reducir K solo quita recargos (no requiere desglose de horas por día).
 
-  Fórmula modo `day`: `costo_dominical = [base de dominical_hours como regular] + [base de night_dominical_hours como night] + min(K, N) × normal_day_value × (sunday_holiday% / 100)`.
+  Fórmula modo `day`: `costo_dominical = [base de dominical_hours como regular] + [base de night_dominical_hours como night] + K × normal_day_value × (sunday_holiday% / 100)` (K puede exceder N).
 
 ### 6. Dominical no pagado → día ordinario conservando nocturno
 
@@ -116,7 +116,7 @@ Nueva tabla `dominical_payment_decisions`:
 
 - Índice único `(company_id, employee_id, start_date, end_date)`. Como `employee_id` es NOT NULL, no aplica el gotcha de upsert contra NULL de overtime.
 - `ResolveDominicalPaymentDecision` aplica precedencia: `request(dominical_payable_count)` → decisión guardada → default (todos los N).
-- **Cálculo (solo modo `day`):** el reporte de empleado cuenta `N = días dominicales distintos trabajados`. Se pagan `min(K, N)` recargos de `normal_day_value × %`; los `(N − K)` no pagados simplemente no suman recargo (la base de sus horas ya se paga como ordinario, decisión 5).
+- **Cálculo (solo modo `day`):** el reporte de empleado cuenta `N = días dominicales distintos trabajados`. Se pagan `K` recargos de `normal_day_value × %` (K editable, puede exceder N para saldar dominicales pendientes); la base de las horas trabajadas se paga siempre como ordinario (decisión 5).
 - En modo por-hora el control se ignora (siempre se pagan todas las horas dominicales); la UI lo deshabilita.
 - Persiste al exportar (upsert, gana el último), igual que overtime. Ver el reporte no persiste. Solo el reporte de empleado persiste (el de empresa no escribe decisiones).
 

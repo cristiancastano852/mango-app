@@ -17,7 +17,8 @@
 - monthly_base_salary (decimal 10,2 nullable) — salario base mensual; obligatorio cuando salary_type = monthly
 - salary_type (default: hourly) — `hourly` (cálculo por horas) | `monthly` (salario base fijo), schedule_id (nullable → schedules), location_id (nullable → locations)
 - dominical_payment_mode (string, default hour) — `hour` (recargo dominical por hora) | `day` (recargo plano por dominical); sembrado del default de la compañía al crear
-- normal_day_value (decimal 12,2, default 0) — valor del día normal; en modo `day` el recargo dominical = valor × sunday_holiday%; sembrado del default de la compañía
+- normal_day_value (decimal 12,2, default 0) — valor del día normal; en modo `day` el recargo dominical/festivo = valor × sunday_holiday%; sembrado del default de la compañía
+- holiday_payment_mode (string, default hour) — `hour` | `day`; modo de pago festivo (los festivos siempre se pagan, no editables); sembrado del default de la compañía
 - timestamps
 - indexes: company_id, (company_id, user_id)
 - unique: (document_number, company_id)
@@ -84,7 +85,8 @@
 - dominical_weekday (tinyint, default 0) — día de la semana que recibe el recargo dominical (0=Dom … 6=Sáb); solo empresa
 - pay_dominical_by_default (boolean default true) — pagar dominicales por defecto; si false se tratan como día normal (los festivos siempre pagan)
 - default_dominical_payment_mode (string default hour) — modo de pago dominical por defecto (`hour`|`day`); siembra a employees
-- default_normal_day_value (decimal 12,2 default 0) — valor del día normal por defecto; siembra a employees (el recargo dominical en modo `day` aplica sunday_holiday% sobre este valor)
+- default_normal_day_value (decimal 12,2 default 0) — valor del día normal por defecto; siembra a employees (el recargo dominical/festivo en modo `day` aplica sunday_holiday% sobre este valor)
+- default_holiday_payment_mode (string default hour) — modo de pago festivo por defecto (`hour`|`day`); siembra a employees
 - timestamps
 
 ## overtime_payment_decisions

@@ -37,6 +37,7 @@ class UpdateSurchargeRuleRequest extends FormRequest
             'pay_dominical_by_default' => ['required', 'boolean'],
             'default_dominical_payment_mode' => ['required', Rule::in(['hour', 'day'])],
             'default_normal_day_value' => ['required', 'numeric', 'min:0'],
+            'default_holiday_payment_mode' => ['required', Rule::in(['hour', 'day'])],
         ];
 
         // Admin can only target their own company; super-admin must explicitly supply which company.
@@ -80,6 +81,8 @@ class UpdateSurchargeRuleRequest extends FormRequest
             'pay_dominical_by_default.boolean' => 'El valor de pago de dominicales no es válido.',
             'default_dominical_payment_mode.required' => 'Debes indicar el modo de pago dominical.',
             'default_dominical_payment_mode.in' => 'El modo de pago dominical debe ser por hora o por día.',
+            'default_holiday_payment_mode.required' => 'Debes indicar el modo de pago festivo.',
+            'default_holiday_payment_mode.in' => 'El modo de pago festivo debe ser por hora o por día.',
             'default_normal_day_value.required' => 'El valor del día normal es obligatorio.',
             'default_normal_day_value.numeric' => 'El valor del día normal debe ser numérico.',
             'default_normal_day_value.min' => 'El valor del día normal no puede ser negativo.',

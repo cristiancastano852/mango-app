@@ -222,9 +222,99 @@ class CalculateReportCostsTest extends TestCase
         $this->assertEquals(27000.0, $result['night_dominical']);
     }
 
+    public function test_day_mode_count_drives_premium_even_when_switch_off(): void
+    {
+        // Empresa con pagar-dominicales OFF, pero modo día: el conteo K manda. Si elige pagar 2,
+        // se pagan 2 recargos aunque el default sea no pagar.
+        $result = $this->calculator->execute(10000, [
+            'dominical_hours' => 18.0,
+        ], $this->rules, dominical: [
+            'pay' => false,
+            'mode' => 'day',
+            'day_value' => 60000,
+            'worked_days' => 3,
+            'payable_count' => 2,
+        ]);
+
+        // base 18×10000=180000 + 2×(60000×0.75)=90000 → 270000
+        $this->assertEquals(270000.0, $result['dominical']);
+        $this->assertEquals(2, $result['dominical_paid_days']);
+    }
+
+    public function test_day_mode_count_can_exceed_worked_days(): void
+    {
+        // Solo 2 dominicales trabajados, pero el admin paga 3 (salda uno pendiente de otra quincena).
+        $result = $this->calculator->execute(10000, [
+            'dominical_hours' => 12.0,
+        ], $this->rules, dominical: [
+            'pay' => true,
+            'mode' => 'day',
+            'day_value' => 60000,
+            'worked_days' => 2,
+            'payable_count' => 3,
+        ]);
+
+        // base 12×10000=120000 + 3×(60000×0.75)=135000 → 255000
+        $this->assertEquals(255000.0, $result['dominical']);
+        $this->assertEquals(3, $result['dominical_paid_days']);
+    }
+
+    public function test_day_mode_switch_off_defaults_to_zero_paid_days(): void
+    {
+        // Sin decisión explícita y switch OFF → ningún recargo (default 0), solo base.
+        $result = $this->calculator->execute(10000, [
+            'dominical_hours' => 12.0,
+        ], $this->rules, dominical: [
+            'pay' => false,
+            'mode' => 'day',
+            'day_value' => 60000,
+            'worked_days' => 2,
+            'payable_count' => null,
+        ]);
+
+        $this->assertEquals(120000.0, $result['dominical']); // solo base 12×10000
+        $this->assertEquals(0, $result['dominical_paid_days']);
+    }
+
     // ---------------------------------------------------------------------------
     // Festivos siempre se pagan, independientes de la config dominical.
     // ---------------------------------------------------------------------------
+
+    public function test_holiday_hour_mode_pays_per_hour(): void
+    {
+        // Modo hora (default): festivo = horas × tarifa × (1 + 75%).
+        $result = $this->calculator->execute(10000, [
+            'holiday_hours' => 6.0,
+            'night_holiday_hours' => 2.0,
+        ], $this->rules, holiday: ['mode' => 'hour', 'worked_days' => 1]);
+
+        $this->assertEquals(105000.0, $result['holiday']);       // 6 × 10000 × 1.75
+        $this->assertEquals(42000.0, $result['night_holiday']);  // 2 × 10000 × 2.10
+    }
+
+    public function test_holiday_day_mode_adds_base_plus_flat_premium(): void
+    {
+        // Modo día: base por horas como ordinario + recargo plano por cada festivo (valor día × 75%).
+        // 2 festivos (12h diurnas), valor día 60000, recargo 75%.
+        $result = $this->calculator->execute(10000, [
+            'holiday_hours' => 12.0,
+        ], $this->rules, holiday: ['mode' => 'day', 'day_value' => 60000, 'worked_days' => 2]);
+
+        // base 12×10000=120000 + 2×(60000×0.75)=90000 → 210000
+        $this->assertEquals(210000.0, $result['holiday']);
+        $this->assertEquals('day', $result['holiday_mode']);
+        $this->assertEquals(2, $result['holiday_worked_days']);
+    }
+
+    public function test_holiday_day_mode_monthly_only_adds_premium(): void
+    {
+        $result = $this->calculator->execute(8000, [
+            'holiday_hours' => 12.0,
+        ], $this->rules, salaryType: 'monthly', baseSalary: 1000000.0, holiday: ['mode' => 'day', 'day_value' => 60000, 'worked_days' => 2]);
+
+        $this->assertEquals(90000.0, $result['holiday']); // solo 2×(60000×0.75)
+        $this->assertEquals(1000000.0 + 90000.0, $result['total']);
+    }
 
     public function test_holiday_is_always_paid_even_when_dominical_disabled(): void
     {

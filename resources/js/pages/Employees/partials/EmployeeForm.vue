@@ -40,6 +40,7 @@ type Props = {
         receives_transport_allowance?: boolean;
         dominical_payment_mode?: string;
         normal_day_value?: string;
+        holiday_payment_mode?: string;
         // TODO: Schedules feature temporarily disabled — restore schedule_id when resuming
         // schedule_id: string;
         // LOCATIONS FEATURE DISABLED — restore location_id when re-enabling.
@@ -212,7 +213,23 @@ const showPasswordText = ref(false);
                 </Select>
                 <InputError :message="form.errors.dominical_payment_mode" />
             </div>
-            <div v-if="form.dominical_payment_mode === 'day'" class="space-y-2">
+            <div class="space-y-2">
+                <Label for="holiday_payment_mode">{{ t('employees.form.holiday_payment_mode') }}</Label>
+                <Select v-model="form.holiday_payment_mode">
+                    <SelectTrigger id="holiday_payment_mode">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="hour">{{ t('employees.form.dominical_mode_hour') }}</SelectItem>
+                        <SelectItem value="day">{{ t('employees.form.dominical_mode_day') }}</SelectItem>
+                    </SelectContent>
+                </Select>
+                <InputError :message="form.errors.holiday_payment_mode" />
+            </div>
+            <div
+                v-if="form.dominical_payment_mode === 'day' || form.holiday_payment_mode === 'day'"
+                class="space-y-2"
+            >
                 <Label for="normal_day_value">{{ t('employees.form.normal_day_value') }}</Label>
                 <Input id="normal_day_value" v-model="form.normal_day_value" type="number" step="0.01" min="0" />
                 <InputError :message="form.errors.normal_day_value" />

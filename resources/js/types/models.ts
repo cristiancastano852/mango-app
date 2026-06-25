@@ -60,6 +60,7 @@ export type Employee = {
     receives_transport_allowance: boolean;
     dominical_payment_mode: string;
     normal_day_value: string | null;
+    holiday_payment_mode: string;
     schedule_id: number | null;
     location_id: number | null;
     user: User;

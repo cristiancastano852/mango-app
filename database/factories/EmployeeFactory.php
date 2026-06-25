@@ -74,4 +74,15 @@ class EmployeeFactory extends Factory
             'normal_day_value' => $dayValue,
         ]);
     }
+
+    /**
+     * Empleado con recargo festivo pagado por día (sobre el valor del día normal).
+     */
+    public function holidayByDay(float $dayValue): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'holiday_payment_mode' => 'day',
+            'normal_day_value' => $dayValue,
+        ]);
+    }
 }

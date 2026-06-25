@@ -97,6 +97,8 @@ type Report = {
         normal_day_value: number;
         dominical_worked_days: number;
         dominical_paid_days: number;
+        holiday_mode: string;
+        holiday_worked_days: number;
         details: CostDetail[];
     };
     daily_breakdown: DailyWorkDay[];
@@ -395,23 +397,22 @@ function hourTypeLabel(type: string): string {
                         v-if="isDominicalByDay && report.cost_summary.dominical_worked_days > 0"
                         class="flex items-center justify-between gap-3 rounded-lg border bg-card p-3 sm:min-w-[340px]"
                     >
-                        <span class="text-sm font-medium">
-                            {{ t('reports.dominical.payable_count_label') }}
-                        </span>
-                        <select
-                            class="rounded-md border bg-background px-2 py-1 text-sm"
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium">
+                                {{ t('reports.dominical.payable_count_label') }}
+                            </span>
+                            <span class="text-xs text-muted-foreground">
+                                {{ t('reports.dominical.worked_hint', { n: report.cost_summary.dominical_worked_days }) }}
+                            </span>
+                        </div>
+                        <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            class="w-20 rounded-md border bg-background px-2 py-1 text-right text-sm"
                             :value="report.cost_summary.dominical_paid_days"
-                            @change="setDominicalPayableCount(Number(($event.target as HTMLSelectElement).value))"
-                        >
-                            <option
-                                v-for="n in report.cost_summary.dominical_worked_days + 1"
-                                :key="n - 1"
-                                :value="n - 1"
-                            >
-                                {{ n - 1 }} /
-                                {{ report.cost_summary.dominical_worked_days }}
-                            </option>
-                        </select>
+                            @change="setDominicalPayableCount(Math.max(0, Math.trunc(Number(($event.target as HTMLInputElement).value)) || 0))"
+                        />
                     </div>
                     <OvertimePaymentToggle
                         :model-value="payOvertime"

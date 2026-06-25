@@ -257,6 +257,7 @@
             "receives_transport_allowance": "Recibe auxilio de transporte",
             "receives_transport_allowance_hint": "Se suma al pago, prorrateado por periodo. Solo aplica a salario mensual.",
             "dominical_payment_mode": "Modo de pago dominical",
+            "holiday_payment_mode": "Modo de pago festivo",
             "dominical_mode_hour": "Por hora",
             "dominical_mode_day": "Por día (sobre valor del día normal)",
             "normal_day_value": "Valor del día normal (COP)"
@@ -432,7 +433,8 @@
             "overtime_night_holiday": "Extra nocturna festivo"
         },
         "dominical": {
-            "payable_count_label": "Dominicales a pagar"
+            "payable_count_label": "Dominicales a pagar",
+            "worked_hint": "{n} trabajados en el periodo"
         },
         "breaks": {
             "title": "Desglose de Pausas",

@@ -25,7 +25,7 @@ class GenerateEmployeeReport
      *
      * @return array{
      *     employee: array{id: int, name: string, department: ?string, position: ?string, hourly_rate: float, salary_type: string, monthly_base_salary: ?float},
-     *     totals: array{days_worked: int, gross_hours: float, break_hours: float, paid_break_overage_hours: float, net_hours: float, regular_hours: float, night_hours: float, dominical_hours: float, night_dominical_hours: float, holiday_hours: float, night_holiday_hours: float, overtime_day_hours: float, overtime_night_hours: float, overtime_day_dominical_hours: float, overtime_night_dominical_hours: float, overtime_day_holiday_hours: float, overtime_night_holiday_hours: float, dominical_worked_days: int},
+     *     totals: array{days_worked: int, gross_hours: float, break_hours: float, paid_break_overage_hours: float, net_hours: float, regular_hours: float, night_hours: float, dominical_hours: float, night_dominical_hours: float, holiday_hours: float, night_holiday_hours: float, overtime_day_hours: float, overtime_night_hours: float, overtime_day_dominical_hours: float, overtime_night_dominical_hours: float, overtime_day_holiday_hours: float, overtime_night_holiday_hours: float, dominical_worked_days: int, holiday_worked_days: int},
      *     breaks_by_type: array<int, array{name: string, is_paid: bool, icon: string, color: string, total_minutes: float, count: int}>,
      *     daily_breakdown: array,
      *     cost_summary: array,
@@ -44,6 +44,7 @@ class GenerateEmployeeReport
 
         $totals = $this->aggregateTotals($employeeId, $startDate, $endDate);
         $workedDominicalDays = $this->countWorkedDominicalDays($employeeId, $startDate, $endDate);
+        $workedHolidayDays = $this->countWorkedHolidayDays($employeeId, $startDate, $endDate);
         $breaksByType = $includeBreaksByType
             ? $this->aggregateBreaksByType($employeeId, $startDate, $endDate)
             : [];
@@ -90,6 +91,11 @@ class GenerateEmployeeReport
                 'payable_count' => $dominicalPayableCount,
                 'worked_days' => $workedDominicalDays,
             ],
+            [
+                'mode' => $employee->holiday_payment_mode ?? 'hour',
+                'day_value' => (float) $employee->normal_day_value,
+                'worked_days' => $workedHolidayDays,
+            ],
         );
 
         return [
@@ -121,6 +127,7 @@ class GenerateEmployeeReport
                 'overtime_day_holiday_hours' => round((float) ($totals->total_overtime_day_holiday ?? 0), 2),
                 'overtime_night_holiday_hours' => round((float) ($totals->total_overtime_night_holiday ?? 0), 2),
                 'dominical_worked_days' => $workedDominicalDays,
+                'holiday_worked_days' => $workedHolidayDays,
             ],
             'breaks_by_type' => $breaksByType,
             'daily_breakdown' => $dailyBreakdown,
@@ -179,6 +186,26 @@ class GenerateEmployeeReport
                 ->orWhere('night_dominical_hours', '>', 0)
                 ->orWhere('overtime_day_dominical_hours', '>', 0)
                 ->orWhere('overtime_night_dominical_hours', '>', 0)
+            )
+            ->distinct()
+            ->count('date');
+    }
+
+    /**
+     * Cuenta los días festivos distintos trabajados (por entry.date) en el periodo.
+     * N para el modo de pago festivo por día (todos se pagan, no editable).
+     */
+    private function countWorkedHolidayDays(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): int
+    {
+        return TimeEntry::withoutGlobalScopes([CompanyScope::class])
+            ->where('employee_id', $employeeId)
+            ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->whereNotNull('clock_out')
+            ->where(fn ($q) => $q
+                ->where('holiday_hours', '>', 0)
+                ->orWhere('night_holiday_hours', '>', 0)
+                ->orWhere('overtime_day_holiday_hours', '>', 0)
+                ->orWhere('overtime_night_holiday_hours', '>', 0)
             )
             ->distinct()
             ->count('date');

@@ -107,6 +107,11 @@ class GenerateCompanyReport
                     'payable_count' => $dominicalDecisions[$emp->employee_id] ?? null,
                     'worked_days' => (int) ($emp->dominical_worked_days ?? 0),
                 ],
+                [
+                    'mode' => $emp->holiday_payment_mode ?? 'hour',
+                    'day_value' => (float) $emp->normal_day_value,
+                    'worked_days' => (int) ($emp->holiday_worked_days ?? 0),
+                ],
             );
 
             $totalCost['regular'] += $cost['regular'];
@@ -189,7 +194,7 @@ class GenerateCompanyReport
             ->whereNull('time_entries.deleted_at')
             ->whereNotNull('time_entries.clock_out')
             ->when($departmentId, fn ($q) => $q->where('employees.department_id', $departmentId))
-            ->groupBy('employees.id', 'users.name', 'employees.hourly_rate', 'employees.salary_type', 'employees.monthly_base_salary', 'employees.receives_transport_allowance', 'employees.dominical_payment_mode', 'employees.normal_day_value', 'departments.name')
+            ->groupBy('employees.id', 'users.name', 'employees.hourly_rate', 'employees.salary_type', 'employees.monthly_base_salary', 'employees.receives_transport_allowance', 'employees.dominical_payment_mode', 'employees.normal_day_value', 'employees.holiday_payment_mode', 'departments.name')
             ->selectRaw('
                 employees.id as employee_id,
                 users.name as employee_name,
@@ -200,6 +205,7 @@ class GenerateCompanyReport
                 employees.receives_transport_allowance,
                 employees.dominical_payment_mode,
                 employees.normal_day_value,
+                employees.holiday_payment_mode,
                 COUNT(*) as days_worked,
                 COALESCE(SUM(time_entries.gross_hours), 0) as total_gross,
                 COALESCE(SUM(time_entries.break_hours), 0) as total_breaks,
@@ -216,7 +222,8 @@ class GenerateCompanyReport
                 COALESCE(SUM(time_entries.overtime_night_dominical_hours), 0) as total_overtime_night_dominical,
                 COALESCE(SUM(time_entries.overtime_day_holiday_hours), 0) as total_overtime_day_holiday,
                 COALESCE(SUM(time_entries.overtime_night_holiday_hours), 0) as total_overtime_night_holiday,
-                COUNT(DISTINCT CASE WHEN (time_entries.dominical_hours > 0 OR time_entries.night_dominical_hours > 0 OR time_entries.overtime_day_dominical_hours > 0 OR time_entries.overtime_night_dominical_hours > 0) THEN time_entries.date END) as dominical_worked_days
+                COUNT(DISTINCT CASE WHEN (time_entries.dominical_hours > 0 OR time_entries.night_dominical_hours > 0 OR time_entries.overtime_day_dominical_hours > 0 OR time_entries.overtime_night_dominical_hours > 0) THEN time_entries.date END) as dominical_worked_days,
+                COUNT(DISTINCT CASE WHEN (time_entries.holiday_hours > 0 OR time_entries.night_holiday_hours > 0 OR time_entries.overtime_day_holiday_hours > 0 OR time_entries.overtime_night_holiday_hours > 0) THEN time_entries.date END) as holiday_worked_days
             ')
             ->orderByDesc('total_net')
             ->get();
@@ -250,7 +257,8 @@ class GenerateCompanyReport
                 employees.monthly_base_salary,
                 employees.receives_transport_allowance,
                 employees.dominical_payment_mode,
-                employees.normal_day_value
+                employees.normal_day_value,
+                employees.holiday_payment_mode
             ')
             ->get()
             ->map(fn ($e) => (object) [
@@ -263,6 +271,7 @@ class GenerateCompanyReport
                 'receives_transport_allowance' => $e->receives_transport_allowance,
                 'dominical_payment_mode' => $e->dominical_payment_mode,
                 'normal_day_value' => $e->normal_day_value,
+                'holiday_payment_mode' => $e->holiday_payment_mode,
                 'days_worked' => 0,
                 'total_gross' => 0,
                 'total_breaks' => 0,
@@ -280,6 +289,7 @@ class GenerateCompanyReport
                 'total_overtime_day_holiday' => 0,
                 'total_overtime_night_holiday' => 0,
                 'dominical_worked_days' => 0,
+                'holiday_worked_days' => 0,
             ]);
 
         return $breakdown->concat($missing);

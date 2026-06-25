@@ -32,6 +32,7 @@ class SurchargeRule extends Model
         'pay_dominical_by_default',
         'default_dominical_payment_mode',
         'default_normal_day_value',
+        'default_holiday_payment_mode',
     ];
 
     protected function casts(): array

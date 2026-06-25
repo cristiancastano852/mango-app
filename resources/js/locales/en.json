@@ -257,6 +257,7 @@
             "receives_transport_allowance": "Receives transport allowance",
             "receives_transport_allowance_hint": "Added to pay, prorated per period. Monthly salary only.",
             "dominical_payment_mode": "Sunday payment mode",
+            "holiday_payment_mode": "Holiday payment mode",
             "dominical_mode_hour": "Per hour",
             "dominical_mode_day": "Per day (on normal day value)",
             "normal_day_value": "Normal day value (COP)"
@@ -432,7 +433,8 @@
             "overtime_night_holiday": "Holiday Night OT"
         },
         "dominical": {
-            "payable_count_label": "Sundays to pay"
+            "payable_count_label": "Sundays to pay",
+            "worked_hint": "{n} worked this period"
         },
         "breaks": {
             "title": "Breaks Breakdown",
