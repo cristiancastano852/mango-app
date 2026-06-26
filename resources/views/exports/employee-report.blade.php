@@ -93,9 +93,10 @@
                 'night_dominical' => $cs['pay_night_dominical'] ?? true,
                 'night_holiday' => $cs['pay_night_holiday'] ?? true,
                 'overtime_day_dominical' => $cs['pay_overtime_dominical'] ?? true,
-                'overtime_night_dominical' => $cs['pay_overtime_dominical'] ?? true,
+                'overtime_night_dominical' => ($cs['pay_overtime_dominical'] ?? true) && ($cs['pay_overtime_night'] ?? true),
                 'overtime_day_holiday' => $cs['pay_overtime_holiday'] ?? true,
-                'overtime_night_holiday' => $cs['pay_overtime_holiday'] ?? true,
+                'overtime_night_holiday' => ($cs['pay_overtime_holiday'] ?? true) && ($cs['pay_overtime_night'] ?? true),
+                'overtime_night' => $cs['pay_overtime_night'] ?? true,
             ];
             // Oculta la fila premium cuando su toggle está OFF y no representa pago real (0h y $0).
             $showRow = function (string $type) use ($premiumPayFlag, $cs, $surcharges) {
@@ -162,6 +163,7 @@
                             @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
                         </td>
                     </tr>
+                    @if($showRow('overtime_night'))
                     <tr>
                         <td>Extra nocturna</td>
                         <td class="text-right">{{ $hours('overtime_night', $report['totals']['overtime_night_hours']) }}</td>
@@ -171,6 +173,7 @@
                             @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
                         </td>
                     </tr>
+                    @endif
                     @if($showRow('dominical'))
                     <tr>
                         <td>Recargo dominical</td>

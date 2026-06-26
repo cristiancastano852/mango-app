@@ -36,6 +36,7 @@ type SurchargeRule = {
     pay_night_holiday: boolean;
     pay_overtime_dominical: boolean;
     pay_overtime_holiday: boolean;
+    pay_overtime_night: boolean;
     default_dominical_payment_mode: string;
     default_normal_day_value: string;
     default_holiday_payment_mode: string;
@@ -459,6 +460,23 @@ const maxWeeklyMinutes = computed(
                             />
                         </div>
                         <InputError :message="errors.pay_overtime_holiday" />
+
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="space-y-1">
+                                <Label for="pay_overtime_night" class="text-base">Pagar extra nocturna</Label>
+                                <p class="max-w-prose text-sm text-muted-foreground">
+                                    Si lo desactivas, las horas extra nocturnas se pagan como horas extra diurnas (sin el recargo nocturno).
+                                </p>
+                            </div>
+                            <input type="hidden" name="pay_overtime_night" value="0" />
+                            <Checkbox
+                                id="pay_overtime_night"
+                                name="pay_overtime_night"
+                                value="1"
+                                :default-value="rule.pay_overtime_night"
+                            />
+                        </div>
+                        <InputError :message="errors.pay_overtime_night" />
                     </div>
 
                     <div class="flex items-center gap-4 pt-2">

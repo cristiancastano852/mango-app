@@ -81,9 +81,10 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
             'night_dominical' => $costs['pay_night_dominical'] ?? true,
             'night_holiday' => $costs['pay_night_holiday'] ?? true,
             'overtime_day_dominical' => $costs['pay_overtime_dominical'] ?? true,
-            'overtime_night_dominical' => $costs['pay_overtime_dominical'] ?? true,
+            'overtime_night_dominical' => ($costs['pay_overtime_dominical'] ?? true) && ($costs['pay_overtime_night'] ?? true),
             'overtime_day_holiday' => $costs['pay_overtime_holiday'] ?? true,
-            'overtime_night_holiday' => $costs['pay_overtime_holiday'] ?? true,
+            'overtime_night_holiday' => ($costs['pay_overtime_holiday'] ?? true) && ($costs['pay_overtime_night'] ?? true),
+            'overtime_night' => $costs['pay_overtime_night'] ?? true,
         ];
         // Oculta la fila premium cuando su toggle está OFF y no representa pago real (0h y $0).
         $showRow = function (string $type) use ($premiumPayFlag, $costs, $surcharges): bool {
@@ -114,7 +115,9 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
             $rows[] = ['Horas nocturnas festivas', $hours('night_holiday', $totals['night_holiday_hours']), ($surcharges['night_holiday']['surcharge'] ?? 110).'%', $costs['night_holiday']];
         }
         $rows[] = ['Horas extra diurnas', $hours('overtime_day', $totals['overtime_day_hours']), ($surcharges['overtime_day']['surcharge'] ?? 25).'%', $overtimeCost($costs['overtime_day'])];
-        $rows[] = ['Horas extra nocturnas', $hours('overtime_night', $totals['overtime_night_hours']), ($surcharges['overtime_night']['surcharge'] ?? 75).'%', $overtimeCost($costs['overtime_night'])];
+        if ($showRow('overtime_night')) {
+            $rows[] = ['Horas extra nocturnas', $hours('overtime_night', $totals['overtime_night_hours']), ($surcharges['overtime_night']['surcharge'] ?? 75).'%', $overtimeCost($costs['overtime_night'])];
+        }
         if ($showRow('overtime_day_dominical')) {
             $rows[] = ['Horas extra dominicales diurnas', $hours('overtime_day_dominical', $totals['overtime_day_dominical_hours']), ($surcharges['overtime_day_dominical']['surcharge'] ?? 100).'%', $overtimeCost($costs['overtime_day_dominical'])];
         }
