@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Company\Models\Company;
 use App\Domain\Company\Models\SurchargeRule;
 use App\Domain\Employee\Models\Employee;
+use App\Domain\Employee\Models\EmployeeAdjustment;
 use App\Domain\Organization\Models\Department;
 use App\Domain\TimeTracking\Actions\GenerateEmployeeReport;
 use App\Domain\TimeTracking\Models\TimeEntry;
@@ -108,9 +109,138 @@ class ReportExportTest extends TestCase
         // El nocturno absorbe las horas dominicales colapsadas (2 + 4 = 6h) y su costo fundido.
         $this->assertEquals(6.0, $rows['Horas nocturnas'][1]);
         $this->assertEquals(81000.0, $rows['Horas nocturnas'][3]);
-        // El renglón premium queda en 0h y $0.
-        $this->assertEquals(0.0, $rows['Horas nocturnas dominicales'][1]);
-        $this->assertEquals(0.0, $rows['Horas nocturnas dominicales'][3]);
+        // El renglón premium desactivado ya no se emite (sus horas quedan en el nocturno base).
+        $this->assertFalse($rows->has('Horas nocturnas dominicales'));
+    }
+
+    // --- Ocultar filas de recargo con pago desactivado ---
+
+    private function createNightDominicalEntry(): void
+    {
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->subDay()->toDateString(),
+            'clock_in' => now()->subDay()->setTime(20, 0),
+            'clock_out' => now()->subDay()->setTime(23, 0),
+            'gross_hours' => 6.0,
+            'break_hours' => 0,
+            'net_hours' => 6.0,
+            'night_hours' => 2.0,
+            'night_dominical_hours' => 4.0,
+            'status' => 'completed',
+            'pin_verified' => true,
+        ]);
+    }
+
+    public function test_employee_excel_hides_disabled_premium_row(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['pay_night_dominical' => false]);
+        $this->createNightDominicalEntry();
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $labels = collect((new EmployeeReportExport($report))->sheets()[0]->array())
+            ->map(fn ($row) => $row[0] ?? '');
+
+        // La fila premium desactivada (0h/$0 tras el colapso) ya no se emite.
+        $this->assertFalse($labels->contains('Horas nocturnas dominicales'));
+        // El nocturno base (que absorbió las horas) y el festivo diurno siguen presentes.
+        $this->assertTrue($labels->contains('Horas nocturnas'));
+        $this->assertTrue($labels->contains('Horas festivas'));
+    }
+
+    public function test_employee_pdf_hides_disabled_premium_row(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['pay_night_dominical' => false]);
+        $this->createNightDominicalEntry();
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $html = view('exports.employee-report', ['report' => $report])->render();
+
+        $this->assertStringNotContainsString('Recargo nocturno dominical', $html);
+        $this->assertStringContainsString('Recargo festivo', $html);
+    }
+
+    public function test_employee_excel_keeps_unpaid_dominical_row_in_hourly_mode(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['pay_dominical_by_default' => false]);
+
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->subDay()->toDateString(),
+            'clock_in' => now()->subDay()->setTime(8, 0),
+            'clock_out' => now()->subDay()->setTime(14, 0),
+            'gross_hours' => 6.0,
+            'break_hours' => 0,
+            'net_hours' => 6.0,
+            'dominical_hours' => 6.0,
+            'status' => 'completed',
+            'pin_verified' => true,
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $rows = collect((new EmployeeReportExport($report))->sheets()[0]->array())
+            ->keyBy(fn ($row) => $row[0] ?? '');
+
+        // Dominical sin recargo en modo hourly se paga a tarifa ordinaria: la fila permanece.
+        $this->assertTrue($rows->has('Horas dominicales'));
+        $this->assertEquals(60000.0, $rows['Horas dominicales'][3]); // 6h × 10.000
+    }
+
+    public function test_employee_excel_shows_days_in_dominical_day_mode(): void
+    {
+        $this->employee->update([
+            'dominical_payment_mode' => 'day',
+            'normal_day_value' => 60000,
+        ]);
+
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->subDay()->toDateString(),
+            'clock_in' => now()->subDay()->setTime(8, 0),
+            'clock_out' => now()->subDay()->setTime(14, 0),
+            'gross_hours' => 6.0,
+            'break_hours' => 0,
+            'net_hours' => 6.0,
+            'dominical_hours' => 6.0,
+            'status' => 'completed',
+            'pin_verified' => true,
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $rows = collect((new EmployeeReportExport($report))->sheets()[0]->array())
+            ->keyBy(fn ($row) => $row[0] ?? '');
+
+        // En modo por día la celda de cantidad muestra los días pagados, no las horas.
+        $this->assertEquals('1 día', $rows['Horas dominicales'][1]);
     }
 
     // --- Employee Excel ---
@@ -228,6 +358,139 @@ class ReportExportTest extends TestCase
         $this->assertStringContainsString('8:00 AM', $html);
         $this->assertStringContainsString('5:00 PM', $html);
         $this->assertStringNotContainsString($openDate->toDateString(), $html);
+    }
+
+    // --- Seguridad social en los exports ---
+
+    public function test_employee_excel_includes_social_security_deduction_and_net_pay(): void
+    {
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->subDay()->toDateString(),
+            'clock_in' => now()->subDay()->setTime(8, 0),
+            'clock_out' => now()->subDay()->setTime(16, 0),
+            'gross_hours' => 8.0,
+            'break_hours' => 0,
+            'net_hours' => 8.0,
+            'regular_hours' => 8.0,
+            'status' => 'completed',
+            'pin_verified' => true,
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $rows = collect((new EmployeeReportExport($report))->sheets()[0]->array())
+            ->keyBy(fn ($row) => $row[0] ?? '');
+
+        $total = $report['cost_summary']['total'];
+        $this->assertEquals($total, $rows['TOTAL DEVENGADO'][3]);
+        $this->assertEquals(-round($total * 0.04, 2), $rows['Salud (4%)'][3]);
+        $this->assertEquals(-round($total * 0.04, 2), $rows['Pensión (4%)'][3]);
+        $this->assertEquals($report['cost_summary']['net_pay'], $rows['NETO A PAGAR'][3]);
+    }
+
+    public function test_employee_pdf_view_includes_social_security_deduction(): void
+    {
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->subDay()->toDateString(),
+            'clock_in' => now()->subDay()->setTime(8, 0),
+            'clock_out' => now()->subDay()->setTime(16, 0),
+            'gross_hours' => 8.0,
+            'break_hours' => 0,
+            'net_hours' => 8.0,
+            'regular_hours' => 8.0,
+            'status' => 'completed',
+            'pin_verified' => true,
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $html = view('exports.employee-report', ['report' => $report])->render();
+
+        $this->assertStringContainsString('TOTAL DEVENGADO', $html);
+        $this->assertStringContainsString('Salud (4%)', $html);
+        $this->assertStringContainsString('Pensión (4%)', $html);
+        $this->assertStringContainsString('NETO A PAGAR', $html);
+    }
+
+    // --- Ajustes de nómina en los exports ---
+
+    public function test_employee_excel_includes_adjustments_and_final_pay(): void
+    {
+        EmployeeAdjustment::factory()->bonus()->create([
+            'company_id' => $this->company->id,
+            'employee_id' => $this->employee->id,
+            'date' => now()->toDateString(),
+            'amount' => 100000,
+            'concept' => 'Bono',
+        ]);
+        EmployeeAdjustment::factory()->deduction()->create([
+            'company_id' => $this->company->id,
+            'employee_id' => $this->employee->id,
+            'date' => now()->toDateString(),
+            'amount' => 40000,
+            'concept' => 'Préstamo',
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->startOfMonth(),
+            now()->endOfMonth(),
+        );
+
+        $rows = collect((new EmployeeReportExport($report))->sheets()[0]->array())
+            ->keyBy(fn ($row) => $row[0] ?? '');
+
+        $this->assertEquals(100000.0, $rows['Bonificación: Bono'][3]);
+        $this->assertEquals(-40000.0, $rows['Deducción: Préstamo'][3]);
+        $this->assertEquals($report['cost_summary']['final_pay'], $rows['TOTAL A PAGAR'][3]);
+    }
+
+    public function test_employee_pdf_view_includes_adjustments(): void
+    {
+        EmployeeAdjustment::factory()->bonus()->create([
+            'company_id' => $this->company->id,
+            'employee_id' => $this->employee->id,
+            'date' => now()->toDateString(),
+            'amount' => 100000,
+            'concept' => 'Bono',
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->startOfMonth(),
+            now()->endOfMonth(),
+        );
+
+        $html = view('exports.employee-report', ['report' => $report])->render();
+
+        $this->assertStringContainsString('Bonificación: Bono', $html);
+        $this->assertStringContainsString('TOTAL A PAGAR', $html);
+    }
+
+    public function test_employee_excel_omits_final_pay_row_without_adjustments(): void
+    {
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->startOfMonth(),
+            now()->endOfMonth(),
+        );
+
+        $labels = collect((new EmployeeReportExport($report))->sheets()[0]->array())
+            ->map(fn ($row) => $row[0] ?? '');
+
+        $this->assertFalse($labels->contains('TOTAL A PAGAR'));
     }
 
     // --- Employee PDF ---
@@ -512,6 +775,8 @@ class ReportExportTest extends TestCase
             'overtime_day_holiday' => 0, 'overtime_night_holiday' => 0,
             'base' => 1000000.0, 'transport_allowance' => $transportAllowance,
             'total' => 1000000.0 + $transportAllowance,
+            'social_security_base' => 1000000.0, 'health_rate' => 4.0, 'health_deduction' => 40000.0,
+            'pension_rate' => 4.0, 'pension_deduction' => 40000.0, 'net_pay' => 920000.0 + $transportAllowance,
             'salary_type' => 'monthly', 'pay_overtime' => true, 'pay_dominical' => true,
             'dominical_mode' => 'hour', 'normal_day_value' => 0, 'dominical_worked_days' => 0, 'dominical_paid_days' => 0,
             'details' => [],

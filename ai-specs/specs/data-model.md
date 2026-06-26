@@ -111,6 +111,16 @@
 - unique: (company_id, employee_id, start_date, end_date) → upsert al exportar el reporte de empleado (gana la última)
 - indexes: (company_id, employee_id)
 
+## employee_adjustments
+- id, company_id → companies, employee_id → employees
+- date (date) — define en qué periodo del reporte cae el ajuste
+- type (string) — `Bonus` (suma) | `Deduction` (resta: préstamo/adelanto/descuento)
+- amount (decimal 12,2) — monto positivo; el signo lo determina `type`
+- concept (string nullable) — etiqueta corta opcional ("Préstamo", "Bono productividad"…)
+- note (text nullable), created_by (nullable → users), timestamps
+- indexes: (company_id, employee_id, date)
+- Se aplican en el reporte individual DESPUÉS del neto a pagar (no afectan la base de seguridad social): final_pay = net_pay + Σ Bonus − Σ Deduction. Monto manual por periodo (sin saldo acumulado).
+
 ## holidays
 - id, company_id → companies, name, date (date)
 - is_recurring (boolean default false), country (default: CO)

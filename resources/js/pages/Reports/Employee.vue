@@ -24,7 +24,13 @@ import {
 import DailyWorkTable from '@/components/DailyWorkTable.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import {
     Select,
     SelectContent,
@@ -37,6 +43,7 @@ import { formatDecimalHours } from '@/lib/utils';
 import type { BreadcrumbItem, DailyWorkDay } from '@/types';
 import DateRangeFilter from './partials/DateRangeFilter.vue';
 import OvertimePaymentToggle from './partials/OvertimePaymentToggle.vue';
+import ReportAdjustments from './partials/ReportAdjustments.vue';
 
 type CostDetail = {
     type: string;
@@ -45,6 +52,15 @@ type CostDetail = {
     surcharge: number;
     subtotal: number;
     compensated: boolean;
+};
+
+type Adjustment = {
+    id: number;
+    date: string;
+    type: 'Bonus' | 'Deduction';
+    amount: number;
+    concept: string;
+    note: string | null;
 };
 
 type Report = {
@@ -92,9 +108,22 @@ type Report = {
         base: number;
         transport_allowance: number;
         total: number;
+        social_security_base: number;
+        health_rate: number;
+        health_deduction: number;
+        pension_rate: number;
+        pension_deduction: number;
+        net_pay: number;
+        bonus_total: number;
+        deduction_total: number;
+        final_pay: number;
         salary_type: string;
         pay_overtime: boolean;
         pay_dominical: boolean;
+        pay_night_dominical: boolean;
+        pay_night_holiday: boolean;
+        pay_overtime_dominical: boolean;
+        pay_overtime_holiday: boolean;
         dominical_mode: string;
         normal_day_value: number;
         dominical_worked_days: number;
@@ -104,6 +133,7 @@ type Report = {
         details: CostDetail[];
     };
     daily_breakdown: DailyWorkDay[];
+    adjustments: Adjustment[];
     period: { start: string; end: string };
 };
 
@@ -282,6 +312,45 @@ function formatCurrency(value: number): string {
         currency: 'COP',
         minimumFractionDigits: 0,
     }).format(value);
+}
+
+// Recargos premium que se ocultan cuando su toggle de empresa está desactivado.
+// Las horas ya quedan reflejadas en las filas base (regular/nocturno/extra), así que
+// no se pierde información. El festivo diurno (`holiday`) nunca se oculta (se paga por ley)
+// y una fila con pago real (dominical hourly OFF: subtotal > 0) tampoco se oculta.
+const premiumPayFlag: Record<string, boolean> = {
+    dominical: props.report.cost_summary.pay_dominical,
+    night_dominical: props.report.cost_summary.pay_night_dominical,
+    night_holiday: props.report.cost_summary.pay_night_holiday,
+    overtime_day_dominical: props.report.cost_summary.pay_overtime_dominical,
+    overtime_night_dominical: props.report.cost_summary.pay_overtime_dominical,
+    overtime_day_holiday: props.report.cost_summary.pay_overtime_holiday,
+    overtime_night_holiday: props.report.cost_summary.pay_overtime_holiday,
+};
+
+const visibleDetails = computed(() =>
+    props.report.cost_summary.details.filter((detail) => {
+        const flag = premiumPayFlag[detail.type];
+        if (flag === undefined || flag) {
+            return true;
+        }
+        // Toggle apagado: ocultar solo si la fila no representa pago real.
+        return detail.subtotal !== 0 || detail.hours !== 0;
+    }),
+);
+
+// Para dominical/festivo en modo por día se muestran los días pagados en lugar de las horas.
+function detailHoursDisplay(detail: CostDetail): string {
+    if (detail.type === 'dominical' && isDominicalByDay.value) {
+        return t('reports.costs.days_count', props.report.cost_summary.dominical_paid_days);
+    }
+    if (
+        detail.type === 'holiday' &&
+        props.report.cost_summary.holiday_mode === 'day'
+    ) {
+        return t('reports.costs.days_count', props.report.cost_summary.holiday_worked_days);
+    }
+    return formatDecimalHours(detail.hours);
 }
 
 function hourTypeLabel(type: string): string {
@@ -878,17 +947,14 @@ function hourTypeLabel(type: string): string {
                                         </td>
                                     </tr>
                                     <tr
-                                        v-for="detail in report.cost_summary
-                                            .details"
+                                        v-for="detail in visibleDetails"
                                         :key="detail.type"
                                     >
                                         <td class="py-2">
                                             {{ hourTypeLabel(detail.type) }}
                                         </td>
                                         <td class="py-2 text-right">
-                                            {{
-                                                formatDecimalHours(detail.hours)
-                                            }}
+                                            {{ detailHoursDisplay(detail) }}
                                         </td>
                                         <td
                                             class="hidden py-2 text-right sm:table-cell"
@@ -940,7 +1006,7 @@ function hourTypeLabel(type: string): string {
                                 <tfoot>
                                     <tr class="border-t font-semibold">
                                         <td class="pt-2">
-                                            {{ t('reports.costs.total') }}
+                                            {{ t('reports.costs.total_earned') }}
                                         </td>
                                         <td class="pt-2 text-right">
                                             {{
@@ -958,9 +1024,123 @@ function hourTypeLabel(type: string): string {
                                             }}
                                         </td>
                                     </tr>
+                                    <tr class="text-muted-foreground">
+                                        <td class="pt-2" colspan="3">
+                                            {{
+                                                t('reports.costs.health', {
+                                                    rate: report.cost_summary
+                                                        .health_rate,
+                                                })
+                                            }}
+                                        </td>
+                                        <td class="pt-2 text-right">
+                                            -{{
+                                                formatCurrency(
+                                                    report.cost_summary
+                                                        .health_deduction,
+                                                )
+                                            }}
+                                        </td>
+                                    </tr>
+                                    <tr class="text-muted-foreground">
+                                        <td colspan="3">
+                                            {{
+                                                t('reports.costs.pension', {
+                                                    rate: report.cost_summary
+                                                        .pension_rate,
+                                                })
+                                            }}
+                                        </td>
+                                        <td class="text-right">
+                                            -{{
+                                                formatCurrency(
+                                                    report.cost_summary
+                                                        .pension_deduction,
+                                                )
+                                            }}
+                                        </td>
+                                    </tr>
+                                    <tr class="border-t font-semibold">
+                                        <td class="pt-2" colspan="3">
+                                            {{ t('reports.costs.net_pay') }}
+                                        </td>
+                                        <td class="pt-2 text-right">
+                                            {{
+                                                formatCurrency(
+                                                    report.cost_summary.net_pay,
+                                                )
+                                            }}
+                                        </td>
+                                    </tr>
+                                    <tr
+                                        v-for="adjustment in report.adjustments"
+                                        :key="adjustment.id"
+                                        class="text-muted-foreground"
+                                    >
+                                        <td colspan="3">
+                                            {{
+                                                adjustment.type === 'Bonus'
+                                                    ? t('reports.costs.bonus')
+                                                    : t(
+                                                          'reports.costs.deduction',
+                                                      )
+                                            }}<template v-if="adjustment.concept"
+                                                >: {{ adjustment.concept }}</template
+                                            >
+                                        </td>
+                                        <td
+                                            class="text-right"
+                                            :class="
+                                                adjustment.type === 'Bonus'
+                                                    ? 'text-green-600'
+                                                    : 'text-red-600'
+                                            "
+                                        >
+                                            {{
+                                                adjustment.type === 'Bonus'
+                                                    ? '+'
+                                                    : '-'
+                                            }}{{ formatCurrency(adjustment.amount) }}
+                                        </td>
+                                    </tr>
+                                    <tr
+                                        v-if="report.adjustments.length > 0"
+                                        class="border-t text-base font-bold"
+                                    >
+                                        <td class="pt-2" colspan="3">
+                                            {{ t('reports.costs.final_pay') }}
+                                        </td>
+                                        <td class="pt-2 text-right">
+                                            {{
+                                                formatCurrency(
+                                                    report.cost_summary
+                                                        .final_pay,
+                                                )
+                                            }}
+                                        </td>
+                                    </tr>
                                 </tfoot>
                             </table>
                         </div>
+                    </CardContent>
+                </Card>
+
+                <!-- Ajustes del período: bonos y deducciones -->
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{{
+                            t('reports.adjustments.title')
+                        }}</CardTitle>
+                        <CardDescription>{{
+                            t('reports.adjustments.description')
+                        }}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ReportAdjustments
+                            :employee-id="filters.employee_id"
+                            :period-end="filters.end_date"
+                            :adjustments="report.adjustments"
+                        />
                     </CardContent>
                 </Card>
 

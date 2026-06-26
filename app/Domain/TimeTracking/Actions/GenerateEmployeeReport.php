@@ -4,6 +4,7 @@ namespace App\Domain\TimeTracking\Actions;
 
 use App\Domain\Company\Models\SurchargeRule;
 use App\Domain\Employee\Models\Employee;
+use App\Domain\Employee\Models\EmployeeAdjustment;
 use App\Domain\Shared\Scopes\CompanyScope;
 use App\Domain\TimeTracking\Models\BreakEntry;
 use App\Domain\TimeTracking\Models\TimeEntry;
@@ -45,6 +46,9 @@ class GenerateEmployeeReport
         $totals = $this->aggregateTotals($employeeId, $startDate, $endDate);
         $workedDominicalDays = (int) ($totals->dominical_worked_days ?? 0);
         $workedHolidayDays = (int) ($totals->holiday_worked_days ?? 0);
+        $adjustments = $this->getAdjustments($employeeId, $startDate, $endDate);
+        $bonusTotal = array_sum(array_column(array_filter($adjustments, fn ($a) => $a['type'] === 'Bonus'), 'amount'));
+        $deductionTotal = array_sum(array_column(array_filter($adjustments, fn ($a) => $a['type'] === 'Deduction'), 'amount'));
         $breaksByType = $includeBreaksByType
             ? $this->aggregateBreaksByType($employeeId, $startDate, $endDate)
             : [];
@@ -96,6 +100,14 @@ class GenerateEmployeeReport
                 'day_value' => (float) $employee->normal_day_value,
                 'worked_days' => $workedHolidayDays,
             ],
+            [
+                'health' => (float) config('payroll.social_security.health'),
+                'pension' => (float) config('payroll.social_security.pension'),
+            ],
+            [
+                'bonus_total' => (float) $bonusTotal,
+                'deduction_total' => (float) $deductionTotal,
+            ],
         );
 
         return [
@@ -131,12 +143,37 @@ class GenerateEmployeeReport
             ],
             'breaks_by_type' => $breaksByType,
             'daily_breakdown' => $dailyBreakdown,
+            'adjustments' => $adjustments,
             'cost_summary' => $costSummary,
             'period' => [
                 'start' => $startDate->toDateString(),
                 'end' => $endDate->toDateString(),
             ],
         ];
+    }
+
+    /**
+     * Obtiene los ajustes de nómina (bonos/deducciones) del empleado cuya fecha cae dentro
+     * del periodo, ordenados por fecha. Se aplican después del neto a pagar.
+     *
+     * @return array<int, array{id: int, date: string, type: string, amount: float, concept: string, note: ?string}>
+     */
+    private function getAdjustments(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): array
+    {
+        return EmployeeAdjustment::withoutGlobalScopes([CompanyScope::class])
+            ->where('employee_id', $employeeId)
+            ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->orderBy('date')
+            ->get()
+            ->map(fn (EmployeeAdjustment $adjustment) => [
+                'id' => $adjustment->id,
+                'date' => $adjustment->date->toDateString(),
+                'type' => $adjustment->type->value,
+                'amount' => (float) $adjustment->amount,
+                'concept' => $adjustment->concept,
+                'note' => $adjustment->note,
+            ])
+            ->all();
     }
 
     /**

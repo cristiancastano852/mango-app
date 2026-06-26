@@ -58,4 +58,25 @@ return [
     */
     'commercial_month_days' => 30,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Seguridad social — aporte a cargo del empleado
+    |--------------------------------------------------------------------------
+    |
+    | Porcentajes del aporte de seguridad social que descuenta el empleado
+    | sobre su Ingreso Base de Cotización (IBC) del periodo: 4% salud y 4%
+    | pensión (8% en total). Ley colombiana.
+    |
+    | El IBC se calcula como el total devengado del periodo MENOS el auxilio de
+    | transporte, ya que el auxilio de transporte no hace parte del IBC.
+    |
+    | Hoy fijos en 4% / 4%; quedan aquí (env-overridable) por si se requiere
+    | ajustarlos sin tocar la lógica de cálculo.
+    |
+    */
+    'social_security' => [
+        'health' => (float) env('PAYROLL_SS_HEALTH_RATE', 4),
+        'pension' => (float) env('PAYROLL_SS_PENSION_RATE', 4),
+    ],
+
 ];

@@ -83,9 +83,30 @@
         @php
             $surcharges = collect($report['cost_summary']['details'])->keyBy('type');
             $payOvertime = $report['cost_summary']['pay_overtime'] ?? true;
+            $cs = $report['cost_summary'];
             // Horas de presentación: el recargo premium colapsado se funde en su base (night/overtime)
             // y el renglón premium queda en 0h, igual que el costo.
             $hours = fn (string $type, $fallback) => $surcharges[$type]['hours'] ?? $fallback;
+            // Flag de pago por tipo de recargo premium (los demás tipos no se ocultan).
+            $premiumPayFlag = [
+                'dominical' => $cs['pay_dominical'] ?? true,
+                'night_dominical' => $cs['pay_night_dominical'] ?? true,
+                'night_holiday' => $cs['pay_night_holiday'] ?? true,
+                'overtime_day_dominical' => $cs['pay_overtime_dominical'] ?? true,
+                'overtime_night_dominical' => $cs['pay_overtime_dominical'] ?? true,
+                'overtime_day_holiday' => $cs['pay_overtime_holiday'] ?? true,
+                'overtime_night_holiday' => $cs['pay_overtime_holiday'] ?? true,
+            ];
+            // Oculta la fila premium cuando su toggle está OFF y no representa pago real (0h y $0).
+            $showRow = function (string $type) use ($premiumPayFlag, $cs, $surcharges) {
+                $flag = $premiumPayFlag[$type] ?? true;
+                if ($flag) { return true; }
+                return ($cs[$type] ?? 0) != 0 || ($surcharges[$type]['hours'] ?? 0) != 0;
+            };
+            // En modo por día, mostrar días en vez de horas para dominical/festivo.
+            $dominicalByDay = ($cs['dominical_mode'] ?? 'hour') === 'day';
+            $holidayByDay = ($cs['holiday_mode'] ?? 'hour') === 'day';
+            $daysLabel = fn (int $n) => $n.' '.($n === 1 ? 'día' : 'días');
         @endphp
         <div class="section">
             <div class="section-title">Desglose de Horas</div>
@@ -150,30 +171,37 @@
                             @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
                         </td>
                     </tr>
+                    @if($showRow('dominical'))
                     <tr>
                         <td>Recargo dominical</td>
-                        <td class="text-right">{{ $hours('dominical', $report['totals']['dominical_hours']) }}</td>
+                        <td class="text-right">{{ $dominicalByDay ? $daysLabel((int) ($cs['dominical_paid_days'] ?? 0)) : $hours('dominical', $report['totals']['dominical_hours']) }}</td>
                         <td class="text-right">{{ $surcharges['dominical']['surcharge'] ?? 75 }}%</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['dominical'], 0, ',', '.') }}</td>
                     </tr>
+                    @endif
+                    @if($showRow('night_dominical'))
                     <tr>
                         <td>Recargo nocturno dominical</td>
                         <td class="text-right">{{ $hours('night_dominical', $report['totals']['night_dominical_hours']) }}</td>
                         <td class="text-right">{{ $surcharges['night_dominical']['surcharge'] ?? 110 }}%</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['night_dominical'], 0, ',', '.') }}</td>
                     </tr>
+                    @endif
                     <tr>
                         <td>Recargo festivo</td>
-                        <td class="text-right">{{ $hours('holiday', $report['totals']['holiday_hours']) }}</td>
+                        <td class="text-right">{{ $holidayByDay ? $daysLabel((int) ($cs['holiday_worked_days'] ?? 0)) : $hours('holiday', $report['totals']['holiday_hours']) }}</td>
                         <td class="text-right">{{ $surcharges['holiday']['surcharge'] ?? 75 }}%</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['holiday'], 0, ',', '.') }}</td>
                     </tr>
+                    @if($showRow('night_holiday'))
                     <tr>
                         <td>Recargo nocturno festivo</td>
                         <td class="text-right">{{ $hours('night_holiday', $report['totals']['night_holiday_hours']) }}</td>
                         <td class="text-right">{{ $surcharges['night_holiday']['surcharge'] ?? 110 }}%</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['night_holiday'], 0, ',', '.') }}</td>
                     </tr>
+                    @endif
+                    @if($showRow('overtime_day_dominical'))
                     <tr>
                         <td>Extra diurna dominical</td>
                         <td class="text-right">{{ $hours('overtime_day_dominical', $report['totals']['overtime_day_dominical_hours']) }}</td>
@@ -183,6 +211,8 @@
                             @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
                         </td>
                     </tr>
+                    @endif
+                    @if($showRow('overtime_night_dominical'))
                     <tr>
                         <td>Extra nocturna dominical</td>
                         <td class="text-right">{{ $hours('overtime_night_dominical', $report['totals']['overtime_night_dominical_hours']) }}</td>
@@ -192,6 +222,8 @@
                             @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
                         </td>
                     </tr>
+                    @endif
+                    @if($showRow('overtime_day_holiday'))
                     <tr>
                         <td>Extra diurna festivo</td>
                         <td class="text-right">{{ $hours('overtime_day_holiday', $report['totals']['overtime_day_holiday_hours']) }}</td>
@@ -201,6 +233,8 @@
                             @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
                         </td>
                     </tr>
+                    @endif
+                    @if($showRow('overtime_night_holiday'))
                     <tr>
                         <td>Extra nocturna festivo</td>
                         <td class="text-right">{{ $hours('overtime_night_holiday', $report['totals']['overtime_night_holiday_hours']) }}</td>
@@ -210,12 +244,38 @@
                             @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
                         </td>
                     </tr>
+                    @endif
                     <tr class="total-row">
-                        <td>TOTAL</td>
+                        <td>TOTAL DEVENGADO</td>
                         <td class="text-right">{{ $report['totals']['net_hours'] }}</td>
                         <td></td>
                         <td class="text-right">${{ number_format($report['cost_summary']['total'], 0, ',', '.') }}</td>
                     </tr>
+                    <tr>
+                        <td colspan="3">Salud ({{ $report['cost_summary']['health_rate'] }}%)</td>
+                        <td class="text-right">-${{ number_format($report['cost_summary']['health_deduction'], 0, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="3">Pensión ({{ $report['cost_summary']['pension_rate'] }}%)</td>
+                        <td class="text-right">-${{ number_format($report['cost_summary']['pension_deduction'], 0, ',', '.') }}</td>
+                    </tr>
+                    <tr class="@if(empty($report['adjustments'])) total-row @endif">
+                        <td colspan="3">NETO A PAGAR</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['net_pay'], 0, ',', '.') }}</td>
+                    </tr>
+                    @forelse($report['adjustments'] ?? [] as $adjustment)
+                    <tr>
+                        <td colspan="3">{{ $adjustment['type'] === 'Bonus' ? 'Bonificación' : 'Deducción' }}@if(!empty($adjustment['concept'])): {{ $adjustment['concept'] }}@endif</td>
+                        <td class="text-right">{{ $adjustment['type'] === 'Bonus' ? '+' : '-' }}${{ number_format($adjustment['amount'], 0, ',', '.') }}</td>
+                    </tr>
+                    @empty
+                    @endforelse
+                    @unless(empty($report['adjustments']))
+                    <tr class="total-row">
+                        <td colspan="3">TOTAL A PAGAR</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['final_pay'], 0, ',', '.') }}</td>
+                    </tr>
+                    @endunless
                 </tbody>
             </table>
         </div>
