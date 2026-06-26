@@ -35,12 +35,40 @@ class CompanyReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadin
 
     public function headings(): array
     {
-        return [
+        $headings = [
             ['Reporte General de la Empresa'],
             ['Período: '.$this->report['period']['start'].' a '.$this->report['period']['end']],
-            [],
-            ['Indicador', 'Valor'],
         ];
+
+        if (($settlement = $this->overtimeSettlementNote()) !== null) {
+            $headings[] = [$settlement];
+        }
+
+        $headings[] = [];
+        $headings[] = ['Indicador', 'Valor'];
+
+        return $headings;
+    }
+
+    /**
+     * Nota del rango de liquidación de horas extra en modo semanal (regla del domingo).
+     */
+    private function overtimeSettlementNote(): ?string
+    {
+        $settlement = $this->report['overtime_settlement'] ?? null;
+        if (($settlement['mode'] ?? 'daily') !== 'weekly') {
+            return null;
+        }
+
+        $note = ($settlement['start'] ?? null) && ($settlement['end'] ?? null)
+            ? 'Horas extra liquidadas de las semanas '.$settlement['start'].' a '.$settlement['end'].' (semanas con domingo dentro del periodo).'
+            : 'Este periodo no cierra ninguna semana completa: las horas extra se liquidan en el próximo periodo.';
+
+        if ($settlement['deferred'] ?? false) {
+            $note .= ' La semana en curso al cierre se liquida en el próximo periodo.';
+        }
+
+        return $note;
     }
 
     public function array(): array
@@ -104,10 +132,13 @@ class CompanyReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadin
 
     public function styles(Worksheet $sheet): array
     {
+        // La fila de encabezados de la tabla se corre una posición cuando hay nota de liquidación.
+        $headerRow = $this->overtimeSettlementNote() !== null ? 5 : 4;
+
         return [
             1 => ['font' => ['bold' => true, 'size' => 14]],
             2 => ['font' => ['italic' => true]],
-            4 => ['font' => ['bold' => true]],
+            $headerRow => ['font' => ['bold' => true]],
         ];
     }
 }

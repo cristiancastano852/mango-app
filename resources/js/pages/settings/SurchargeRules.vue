@@ -25,6 +25,7 @@ type SurchargeRule = {
     pay_overtime_by_default: boolean;
     max_weekly_minutes: number;
     max_daily_minutes: number;
+    overtime_accrual_mode: string;
     night_start_time: string;
     night_end_time: string;
     default_monthly_salary: string;
@@ -246,6 +247,26 @@ const maxWeeklyMinutes = computed(
                             <input type="hidden" name="max_weekly_minutes" :value="maxWeeklyMinutes" />
                             <InputError :message="errors.max_weekly_minutes" />
                         </div>
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="overtime_accrual_mode">Acumulación de horas extra</Label>
+                        <select
+                            id="overtime_accrual_mode"
+                            name="overtime_accrual_mode"
+                            class="block w-full rounded-md border bg-background px-3 py-2 text-sm"
+                            :value="rule.overtime_accrual_mode"
+                        >
+                            <option value="daily">Diaria (supera el límite diario o semanal)</option>
+                            <option value="weekly">Semanal (solo al superar el límite semanal)</option>
+                        </select>
+                        <p class="max-w-prose text-sm text-muted-foreground">
+                            En modo semanal el límite diario se ignora: solo se pagan extras cuando la semana
+                            (lunes a domingo) supera el límite semanal. El recargo extra de cada semana se
+                            liquida en la quincena que contiene su domingo; una semana en curso al cierre se
+                            paga en el siguiente periodo.
+                        </p>
+                        <InputError :message="errors.overtime_accrual_mode" />
                     </div>
 
                     <div class="grid gap-2">

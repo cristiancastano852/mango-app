@@ -31,6 +31,7 @@ class SurchargeRuleFactory extends Factory
             'pay_overtime_by_default' => true,
             'max_weekly_minutes' => 2520,
             'max_daily_minutes' => 480,
+            'overtime_accrual_mode' => 'daily',
             'night_start_time' => '21:00',
             'night_end_time' => '06:00',
             'default_monthly_salary' => $smlv,
@@ -47,5 +48,15 @@ class SurchargeRuleFactory extends Factory
             'default_normal_day_value' => 0,
             'default_holiday_payment_mode' => 'hour',
         ];
+    }
+
+    /**
+     * El overtime se acumula y liquida por semana ISO en lugar de por día.
+     */
+    public function weekly(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'overtime_accrual_mode' => 'weekly',
+        ]);
     }
 }

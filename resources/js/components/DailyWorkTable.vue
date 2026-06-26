@@ -270,6 +270,17 @@ const gridCols = 'sm:grid-cols-[8.5rem_1fr_6.5rem_7rem_7rem_2rem]';
                                     v-if="hasOvertime(row.day)"
                                     class="size-3.5 text-amber-500"
                                 />
+                                <Badge
+                                    v-if="
+                                        hasOvertime(row.day) &&
+                                        row.day.overtime_deferred
+                                    "
+                                    variant="outline"
+                                    class="border-amber-400 text-[10px] font-normal text-amber-700 dark:text-amber-300"
+                                    title="El recargo extra de esta semana se paga en el próximo periodo"
+                                >
+                                    Extra diferido
+                                </Badge>
                             </span>
 
                             <span
