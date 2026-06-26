@@ -42,6 +42,7 @@ class SurchargeRuleFactory extends Factory
             'pay_night_holiday' => true,
             'pay_overtime_dominical' => true,
             'pay_overtime_holiday' => true,
+            'pay_overtime_night' => true,
             'default_dominical_payment_mode' => 'hour',
             'default_normal_day_value' => 0,
             'default_holiday_payment_mode' => 'hour',
