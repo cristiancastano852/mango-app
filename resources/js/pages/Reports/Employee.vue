@@ -62,27 +62,43 @@ type Report = {
         net_hours: number;
         regular_hours: number;
         night_hours: number;
-        sunday_holiday_hours: number;
-        night_sunday_hours: number;
+        dominical_hours: number;
+        night_dominical_hours: number;
+        holiday_hours: number;
+        night_holiday_hours: number;
         overtime_day_hours: number;
         overtime_night_hours: number;
-        overtime_day_sunday_hours: number;
-        overtime_night_sunday_hours: number;
+        overtime_day_dominical_hours: number;
+        overtime_night_dominical_hours: number;
+        overtime_day_holiday_hours: number;
+        overtime_night_holiday_hours: number;
+        dominical_worked_days: number;
     };
     cost_summary: {
         regular: number;
         night: number;
-        sunday_holiday: number;
-        night_sunday: number;
+        dominical: number;
+        night_dominical: number;
+        holiday: number;
+        night_holiday: number;
         overtime_day: number;
         overtime_night: number;
-        overtime_day_sunday: number;
-        overtime_night_sunday: number;
+        overtime_day_dominical: number;
+        overtime_night_dominical: number;
+        overtime_day_holiday: number;
+        overtime_night_holiday: number;
         base: number;
         transport_allowance: number;
         total: number;
         salary_type: string;
         pay_overtime: boolean;
+        pay_dominical: boolean;
+        dominical_mode: string;
+        normal_day_value: number;
+        dominical_worked_days: number;
+        dominical_paid_days: number;
+        holiday_mode: string;
+        holiday_worked_days: number;
         details: CostDetail[];
     };
     daily_breakdown: DailyWorkDay[];
@@ -97,6 +113,7 @@ const props = defineProps<{
         end_date: string;
         employee_id: number;
         pay_overtime: boolean;
+        dominical_payable_count: number | null;
     };
     employees: Array<{ id: number; name: string }>;
 }>();
@@ -104,6 +121,8 @@ const props = defineProps<{
 const { t, locale } = useI18n();
 
 const payOvertime = ref(props.filters.pay_overtime);
+const dominicalPayableCount = ref<number | null>(props.filters.dominical_payable_count);
+const isDominicalByDay = computed(() => props.report.cost_summary.dominical_mode === 'day');
 
 const isMonthly = computed(
     () => props.report.cost_summary.salary_type === 'monthly',
@@ -173,6 +192,23 @@ function setPayOvertime(value: boolean) {
             end_date: props.filters.end_date,
             employee_id: props.filters.employee_id,
             pay_overtime: value ? 1 : 0,
+            ...(dominicalPayableCount.value !== null ? { dominical_payable_count: dominicalPayableCount.value } : {}),
+        },
+        { preserveScroll: true },
+    );
+}
+
+function setDominicalPayableCount(value: number) {
+    dominicalPayableCount.value = value;
+    router.get(
+        '/reports/employee',
+        {
+            date_range: props.filters.date_range,
+            start_date: props.filters.start_date,
+            end_date: props.filters.end_date,
+            employee_id: props.filters.employee_id,
+            pay_overtime: payOvertime.value ? 1 : 0,
+            dominical_payable_count: value,
         },
         { preserveScroll: true },
     );
@@ -186,6 +222,9 @@ function exportQueryParams(): string {
         employee_id: String(props.filters.employee_id),
         pay_overtime: payOvertime.value ? '1' : '0',
     });
+    if (dominicalPayableCount.value !== null) {
+        params.append('dominical_payable_count', String(dominicalPayableCount.value));
+    }
     return '?' + params.toString();
 }
 
@@ -216,12 +255,16 @@ function hourTypeLabel(type: string): string {
     const map: Record<string, string> = {
         regular: t('reports.hours.regular'),
         night: t('reports.hours.night'),
-        sunday_holiday: t('reports.hours.sunday_holiday'),
-        night_sunday: t('reports.hours.night_sunday'),
+        dominical: t('reports.hours.dominical'),
+        night_dominical: t('reports.hours.night_dominical'),
+        holiday: t('reports.hours.holiday'),
+        night_holiday: t('reports.hours.night_holiday'),
         overtime_day: t('reports.hours.overtime_day'),
         overtime_night: t('reports.hours.overtime_night'),
-        overtime_day_sunday: t('reports.hours.overtime_day_sunday'),
-        overtime_night_sunday: t('reports.hours.overtime_night_sunday'),
+        overtime_day_dominical: t('reports.hours.overtime_day_dominical'),
+        overtime_night_dominical: t('reports.hours.overtime_night_dominical'),
+        overtime_day_holiday: t('reports.hours.overtime_day_holiday'),
+        overtime_night_holiday: t('reports.hours.overtime_night_holiday'),
     };
     return map[type] || type;
 }
@@ -348,7 +391,29 @@ function hourTypeLabel(type: string): string {
 
             <template v-else>
                 <!-- Overtime payment toggle -->
-                <div class="flex justify-end">
+                <div class="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-end">
+                    <!-- Dominical payable count (only in by-day mode) -->
+                    <div
+                        v-if="isDominicalByDay && report.cost_summary.dominical_worked_days > 0"
+                        class="flex items-center justify-between gap-3 rounded-lg border bg-card p-3 sm:min-w-[340px]"
+                    >
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium">
+                                {{ t('reports.dominical.payable_count_label') }}
+                            </span>
+                            <span class="text-xs text-muted-foreground">
+                                {{ t('reports.dominical.worked_hint', { n: report.cost_summary.dominical_worked_days }) }}
+                            </span>
+                        </div>
+                        <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            class="w-20 rounded-md border bg-background px-2 py-1 text-right text-sm"
+                            :value="report.cost_summary.dominical_paid_days"
+                            @change="setDominicalPayableCount(Math.max(0, Math.trunc(Number(($event.target as HTMLInputElement).value)) || 0))"
+                        />
+                    </div>
                     <OvertimePaymentToggle
                         :model-value="payOvertime"
                         class="w-full sm:w-auto sm:min-w-[340px]"
@@ -482,12 +547,12 @@ function hourTypeLabel(type: string): string {
                             <div class="text-lg font-semibold">
                                 {{
                                     formatDecimalHours(
-                                        report.totals.sunday_holiday_hours,
+                                        report.totals.dominical_hours,
                                     )
                                 }}
                             </div>
                             <div class="text-xs text-muted-foreground">
-                                {{ t('reports.hours.sunday_holiday') }}
+                                {{ t('reports.hours.dominical') }}
                             </div>
                         </div>
                     </div>
@@ -499,12 +564,46 @@ function hourTypeLabel(type: string): string {
                             <div class="text-lg font-semibold">
                                 {{
                                     formatDecimalHours(
-                                        report.totals.night_sunday_hours,
+                                        report.totals.night_dominical_hours,
                                     )
                                 }}
                             </div>
                             <div class="text-xs text-muted-foreground">
-                                {{ t('reports.hours.night_sunday') }}
+                                {{ t('reports.hours.night_dominical') }}
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        class="flex items-center gap-3 rounded-lg bg-red-50 p-3 dark:bg-red-950/30"
+                    >
+                        <Calendar class="size-5 text-red-600" />
+                        <div>
+                            <div class="text-lg font-semibold">
+                                {{
+                                    formatDecimalHours(
+                                        report.totals.holiday_hours,
+                                    )
+                                }}
+                            </div>
+                            <div class="text-xs text-muted-foreground">
+                                {{ t('reports.hours.holiday') }}
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        class="flex items-center gap-3 rounded-lg bg-purple-50 p-3 dark:bg-purple-950/30"
+                    >
+                        <Moon class="size-5 text-purple-600" />
+                        <div>
+                            <div class="text-lg font-semibold">
+                                {{
+                                    formatDecimalHours(
+                                        report.totals.night_holiday_hours,
+                                    )
+                                }}
+                            </div>
+                            <div class="text-xs text-muted-foreground">
+                                {{ t('reports.hours.night_holiday') }}
                             </div>
                         </div>
                     </div>
@@ -550,12 +649,12 @@ function hourTypeLabel(type: string): string {
                             <div class="text-lg font-semibold">
                                 {{
                                     formatDecimalHours(
-                                        report.totals.overtime_day_sunday_hours,
+                                        report.totals.overtime_day_dominical_hours,
                                     )
                                 }}
                             </div>
                             <div class="text-xs text-muted-foreground">
-                                {{ t('reports.hours.overtime_day_sunday') }}
+                                {{ t('reports.hours.overtime_day_dominical') }}
                             </div>
                         </div>
                     </div>
@@ -568,12 +667,47 @@ function hourTypeLabel(type: string): string {
                                 {{
                                     formatDecimalHours(
                                         report.totals
-                                            .overtime_night_sunday_hours,
+                                            .overtime_night_dominical_hours,
                                     )
                                 }}
                             </div>
                             <div class="text-xs text-muted-foreground">
-                                {{ t('reports.hours.overtime_night_sunday') }}
+                                {{ t('reports.hours.overtime_night_dominical') }}
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        class="flex items-center gap-3 rounded-lg bg-pink-50 p-3 dark:bg-pink-950/30"
+                    >
+                        <Zap class="size-5 text-pink-600" />
+                        <div>
+                            <div class="text-lg font-semibold">
+                                {{
+                                    formatDecimalHours(
+                                        report.totals.overtime_day_holiday_hours,
+                                    )
+                                }}
+                            </div>
+                            <div class="text-xs text-muted-foreground">
+                                {{ t('reports.hours.overtime_day_holiday') }}
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        class="flex items-center gap-3 rounded-lg bg-rose-50 p-3 dark:bg-rose-950/30"
+                    >
+                        <Zap class="size-5 text-rose-700" />
+                        <div>
+                            <div class="text-lg font-semibold">
+                                {{
+                                    formatDecimalHours(
+                                        report.totals
+                                            .overtime_night_holiday_hours,
+                                    )
+                                }}
+                            </div>
+                            <div class="text-xs text-muted-foreground">
+                                {{ t('reports.hours.overtime_night_holiday') }}
                             </div>
                         </div>
                     </div>

@@ -36,6 +36,11 @@ class SurchargeRuleFactory extends Factory
             'default_monthly_salary' => $smlv,
             'default_hourly_rate' => round($smlv / $divisor, 2),
             'transport_allowance' => (float) config('payroll.transport_allowance_monthly'),
+            'dominical_weekday' => 0,
+            'pay_dominical_by_default' => true,
+            'default_dominical_payment_mode' => 'hour',
+            'default_normal_day_value' => 0,
+            'default_holiday_payment_mode' => 'hour',
         ];
     }
 }

@@ -80,7 +80,7 @@ class WorkHourCalculationTest extends TestCase
 
         $this->assertEquals(8.00, (float) $result->regular_hours);
         $this->assertEquals(0.00, (float) $result->night_hours);
-        $this->assertEquals(0.00, (float) $result->sunday_holiday_hours);
+        $this->assertEquals(0.00, (float) $result->dominical_hours);
         $this->assertEquals(0.00, (float) $result->overtime_day_hours);
         $this->assertEquals('calculated', $result->status);
     }
@@ -94,7 +94,7 @@ class WorkHourCalculationTest extends TestCase
 
         $this->assertEquals(1.00, (float) $result->regular_hours);
         $this->assertEquals(1.00, (float) $result->night_hours);
-        $this->assertEquals(0.00, (float) $result->sunday_holiday_hours);
+        $this->assertEquals(0.00, (float) $result->dominical_hours);
     }
 
     public function test_shift_crossing_midnight(): void
@@ -116,7 +116,7 @@ class WorkHourCalculationTest extends TestCase
         $result = app(CalculateWorkHours::class)->execute($entry);
 
         $this->assertEquals(0.00, (float) $result->regular_hours);
-        $this->assertEquals(8.00, (float) $result->sunday_holiday_hours);
+        $this->assertEquals(8.00, (float) $result->dominical_hours);
     }
 
     public function test_holiday_daytime_shift(): void
@@ -134,7 +134,8 @@ class WorkHourCalculationTest extends TestCase
         $result = app(CalculateWorkHours::class)->execute($entry);
 
         $this->assertEquals(0.00, (float) $result->regular_hours);
-        $this->assertEquals(8.00, (float) $result->sunday_holiday_hours);
+        $this->assertEquals(8.00, (float) $result->holiday_hours);
+        $this->assertEquals(0.00, (float) $result->dominical_hours);
     }
 
     public function test_overtime_partial(): void
@@ -235,7 +236,8 @@ class WorkHourCalculationTest extends TestCase
         $result = app(CalculateWorkHours::class)->execute($entry);
 
         $this->assertEquals(0.00, (float) $result->regular_hours);
-        $this->assertEquals(8.00, (float) $result->sunday_holiday_hours);
+        $this->assertEquals(8.00, (float) $result->holiday_hours);
+        $this->assertEquals(0.00, (float) $result->dominical_hours);
     }
 
     public function test_daily_limit_triggers_overtime_independent_of_weekly(): void
@@ -248,7 +250,7 @@ class WorkHourCalculationTest extends TestCase
 
         $this->assertEquals(8.00, (float) $result->regular_hours);
         $this->assertEquals(0.00, (float) $result->night_hours);
-        $this->assertEquals(0.00, (float) $result->sunday_holiday_hours);
+        $this->assertEquals(0.00, (float) $result->dominical_hours);
         $this->assertEquals(2.00, (float) $result->overtime_day_hours);
     }
 
@@ -278,7 +280,7 @@ class WorkHourCalculationTest extends TestCase
 
         $this->assertEquals(0.00, (float) $result->regular_hours);
         $this->assertEquals(0.00, (float) $result->overtime_day_hours); // semana diurna = 0
-        $this->assertEquals(7.00, (float) $result->overtime_day_sunday_hours); // domingo + extra = overtime_day_sunday
+        $this->assertEquals(7.00, (float) $result->overtime_day_dominical_hours); // domingo + extra = overtime_day_sunday
     }
 
     public function test_weekly_limit_triggers_before_daily_limit_is_reached(): void
@@ -327,7 +329,7 @@ class WorkHourCalculationTest extends TestCase
 
         $this->assertEquals(2.00, (float) $result->regular_hours);  // 06:00–08:00 Tue
         $this->assertEquals(8.00, (float) $result->night_hours);    // 22:00–00:00 Mon + 00:00–06:00 Tue
-        $this->assertEquals(0.00, (float) $result->sunday_holiday_hours);
+        $this->assertEquals(0.00, (float) $result->dominical_hours);
         $this->assertEquals(2.00, (float) $result->overtime_day_hours); // 08:00–10:00 Tue (daily limit hit)
 
         $total = (float) $result->regular_hours
@@ -391,12 +393,16 @@ class WorkHourCalculationTest extends TestCase
         $this->assertEquals('calculated', $fresh->status);
         $totalClassified = (float) $fresh->regular_hours
             + (float) $fresh->night_hours
-            + (float) $fresh->sunday_holiday_hours
-            + (float) $fresh->night_sunday_hours
+            + (float) $fresh->dominical_hours
+            + (float) $fresh->night_dominical_hours
+            + (float) $fresh->holiday_hours
+            + (float) $fresh->night_holiday_hours
             + (float) $fresh->overtime_day_hours
             + (float) $fresh->overtime_night_hours
-            + (float) $fresh->overtime_day_sunday_hours
-            + (float) $fresh->overtime_night_sunday_hours;
+            + (float) $fresh->overtime_day_dominical_hours
+            + (float) $fresh->overtime_night_dominical_hours
+            + (float) $fresh->overtime_day_holiday_hours
+            + (float) $fresh->overtime_night_holiday_hours;
         $this->assertEqualsWithDelta((float) $fresh->net_hours, $totalClassified, 0.02);
         $this->assertGreaterThan(0, $totalClassified);
     }
@@ -412,9 +418,9 @@ class WorkHourCalculationTest extends TestCase
 
         $result = app(CalculateWorkHours::class)->execute($entry);
 
-        $this->assertEquals(2.00, (float) $result->night_sunday_hours);
+        $this->assertEquals(2.00, (float) $result->night_dominical_hours);
         $this->assertEquals(0.00, (float) $result->night_hours);
-        $this->assertEquals(0.00, (float) $result->sunday_holiday_hours);
+        $this->assertEquals(0.00, (float) $result->dominical_hours);
     }
 
     public function test_overtime_night_when_daily_exhausted_and_nighttime(): void
@@ -438,8 +444,8 @@ class WorkHourCalculationTest extends TestCase
 
         $result = app(CalculateWorkHours::class)->execute($entry);
 
-        $this->assertEquals(8.00, (float) $result->sunday_holiday_hours);
-        $this->assertEquals(4.00, (float) $result->overtime_day_sunday_hours);
+        $this->assertEquals(8.00, (float) $result->dominical_hours);
+        $this->assertEquals(4.00, (float) $result->overtime_day_dominical_hours);
         $this->assertEquals(0.00, (float) $result->overtime_day_hours);
     }
 
@@ -451,10 +457,10 @@ class WorkHourCalculationTest extends TestCase
 
         $result = app(CalculateWorkHours::class)->execute($entry);
 
-        $this->assertEquals(8.00, (float) $result->sunday_holiday_hours);
-        $this->assertEquals(3.00, (float) $result->overtime_day_sunday_hours);
-        $this->assertEquals(2.00, (float) $result->overtime_night_sunday_hours);
-        $this->assertEquals(0.00, (float) $result->night_sunday_hours);
+        $this->assertEquals(8.00, (float) $result->dominical_hours);
+        $this->assertEquals(3.00, (float) $result->overtime_day_dominical_hours);
+        $this->assertEquals(2.00, (float) $result->overtime_night_dominical_hours);
+        $this->assertEquals(0.00, (float) $result->night_dominical_hours);
         $this->assertEquals(0.00, (float) $result->overtime_night_hours);
     }
 
@@ -492,10 +498,10 @@ class WorkHourCalculationTest extends TestCase
 
         $result = app(CalculateWorkHours::class)->execute($entry);
 
-        $this->assertEquals(8.00, (float) $result->sunday_holiday_hours);
-        $this->assertEquals(7.00, (float) $result->overtime_day_sunday_hours);
-        $this->assertEquals(2.00, (float) $result->overtime_night_sunday_hours);
-        $this->assertEquals(0.00, (float) $result->night_sunday_hours); // límite agotado antes de las 21:00
+        $this->assertEquals(8.00, (float) $result->dominical_hours);
+        $this->assertEquals(7.00, (float) $result->overtime_day_dominical_hours);
+        $this->assertEquals(2.00, (float) $result->overtime_night_dominical_hours);
+        $this->assertEquals(0.00, (float) $result->night_dominical_hours); // límite agotado antes de las 21:00
         $this->assertEquals(0.00, (float) $result->regular_hours);
     }
 
@@ -506,8 +512,8 @@ class WorkHourCalculationTest extends TestCase
 
         $result = app(CalculateWorkHours::class)->execute($entry);
 
-        $this->assertEquals(2.00, (float) $result->sunday_holiday_hours);
-        $this->assertEquals(2.00, (float) $result->night_sunday_hours);
+        $this->assertEquals(2.00, (float) $result->dominical_hours);
+        $this->assertEquals(2.00, (float) $result->night_dominical_hours);
         $this->assertEquals(0.00, (float) $result->night_hours);
         $this->assertEquals(0.00, (float) $result->regular_hours);
     }
@@ -527,9 +533,9 @@ class WorkHourCalculationTest extends TestCase
 
         $result = app(CalculateWorkHours::class)->execute($entry);
 
-        $this->assertEquals(3.00, (float) $result->night_sunday_hours); // 21:00–00:00 festivo
+        $this->assertEquals(3.00, (float) $result->night_holiday_hours); // 21:00–00:00 festivo
         $this->assertEquals(1.00, (float) $result->night_hours);         // 00:00–01:00 viernes hábil
-        $this->assertEquals(0.00, (float) $result->sunday_holiday_hours);
+        $this->assertEquals(0.00, (float) $result->dominical_hours);
     }
 
     public function test_saturday_night_crossing_to_sunday_changes_surcharge_type(): void
@@ -540,7 +546,7 @@ class WorkHourCalculationTest extends TestCase
         $result = app(CalculateWorkHours::class)->execute($entry);
 
         $this->assertEqualsWithDelta(2.00, (float) $result->night_hours, 0.02);
-        $this->assertEqualsWithDelta(4.00, (float) $result->night_sunday_hours, 0.02);
+        $this->assertEqualsWithDelta(4.00, (float) $result->night_dominical_hours, 0.02);
         $this->assertEquals(0.00, (float) $result->regular_hours);
     }
 
@@ -551,7 +557,7 @@ class WorkHourCalculationTest extends TestCase
 
         $result = app(CalculateWorkHours::class)->execute($entry);
 
-        $this->assertEqualsWithDelta(2.00, (float) $result->night_sunday_hours, 0.02);
+        $this->assertEqualsWithDelta(2.00, (float) $result->night_dominical_hours, 0.02);
         $this->assertEqualsWithDelta(4.00, (float) $result->night_hours, 0.02);
         $this->assertEquals(0.00, (float) $result->regular_hours);
     }
@@ -565,7 +571,7 @@ class WorkHourCalculationTest extends TestCase
 
         $this->assertEqualsWithDelta(1.00, (float) $result->regular_hours, 0.02);
         $this->assertEqualsWithDelta(3.00, (float) $result->night_hours, 0.02);
-        $this->assertEqualsWithDelta(4.00, (float) $result->night_sunday_hours, 0.02);
+        $this->assertEqualsWithDelta(4.00, (float) $result->night_dominical_hours, 0.02);
     }
 
     public function test_weekly_limit_exhausted_during_night_shift_produces_overtime_night(): void
@@ -623,9 +629,60 @@ class WorkHourCalculationTest extends TestCase
 
         $result = app(CalculateWorkHours::class)->execute($entry);
 
-        $this->assertEqualsWithDelta(2.00, (float) $result->sunday_holiday_hours, 0.05);
-        $this->assertEqualsWithDelta(2.00, (float) $result->overtime_day_sunday_hours, 0.05);
+        $this->assertEqualsWithDelta(2.00, (float) $result->dominical_hours, 0.05);
+        $this->assertEqualsWithDelta(2.00, (float) $result->overtime_day_dominical_hours, 0.05);
         $this->assertEquals(0.00, (float) $result->regular_hours);
         $this->assertEquals(0.00, (float) $result->overtime_day_hours);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Día dominical configurable y separación festivo/dominical (12 tipos)
+    // ──────────────────────────────────────────────────────────────────────
+
+    public function test_configurable_dominical_weekday_shifts_surcharge_to_tuesday(): void
+    {
+        // Dominical = martes (2). Martes diurno → dominical; domingo → regular.
+        $this->rules->update(['dominical_weekday' => Carbon::TUESDAY]);
+
+        $tuesday = app(CalculateWorkHours::class)->execute($this->createEntry('2026-03-03 08:00', '2026-03-03 16:00'));
+        $this->assertEquals(8.00, (float) $tuesday->dominical_hours);
+        $this->assertEquals(0.00, (float) $tuesday->regular_hours);
+
+        $sunday = app(CalculateWorkHours::class)->execute($this->createEntry('2026-03-08 08:00', '2026-03-08 16:00'));
+        $this->assertEquals(8.00, (float) $sunday->regular_hours);
+        $this->assertEquals(0.00, (float) $sunday->dominical_hours);
+    }
+
+    public function test_holiday_on_dominical_day_is_classified_as_holiday(): void
+    {
+        // Festivo gana sobre dominical: un domingo festivo cuenta como holiday, no dominical.
+        Holiday::create([
+            'company_id' => $this->company->id,
+            'name' => 'Festivo en domingo',
+            'date' => '2026-03-08',
+            'is_recurring' => false,
+            'country' => 'CO',
+        ]);
+
+        $result = app(CalculateWorkHours::class)->execute($this->createEntry('2026-03-08 08:00', '2026-03-08 16:00'));
+
+        $this->assertEquals(8.00, (float) $result->holiday_hours);
+        $this->assertEquals(0.00, (float) $result->dominical_hours);
+    }
+
+    public function test_sum_of_twelve_buckets_equals_net_hours(): void
+    {
+        // Domingo largo con varios tipos: la suma de los 12 buckets == net_hours.
+        $this->rules->update(['max_weekly_minutes' => 2520, 'max_daily_minutes' => 480]);
+        $result = app(CalculateWorkHours::class)->execute($this->createEntry('2026-03-08 06:00', '2026-03-08 23:00'));
+
+        $sum = (float) $result->regular_hours + (float) $result->night_hours
+            + (float) $result->dominical_hours + (float) $result->night_dominical_hours
+            + (float) $result->holiday_hours + (float) $result->night_holiday_hours
+            + (float) $result->overtime_day_hours + (float) $result->overtime_night_hours
+            + (float) $result->overtime_day_dominical_hours + (float) $result->overtime_night_dominical_hours
+            + (float) $result->overtime_day_holiday_hours + (float) $result->overtime_night_holiday_hours;
+
+        $this->assertEqualsWithDelta((float) $result->net_hours, $sum, 0.02);
     }
 }

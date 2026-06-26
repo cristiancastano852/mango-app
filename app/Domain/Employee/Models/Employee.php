@@ -37,6 +37,9 @@ class Employee extends Model
         'monthly_base_salary',
         'salary_type',
         'receives_transport_allowance',
+        'dominical_payment_mode',
+        'normal_day_value',
+        'holiday_payment_mode',
         'schedule_id',
         'location_id',
     ];
@@ -48,6 +51,7 @@ class Employee extends Model
             'hourly_rate' => 'decimal:2',
             'monthly_base_salary' => 'decimal:2',
             'receives_transport_allowance' => 'boolean',
+            'normal_day_value' => 'decimal:2',
         ];
     }
 

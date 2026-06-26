@@ -67,6 +67,11 @@ class SurchargeRuleControllerTest extends TestCase
             'default_monthly_salary' => 1750905,
             'default_hourly_rate' => 7958.66,
             'transport_allowance' => 249095,
+            'dominical_weekday' => 0,
+            'pay_dominical_by_default' => true,
+            'default_dominical_payment_mode' => 'hour',
+            'default_normal_day_value' => 0,
+            'default_holiday_payment_mode' => 'hour',
         ], $overrides);
     }
 

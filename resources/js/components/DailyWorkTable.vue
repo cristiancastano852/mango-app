@@ -75,12 +75,22 @@ function formatDayLabel(date: string): string {
     return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function isSundayOrHoliday(day: DailyWorkDay): boolean {
+function isDominical(day: DailyWorkDay): boolean {
     return (
-        (day.sunday_holiday_hours ?? 0) +
-            (day.night_sunday_hours ?? 0) +
-            (day.overtime_day_sunday_hours ?? 0) +
-            (day.overtime_night_sunday_hours ?? 0) >
+        (day.dominical_hours ?? 0) +
+            (day.night_dominical_hours ?? 0) +
+            (day.overtime_day_dominical_hours ?? 0) +
+            (day.overtime_night_dominical_hours ?? 0) >
+        0
+    );
+}
+
+function isHoliday(day: DailyWorkDay): boolean {
+    return (
+        (day.holiday_hours ?? 0) +
+            (day.night_holiday_hours ?? 0) +
+            (day.overtime_day_holiday_hours ?? 0) +
+            (day.overtime_night_holiday_hours ?? 0) >
         0
     );
 }
@@ -89,8 +99,10 @@ function hasOvertime(day: DailyWorkDay): boolean {
     return (
         (day.overtime_day_hours ?? 0) +
             (day.overtime_night_hours ?? 0) +
-            (day.overtime_day_sunday_hours ?? 0) +
-            (day.overtime_night_sunday_hours ?? 0) >
+            (day.overtime_day_dominical_hours ?? 0) +
+            (day.overtime_night_dominical_hours ?? 0) +
+            (day.overtime_day_holiday_hours ?? 0) +
+            (day.overtime_night_holiday_hours ?? 0) >
         0
     );
 }
@@ -207,10 +219,16 @@ const gridCols = 'sm:grid-cols-[8.5rem_1fr_6.5rem_7rem_7rem_2rem]';
                             >
                                 {{ formatDayLabel(row.date) }}
                                 <Badge
-                                    v-if="isSundayOrHoliday(row.day)"
-                                    class="bg-red-100 px-1.5 text-[10px] text-red-700 dark:bg-red-950/50 dark:text-red-300"
+                                    v-if="isHoliday(row.day)"
+                                    class="bg-red-100 px-1.5 text-[10px] text-red-800 dark:bg-red-950/50 dark:text-red-200"
                                 >
                                     {{ t('daily_work.holiday_badge') }}
+                                </Badge>
+                                <Badge
+                                    v-else-if="isDominical(row.day)"
+                                    class="bg-red-100 px-1.5 text-[10px] text-red-700 dark:bg-red-950/50 dark:text-red-300"
+                                >
+                                    {{ t('daily_work.dominical_badge') }}
                                 </Badge>
                             </span>
 

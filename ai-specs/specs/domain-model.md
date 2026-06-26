@@ -1,7 +1,7 @@
 # Domain Model — Mango App
 
 ## Company (app/Domain/Company/)
-- Models: Company (+ campo onboarding_completed boolean), Holiday, SurchargeRule (+ pay_overtime_by_default), OvertimePaymentDecision (decisión de pago de horas extra por empleado/periodo; employee_id NULL = reporte de empresa)
+- Models: Company (+ campo onboarding_completed boolean), Holiday, SurchargeRule (+ pay_overtime_by_default, dominical_weekday, pay_dominical_by_default, default_dominical_payment_mode, default_normal_day_value, default_holiday_payment_mode), OvertimePaymentDecision (decisión de pago de horas extra por empleado/periodo; employee_id NULL = reporte de empresa), DominicalPaymentDecision (cuántos dominicales pagar por empleado/periodo; employee_id NOT NULL; solo modo `day`)
 - Observers: CompanyObserver — auto-seeds SurchargeRule + ColombianHolidays al crear empresa
 - Seeders: ColombianHolidaysSeeder::seedForCompany(int $id) — 6 fijos (recurring) + 12 móviles (2026)
 - Actions: RegisterCompany — crea Company + User admin en DB::transaction, autentica usuario, dispara CompanyObserver automáticamente
@@ -13,8 +13,8 @@
 
 ## TimeTracking (app/Domain/TimeTracking/)
 - Actions (clock): ClockIn, ClockOut, StartBreak, EndBreak, AdminClockIn
-- Actions (cálculo): CalculateWorkHours — clasificación minuto a minuto en regular/night/sunday_holiday/overtime; RecalculateTimeEntry — recomputa gross/break (solo pausas no pagadas finalizadas)/net, invoca CalculateWorkHours y marca status='edited' (usada por edición admin de registros y pausas)
-- Actions (reportes): GenerateCompanyReport, GenerateEmployeeReport (daily_breakdown enriquecido: horario ISO 8601, status con 'in_progress' derivado para turnos abiertos —no suman a totals— y breaks[] anidadas), CalculateReportCosts (acepta flag payOvertime), ResolveOvertimePaymentDecision (precedencia request → decisión guardada → default de compañía)
+- Actions (cálculo): CalculateWorkHours — clasificación minuto a minuto en 12 buckets (semana/dominical/festivo × diurno/nocturno × dentro-límite/extra); día dominical configurable (dominical_weekday) y precedencia festivo > dominical; RecalculateTimeEntry — recomputa gross/break (solo pausas no pagadas finalizadas)/net, invoca CalculateWorkHours y marca status='edited' (usada por edición admin de registros y pausas)
+- Actions (reportes): GenerateCompanyReport, GenerateEmployeeReport (daily_breakdown enriquecido: horario ISO 8601, status con 'in_progress' derivado para turnos abiertos —no suman a totals— y breaks[] anidadas; cuentan días dominicales trabajados N), CalculateReportCosts (acepta flag payOvertime + config dominical: pay/mode/day_value/payable_count/worked_days; modo `day` = base por horas + plus por día pagado (valor_día_normal × sunday_holiday%); festivo siempre paga, configurable por hora/día sin conteo editable), ResolveOvertimePaymentDecision y ResolveDominicalPaymentDecision (precedencia request → decisión guardada → default)
 - Models: TimeEntry (SoftDeletes; unique employee_id+date+active_marker — 1 activo/día), BreakEntry (toDisplayArray() — shape único de pausa para vistas/reportes), BreakType
 
 ## Organization (app/Domain/Organization/)

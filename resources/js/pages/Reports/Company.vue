@@ -24,12 +24,16 @@ type EmployeeSummary = {
     net_hours: number;
     regular_hours: number;
     night_hours: number;
-    sunday_holiday_hours: number;
-    night_sunday_hours: number;
+    dominical_hours: number;
+    night_dominical_hours: number;
+    holiday_hours: number;
+    night_holiday_hours: number;
     overtime_day_hours: number;
     overtime_night_hours: number;
-    overtime_day_sunday_hours: number;
-    overtime_night_sunday_hours: number;
+    overtime_day_dominical_hours: number;
+    overtime_night_dominical_hours: number;
+    overtime_day_holiday_hours: number;
+    overtime_night_holiday_hours: number;
     salary_type: string;
     base: number;
     cost: number;
@@ -50,24 +54,32 @@ type Report = {
         net_hours: number;
         regular_hours: number;
         night_hours: number;
-        sunday_holiday_hours: number;
-        night_sunday_hours: number;
+        dominical_hours: number;
+        night_dominical_hours: number;
+        holiday_hours: number;
+        night_holiday_hours: number;
         overtime_day_hours: number;
         overtime_night_hours: number;
-        overtime_day_sunday_hours: number;
-        overtime_night_sunday_hours: number;
+        overtime_day_dominical_hours: number;
+        overtime_night_dominical_hours: number;
+        overtime_day_holiday_hours: number;
+        overtime_night_holiday_hours: number;
     };
     employees: EmployeeSummary[];
     daily_attendance: DailyAttendance[];
     cost_summary: {
         regular: number;
         night: number;
-        sunday_holiday: number;
-        night_sunday: number;
+        dominical: number;
+        night_dominical: number;
+        holiday: number;
+        night_holiday: number;
         overtime_day: number;
         overtime_night: number;
-        overtime_day_sunday: number;
-        overtime_night_sunday: number;
+        overtime_day_dominical: number;
+        overtime_night_dominical: number;
+        overtime_day_holiday: number;
+        overtime_night_holiday: number;
         base: number;
         transport_allowance: number;
         total: number;
@@ -199,12 +211,16 @@ onMounted(async () => {
             { value: cs.transport_allowance, label: t('reports.costs.transport_allowance'), color: '#14b8a6' },
             { value: cs.regular, label: t('reports.hours.regular'), color: '#3b82f6' },
             { value: cs.night, label: t('reports.hours.night'), color: '#6366f1' },
-            { value: cs.sunday_holiday, label: t('reports.hours.sunday_holiday'), color: '#ef4444' },
-            { value: cs.night_sunday, label: t('reports.hours.night_sunday'), color: '#a855f7' },
+            { value: cs.dominical, label: t('reports.hours.dominical'), color: '#ef4444' },
+            { value: cs.night_dominical, label: t('reports.hours.night_dominical'), color: '#a855f7' },
+            { value: cs.holiday, label: t('reports.hours.holiday'), color: '#b91c1c' },
+            { value: cs.night_holiday, label: t('reports.hours.night_holiday'), color: '#9333ea' },
             { value: cs.overtime_day, label: t('reports.hours.overtime_day'), color: '#f59e0b' },
             { value: cs.overtime_night, label: t('reports.hours.overtime_night'), color: '#f97316' },
-            { value: cs.overtime_day_sunday, label: t('reports.hours.overtime_day_sunday'), color: '#ec4899' },
-            { value: cs.overtime_night_sunday, label: t('reports.hours.overtime_night_sunday'), color: '#dc2626' },
+            { value: cs.overtime_day_dominical, label: t('reports.hours.overtime_day_dominical'), color: '#ec4899' },
+            { value: cs.overtime_night_dominical, label: t('reports.hours.overtime_night_dominical'), color: '#dc2626' },
+            { value: cs.overtime_day_holiday, label: t('reports.hours.overtime_day_holiday'), color: '#db2777' },
+            { value: cs.overtime_night_holiday, label: t('reports.hours.overtime_night_holiday'), color: '#b91c1c' },
         ].filter(e => e.value > 0);
         const costValues = allCosts.map(e => e.value);
         const costLabels = allCosts.map(e => e.label);

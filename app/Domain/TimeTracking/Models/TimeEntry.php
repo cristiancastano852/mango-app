@@ -33,12 +33,16 @@ class TimeEntry extends Model
         'net_hours',
         'regular_hours',
         'night_hours',
-        'sunday_holiday_hours',
-        'night_sunday_hours',
+        'dominical_hours',
+        'night_dominical_hours',
+        'holiday_hours',
+        'night_holiday_hours',
         'overtime_day_hours',
         'overtime_night_hours',
-        'overtime_day_sunday_hours',
-        'overtime_night_sunday_hours',
+        'overtime_day_dominical_hours',
+        'overtime_night_dominical_hours',
+        'overtime_day_holiday_hours',
+        'overtime_night_holiday_hours',
         'status',
         'edited_by',
         'edit_reason',
@@ -59,18 +63,26 @@ class TimeEntry extends Model
             'regular_hours' => 'decimal:2',
             // Semana + nocturno (21:00–06:00) + dentro de límite
             'night_hours' => 'decimal:2',
-            // Dom/festivo + diurno + dentro de límite
-            'sunday_holiday_hours' => 'decimal:2',
-            // Dom/festivo + nocturno + dentro de límite
-            'night_sunday_hours' => 'decimal:2',
+            // Dominical + diurno + dentro de límite
+            'dominical_hours' => 'decimal:2',
+            // Dominical + nocturno + dentro de límite
+            'night_dominical_hours' => 'decimal:2',
+            // Festivo + diurno + dentro de límite
+            'holiday_hours' => 'decimal:2',
+            // Festivo + nocturno + dentro de límite
+            'night_holiday_hours' => 'decimal:2',
             // Semana + diurno + supera límite diario o semanal
             'overtime_day_hours' => 'decimal:2',
             // Semana + nocturno + supera límite diario o semanal
             'overtime_night_hours' => 'decimal:2',
-            // Dom/festivo + diurno + supera límite diario o semanal
-            'overtime_day_sunday_hours' => 'decimal:2',
-            // Dom/festivo + nocturno + supera límite diario o semanal
-            'overtime_night_sunday_hours' => 'decimal:2',
+            // Dominical + diurno + supera límite diario o semanal
+            'overtime_day_dominical_hours' => 'decimal:2',
+            // Dominical + nocturno + supera límite diario o semanal
+            'overtime_night_dominical_hours' => 'decimal:2',
+            // Festivo + diurno + supera límite diario o semanal
+            'overtime_day_holiday_hours' => 'decimal:2',
+            // Festivo + nocturno + supera límite diario o semanal
+            'overtime_night_holiday_hours' => 'decimal:2',
             'pin_verified' => 'boolean',
         ];
     }

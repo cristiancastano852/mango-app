@@ -92,9 +92,24 @@
                         <td class="text-right">${{ number_format($report['cost_summary']['night'], 0, ',', '.') }}</td>
                     </tr>
                     <tr>
-                        <td>Recargo nocturno dominical/festivo</td>
-                        <td class="text-right">{{ $report['totals']['night_sunday_hours'] }}</td>
-                        <td class="text-right">${{ number_format($report['cost_summary']['night_sunday'], 0, ',', '.') }}</td>
+                        <td>Recargo dominical</td>
+                        <td class="text-right">{{ $report['totals']['dominical_hours'] }}</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['dominical'], 0, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Recargo nocturno dominical</td>
+                        <td class="text-right">{{ $report['totals']['night_dominical_hours'] }}</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['night_dominical'], 0, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Recargo festivo</td>
+                        <td class="text-right">{{ $report['totals']['holiday_hours'] }}</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['holiday'], 0, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td>Recargo nocturno festivo</td>
+                        <td class="text-right">{{ $report['totals']['night_holiday_hours'] }}</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['night_holiday'], 0, ',', '.') }}</td>
                     </tr>
                     <tr>
                         <td>Extra diurna</td>
@@ -113,25 +128,36 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Extra diurna dominical/festivo</td>
-                        <td class="text-right">{{ $report['totals']['overtime_day_sunday_hours'] }}</td>
+                        <td>Extra diurna dominical</td>
+                        <td class="text-right">{{ $report['totals']['overtime_day_dominical_hours'] }}</td>
                         <td class="text-right">
-                            ${{ number_format($report['cost_summary']['overtime_day_sunday'], 0, ',', '.') }}
+                            ${{ number_format($report['cost_summary']['overtime_day_dominical'], 0, ',', '.') }}
                             @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
                         </td>
                     </tr>
                     <tr>
-                        <td>Extra nocturna dominical/festivo</td>
-                        <td class="text-right">{{ $report['totals']['overtime_night_sunday_hours'] }}</td>
+                        <td>Extra nocturna dominical</td>
+                        <td class="text-right">{{ $report['totals']['overtime_night_dominical_hours'] }}</td>
                         <td class="text-right">
-                            ${{ number_format($report['cost_summary']['overtime_night_sunday'], 0, ',', '.') }}
+                            ${{ number_format($report['cost_summary']['overtime_night_dominical'], 0, ',', '.') }}
                             @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
                         </td>
                     </tr>
                     <tr>
-                        <td>Recargo dominical/festivo</td>
-                        <td class="text-right">{{ $report['totals']['sunday_holiday_hours'] }}</td>
-                        <td class="text-right">${{ number_format($report['cost_summary']['sunday_holiday'], 0, ',', '.') }}</td>
+                        <td>Extra diurna festivo</td>
+                        <td class="text-right">{{ $report['totals']['overtime_day_holiday_hours'] }}</td>
+                        <td class="text-right">
+                            ${{ number_format($report['cost_summary']['overtime_day_holiday'], 0, ',', '.') }}
+                            @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Extra nocturna festivo</td>
+                        <td class="text-right">{{ $report['totals']['overtime_night_holiday_hours'] }}</td>
+                        <td class="text-right">
+                            ${{ number_format($report['cost_summary']['overtime_night_holiday'], 0, ',', '.') }}
+                            @unless($payOvertime)<span style="color:#b45309;"> (Compensado)</span>@endunless
+                        </td>
                     </tr>
                     <tr class="total-row">
                         <td>TOTAL</td>
@@ -172,7 +198,7 @@
                         <td class="text-right">{{ $emp['net_hours'] }}</td>
                         <td class="text-right">{{ $emp['regular_hours'] }}</td>
                         <td class="text-right">{{ $emp['night_hours'] }}</td>
-                        <td class="text-right">{{ $emp['sunday_holiday_hours'] }}</td>
+                        <td class="text-right">{{ $emp['dominical_hours'] + $emp['holiday_hours'] }}</td>
                         <td class="text-right">{{ $emp['overtime_day_hours'] }}</td>
                         <td class="text-right">${{ number_format($emp['cost'], 0, ',', '.') }}</td>
                     </tr>
@@ -184,7 +210,7 @@
                         <td class="text-right">{{ $report['totals']['regular_hours'] }}</td>
                         <td class="text-right">{{ $report['totals']['night_hours'] }}</td>
                         <td class="text-right">{{ $report['totals']['overtime_day_hours'] }}</td>
-                        <td class="text-right">{{ $report['totals']['sunday_holiday_hours'] }}</td>
+                        <td class="text-right">{{ $report['totals']['dominical_hours'] + $report['totals']['holiday_hours'] }}</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['total'], 0, ',', '.') }}</td>
                     </tr>
                 </tbody>

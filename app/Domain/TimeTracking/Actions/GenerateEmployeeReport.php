@@ -25,14 +25,14 @@ class GenerateEmployeeReport
      *
      * @return array{
      *     employee: array{id: int, name: string, department: ?string, position: ?string, hourly_rate: float, salary_type: string, monthly_base_salary: ?float},
-     *     totals: array{days_worked: int, gross_hours: float, break_hours: float, paid_break_overage_hours: float, net_hours: float, regular_hours: float, night_hours: float, sunday_holiday_hours: float, night_sunday_hours: float, overtime_day_hours: float, overtime_night_hours: float, overtime_day_sunday_hours: float, overtime_night_sunday_hours: float},
+     *     totals: array{days_worked: int, gross_hours: float, break_hours: float, paid_break_overage_hours: float, net_hours: float, regular_hours: float, night_hours: float, dominical_hours: float, night_dominical_hours: float, holiday_hours: float, night_holiday_hours: float, overtime_day_hours: float, overtime_night_hours: float, overtime_day_dominical_hours: float, overtime_night_dominical_hours: float, overtime_day_holiday_hours: float, overtime_night_holiday_hours: float, dominical_worked_days: int, holiday_worked_days: int},
      *     breaks_by_type: array<int, array{name: string, is_paid: bool, icon: string, color: string, total_minutes: float, count: int}>,
      *     daily_breakdown: array,
      *     cost_summary: array,
      *     period: array{start: string, end: string}
      * }
      */
-    public function execute(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true, bool $includeDailyBreakdown = true, bool $includeBreaksByType = true): array
+    public function execute(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true, bool $includeDailyBreakdown = true, bool $includeBreaksByType = true, ?int $dominicalPayableCount = null): array
     {
         $employee = Employee::withoutGlobalScopes()
             ->with('user', 'department', 'position')
@@ -43,6 +43,8 @@ class GenerateEmployeeReport
             ->firstOrFail();
 
         $totals = $this->aggregateTotals($employeeId, $startDate, $endDate);
+        $workedDominicalDays = (int) ($totals->dominical_worked_days ?? 0);
+        $workedHolidayDays = (int) ($totals->holiday_worked_days ?? 0);
         $breaksByType = $includeBreaksByType
             ? $this->aggregateBreaksByType($employeeId, $startDate, $endDate)
             : [];
@@ -66,18 +68,34 @@ class GenerateEmployeeReport
             [
                 'regular_hours' => $totals->total_regular ?? 0,
                 'night_hours' => $totals->total_night ?? 0,
-                'sunday_holiday_hours' => $totals->total_sunday_holiday ?? 0,
-                'night_sunday_hours' => $totals->total_night_sunday ?? 0,
+                'dominical_hours' => $totals->total_dominical ?? 0,
+                'night_dominical_hours' => $totals->total_night_dominical ?? 0,
+                'holiday_hours' => $totals->total_holiday ?? 0,
+                'night_holiday_hours' => $totals->total_night_holiday ?? 0,
                 'overtime_day_hours' => $totals->total_overtime_day ?? 0,
                 'overtime_night_hours' => $totals->total_overtime_night ?? 0,
-                'overtime_day_sunday_hours' => $totals->total_overtime_day_sunday ?? 0,
-                'overtime_night_sunday_hours' => $totals->total_overtime_night_sunday ?? 0,
+                'overtime_day_dominical_hours' => $totals->total_overtime_day_dominical ?? 0,
+                'overtime_night_dominical_hours' => $totals->total_overtime_night_dominical ?? 0,
+                'overtime_day_holiday_hours' => $totals->total_overtime_day_holiday ?? 0,
+                'overtime_night_holiday_hours' => $totals->total_overtime_night_holiday ?? 0,
             ],
             $rules,
             $payOvertime,
             $salaryType,
             $baseSalary,
             $transportAllowance,
+            [
+                'pay' => (bool) $rules->pay_dominical_by_default,
+                'mode' => $employee->dominical_payment_mode ?? 'hour',
+                'day_value' => (float) $employee->normal_day_value,
+                'payable_count' => $dominicalPayableCount,
+                'worked_days' => $workedDominicalDays,
+            ],
+            [
+                'mode' => $employee->holiday_payment_mode ?? 'hour',
+                'day_value' => (float) $employee->normal_day_value,
+                'worked_days' => $workedHolidayDays,
+            ],
         );
 
         return [
@@ -98,12 +116,18 @@ class GenerateEmployeeReport
                 'net_hours' => round((float) ($totals->total_net ?? 0), 2),
                 'regular_hours' => round((float) ($totals->total_regular ?? 0), 2),
                 'night_hours' => round((float) ($totals->total_night ?? 0), 2),
-                'sunday_holiday_hours' => round((float) ($totals->total_sunday_holiday ?? 0), 2),
-                'night_sunday_hours' => round((float) ($totals->total_night_sunday ?? 0), 2),
+                'dominical_hours' => round((float) ($totals->total_dominical ?? 0), 2),
+                'night_dominical_hours' => round((float) ($totals->total_night_dominical ?? 0), 2),
+                'holiday_hours' => round((float) ($totals->total_holiday ?? 0), 2),
+                'night_holiday_hours' => round((float) ($totals->total_night_holiday ?? 0), 2),
                 'overtime_day_hours' => round((float) ($totals->total_overtime_day ?? 0), 2),
                 'overtime_night_hours' => round((float) ($totals->total_overtime_night ?? 0), 2),
-                'overtime_day_sunday_hours' => round((float) ($totals->total_overtime_day_sunday ?? 0), 2),
-                'overtime_night_sunday_hours' => round((float) ($totals->total_overtime_night_sunday ?? 0), 2),
+                'overtime_day_dominical_hours' => round((float) ($totals->total_overtime_day_dominical ?? 0), 2),
+                'overtime_night_dominical_hours' => round((float) ($totals->total_overtime_night_dominical ?? 0), 2),
+                'overtime_day_holiday_hours' => round((float) ($totals->total_overtime_day_holiday ?? 0), 2),
+                'overtime_night_holiday_hours' => round((float) ($totals->total_overtime_night_holiday ?? 0), 2),
+                'dominical_worked_days' => $workedDominicalDays,
+                'holiday_worked_days' => $workedHolidayDays,
             ],
             'breaks_by_type' => $breaksByType,
             'daily_breakdown' => $dailyBreakdown,
@@ -116,7 +140,10 @@ class GenerateEmployeeReport
     }
 
     /**
-     * Agrega totales de horas a nivel de BD con una sola query.
+     * Agrega totales de horas a nivel de BD con una sola query. Incluye el conteo de días
+     * dominicales y festivos distintos trabajados (COUNT DISTINCT CASE), para el modo de pago
+     * por día — evita queries extra. Limitación aceptada: cuenta por entry.date, no por la
+     * fecha calendario real de las horas (cruce de medianoche).
      */
     private function aggregateTotals(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): object
     {
@@ -132,12 +159,18 @@ class GenerateEmployeeReport
                 COALESCE(SUM(net_hours), 0) as total_net,
                 COALESCE(SUM(regular_hours), 0) as total_regular,
                 COALESCE(SUM(night_hours), 0) as total_night,
-                COALESCE(SUM(sunday_holiday_hours), 0) as total_sunday_holiday,
-                COALESCE(SUM(night_sunday_hours), 0) as total_night_sunday,
+                COALESCE(SUM(dominical_hours), 0) as total_dominical,
+                COALESCE(SUM(night_dominical_hours), 0) as total_night_dominical,
+                COALESCE(SUM(holiday_hours), 0) as total_holiday,
+                COALESCE(SUM(night_holiday_hours), 0) as total_night_holiday,
                 COALESCE(SUM(overtime_day_hours), 0) as total_overtime_day,
                 COALESCE(SUM(overtime_night_hours), 0) as total_overtime_night,
-                COALESCE(SUM(overtime_day_sunday_hours), 0) as total_overtime_day_sunday,
-                COALESCE(SUM(overtime_night_sunday_hours), 0) as total_overtime_night_sunday
+                COALESCE(SUM(overtime_day_dominical_hours), 0) as total_overtime_day_dominical,
+                COALESCE(SUM(overtime_night_dominical_hours), 0) as total_overtime_night_dominical,
+                COALESCE(SUM(overtime_day_holiday_hours), 0) as total_overtime_day_holiday,
+                COALESCE(SUM(overtime_night_holiday_hours), 0) as total_overtime_night_holiday,
+                COUNT(DISTINCT CASE WHEN (dominical_hours > 0 OR night_dominical_hours > 0 OR overtime_day_dominical_hours > 0 OR overtime_night_dominical_hours > 0) THEN time_entries.date END) as dominical_worked_days,
+                COUNT(DISTINCT CASE WHEN (holiday_hours > 0 OR night_holiday_hours > 0 OR overtime_day_holiday_hours > 0 OR overtime_night_holiday_hours > 0) THEN time_entries.date END) as holiday_worked_days
             ')
             ->first();
     }
@@ -183,7 +216,7 @@ class GenerateEmployeeReport
      * cada entry equivale a un día; los turnos en curso (sin clock_out) se incluyen con
      * status 'in_progress' y horas en null — los totales del período no los consideran.
      *
-     * @return array<array{date: string, clock_in: ?string, clock_out: ?string, status: string, gross_hours: ?float, break_hours: ?float, paid_break_hours: ?float, paid_break_overage_hours: ?float, net_hours: ?float, regular_hours: ?float, night_hours: ?float, sunday_holiday_hours: ?float, night_sunday_hours: ?float, overtime_day_hours: ?float, overtime_night_hours: ?float, overtime_day_sunday_hours: ?float, overtime_night_sunday_hours: ?float, breaks: array}>
+     * @return array<array{date: string, clock_in: ?string, clock_out: ?string, status: string, gross_hours: ?float, break_hours: ?float, paid_break_hours: ?float, paid_break_overage_hours: ?float, net_hours: ?float, regular_hours: ?float, night_hours: ?float, dominical_hours: ?float, night_dominical_hours: ?float, holiday_hours: ?float, night_holiday_hours: ?float, overtime_day_hours: ?float, overtime_night_hours: ?float, overtime_day_dominical_hours: ?float, overtime_night_dominical_hours: ?float, overtime_day_holiday_hours: ?float, overtime_night_holiday_hours: ?float, breaks: array}>
      */
     private function getDailyBreakdown(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): array
     {
@@ -209,8 +242,9 @@ class GenerateEmployeeReport
 
         $hours = [
             'gross_hours', 'break_hours', 'paid_break_overage_hours', 'net_hours', 'regular_hours',
-            'night_hours', 'sunday_holiday_hours', 'night_sunday_hours', 'overtime_day_hours',
-            'overtime_night_hours', 'overtime_day_sunday_hours', 'overtime_night_sunday_hours',
+            'night_hours', 'dominical_hours', 'night_dominical_hours', 'holiday_hours', 'night_holiday_hours',
+            'overtime_day_hours', 'overtime_night_hours', 'overtime_day_dominical_hours',
+            'overtime_night_dominical_hours', 'overtime_day_holiday_hours', 'overtime_night_holiday_hours',
         ];
 
         $day = [

@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Company\Models\DominicalPaymentDecision;
 use App\Domain\Company\Models\OvertimePaymentDecision;
 use App\Domain\Employee\Models\Employee;
 // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore import when re-enabling.
 // use App\Domain\Organization\Models\Department;
 use App\Domain\TimeTracking\Actions\GenerateCompanyReport;
 use App\Domain\TimeTracking\Actions\GenerateEmployeeReport;
+use App\Domain\TimeTracking\Actions\ResolveDominicalPaymentDecision;
 use App\Domain\TimeTracking\Actions\ResolveOvertimePaymentDecision;
 use App\Exports\CompanyReportExport;
 use App\Exports\EmployeeReportExport;
@@ -27,6 +29,7 @@ class ReportController extends Controller
         private GenerateEmployeeReport $employeeReport,
         private GenerateCompanyReport $companyReport,
         private ResolveOvertimePaymentDecision $resolveOvertimeDecision,
+        private ResolveDominicalPaymentDecision $resolveDominicalDecision,
     ) {}
 
     /**
@@ -53,12 +56,20 @@ class ReportController extends Controller
         [$startDate, $endDate] = $this->resolveDateRange($validated);
 
         $employeeId = (int) $validated['employee_id'];
+        $companyId = $this->employeeCompanyId($employeeId);
         $payOvertime = $this->resolveOvertimeDecision->execute(
-            $this->employeeCompanyId($employeeId),
+            $companyId,
             $employeeId,
             $startDate,
             $endDate,
             $this->requestPayOvertime($request),
+        );
+        $dominicalCount = $this->resolveDominicalDecision->execute(
+            $companyId,
+            $employeeId,
+            $startDate,
+            $endDate,
+            $this->requestDominicalCount($request),
         );
 
         $report = $this->buildEmployeeReport(
@@ -68,6 +79,7 @@ class ReportController extends Controller
             $payOvertime,
             includeDailyBreakdown: true,
             includeBreaksByType: false,
+            dominicalPayableCount: $dominicalCount,
         );
 
         return Inertia::render('Reports/Employee', [
@@ -78,6 +90,7 @@ class ReportController extends Controller
                 'end_date' => $endDate->toDateString(),
                 'employee_id' => $employeeId,
                 'pay_overtime' => $payOvertime,
+                'dominical_payable_count' => $dominicalCount,
             ],
             'employees' => Employee::with('user')->get()->map(fn ($e) => [
                 'id' => $e->id,
@@ -130,7 +143,8 @@ class ReportController extends Controller
         $validated = $request->validated();
         [$startDate, $endDate] = $this->resolveDateRange($validated);
         $payOvertime = $this->persistEmployeeDecision($request, $startDate, $endDate);
-        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime);
+        $dominicalCount = $this->persistEmployeeDominicalDecision($request, $startDate, $endDate);
+        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime, dominicalPayableCount: $dominicalCount);
         $name = 'reporte-'.str($report['employee']['name'])->slug().'.xlsx';
 
         return Excel::download(new EmployeeReportExport($report), $name);
@@ -144,7 +158,8 @@ class ReportController extends Controller
         $validated = $request->validated();
         [$startDate, $endDate] = $this->resolveDateRange($validated);
         $payOvertime = $this->persistEmployeeDecision($request, $startDate, $endDate);
-        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime);
+        $dominicalCount = $this->persistEmployeeDominicalDecision($request, $startDate, $endDate);
+        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime, dominicalPayableCount: $dominicalCount);
         $name = 'reporte-'.str($report['employee']['name'])->slug().'.pdf';
 
         return Pdf::loadView('exports.employee-report', compact('report'))
@@ -183,7 +198,7 @@ class ReportController extends Controller
     /**
      * Genera los datos del reporte de empleado (reutilizado por vista y exports).
      */
-    private function buildEmployeeReport(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true, bool $includeDailyBreakdown = true, bool $includeBreaksByType = true): array
+    private function buildEmployeeReport(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true, bool $includeDailyBreakdown = true, bool $includeBreaksByType = true, ?int $dominicalPayableCount = null): array
     {
         $validated = $request->validated();
 
@@ -194,6 +209,7 @@ class ReportController extends Controller
             $payOvertime,
             $includeDailyBreakdown,
             $includeBreaksByType,
+            $dominicalPayableCount,
         );
     }
 
@@ -229,6 +245,17 @@ class ReportController extends Controller
     }
 
     /**
+     * Lee el override explícito del conteo de dominicales a pagar (null si no viene).
+     * Acepta 0 como valor válido (no pagar ninguno).
+     */
+    private function requestDominicalCount(ReportFilterRequest $request): ?int
+    {
+        $value = $request->input('dominical_payable_count');
+
+        return $value === null || $value === '' ? null : (int) $value;
+    }
+
+    /**
      * company_id del empleado (soporta super-admin sin company_id propio).
      */
     private function employeeCompanyId(int $employeeId): int
@@ -257,6 +284,51 @@ class ReportController extends Controller
         $this->upsertDecision($companyId, $employeeId, $startDate, $endDate, $payOvertime, $request->user()?->id);
 
         return $payOvertime;
+    }
+
+    /**
+     * Resuelve y persiste (upsert) la decisión dominical de un empleado al exportar; retorna el K efectivo.
+     */
+    private function persistEmployeeDominicalDecision(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate): ?int
+    {
+        $employeeId = (int) $request->validated()['employee_id'];
+        $companyId = $this->employeeCompanyId($employeeId);
+
+        $count = $this->resolveDominicalDecision->execute(
+            $companyId,
+            $employeeId,
+            $startDate,
+            $endDate,
+            $this->requestDominicalCount($request),
+        );
+
+        $existing = DominicalPaymentDecision::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('employee_id', $employeeId)
+            ->where('start_date', $startDate->toDateString())
+            ->where('end_date', $endDate->toDateString())
+            ->first();
+
+        $payload = [
+            'payable_count' => $count,
+            'exported_by' => $request->user()?->id,
+            'exported_at' => now(),
+        ];
+
+        if ($existing !== null) {
+            $existing->update($payload);
+
+            return $count;
+        }
+
+        DominicalPaymentDecision::withoutGlobalScopes()->create(array_merge($payload, [
+            'company_id' => $companyId,
+            'employee_id' => $employeeId,
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+        ]));
+
+        return $count;
     }
 
     /**

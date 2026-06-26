@@ -29,6 +29,7 @@ class ReportFilterRequest extends FormRequest
                 : ['nullable', 'integer', $this->employeeExistsRule()],
             'department_id' => ['nullable', 'integer', $this->departmentExistsRule()],
             'pay_overtime' => ['nullable', 'boolean'],
+            'dominical_payable_count' => ['nullable', 'integer', 'min:0'],
         ];
     }
 

@@ -51,18 +51,25 @@ class GenerateCompanyReport
         $totalCost = [
             'regular' => 0.0,
             'night' => 0.0,
-            'sunday_holiday' => 0.0,
-            'night_sunday' => 0.0,
+            'dominical' => 0.0,
+            'night_dominical' => 0.0,
+            'holiday' => 0.0,
+            'night_holiday' => 0.0,
             'overtime_day' => 0.0,
             'overtime_night' => 0.0,
-            'overtime_day_sunday' => 0.0,
-            'overtime_night_sunday' => 0.0,
+            'overtime_day_dominical' => 0.0,
+            'overtime_night_dominical' => 0.0,
+            'overtime_day_holiday' => 0.0,
+            'overtime_night_holiday' => 0.0,
             'base' => 0.0,
             'transport_allowance' => 0.0,
             'total' => 0.0,
         ];
 
-        $employeesWithCosts = $employeeBreakdown->map(function ($emp) use ($rules, $payOvertime, $startDate, $endDate, &$totalCost) {
+        // Decisiones dominicales guardadas del periodo, keyed por employee_id (una query, sin N+1).
+        $dominicalDecisions = $this->loadDominicalDecisions($companyId, $startDate, $endDate);
+
+        $employeesWithCosts = $employeeBreakdown->map(function ($emp) use ($rules, $payOvertime, $startDate, $endDate, $dominicalDecisions, &$totalCost) {
             $salaryType = $emp->salary_type ?? 'hourly';
             $baseSalary = $salaryType === 'monthly'
                 ? $this->baseSalaryCalculator->execute((float) $emp->monthly_base_salary, $startDate, $endDate)
@@ -77,28 +84,48 @@ class GenerateCompanyReport
                 [
                     'regular_hours' => (float) $emp->total_regular,
                     'night_hours' => (float) $emp->total_night,
-                    'sunday_holiday_hours' => (float) $emp->total_sunday_holiday,
-                    'night_sunday_hours' => (float) $emp->total_night_sunday,
+                    'dominical_hours' => (float) $emp->total_dominical,
+                    'night_dominical_hours' => (float) $emp->total_night_dominical,
+                    'holiday_hours' => (float) $emp->total_holiday,
+                    'night_holiday_hours' => (float) $emp->total_night_holiday,
                     'overtime_day_hours' => (float) $emp->total_overtime_day,
                     'overtime_night_hours' => (float) $emp->total_overtime_night,
-                    'overtime_day_sunday_hours' => (float) $emp->total_overtime_day_sunday,
-                    'overtime_night_sunday_hours' => (float) $emp->total_overtime_night_sunday,
+                    'overtime_day_dominical_hours' => (float) $emp->total_overtime_day_dominical,
+                    'overtime_night_dominical_hours' => (float) $emp->total_overtime_night_dominical,
+                    'overtime_day_holiday_hours' => (float) $emp->total_overtime_day_holiday,
+                    'overtime_night_holiday_hours' => (float) $emp->total_overtime_night_holiday,
                 ],
                 $rules,
                 $payOvertime,
                 $salaryType,
                 $baseSalary,
                 $transportAllowance,
+                [
+                    'pay' => (bool) $rules->pay_dominical_by_default,
+                    'mode' => $emp->dominical_payment_mode ?? 'hour',
+                    'day_value' => (float) $emp->normal_day_value,
+                    'payable_count' => $dominicalDecisions[$emp->employee_id] ?? null,
+                    'worked_days' => (int) ($emp->dominical_worked_days ?? 0),
+                ],
+                [
+                    'mode' => $emp->holiday_payment_mode ?? 'hour',
+                    'day_value' => (float) $emp->normal_day_value,
+                    'worked_days' => (int) ($emp->holiday_worked_days ?? 0),
+                ],
             );
 
             $totalCost['regular'] += $cost['regular'];
             $totalCost['night'] += $cost['night'];
-            $totalCost['sunday_holiday'] += $cost['sunday_holiday'];
-            $totalCost['night_sunday'] += $cost['night_sunday'];
+            $totalCost['dominical'] += $cost['dominical'];
+            $totalCost['night_dominical'] += $cost['night_dominical'];
+            $totalCost['holiday'] += $cost['holiday'];
+            $totalCost['night_holiday'] += $cost['night_holiday'];
             $totalCost['overtime_day'] += $cost['overtime_day'];
             $totalCost['overtime_night'] += $cost['overtime_night'];
-            $totalCost['overtime_day_sunday'] += $cost['overtime_day_sunday'];
-            $totalCost['overtime_night_sunday'] += $cost['overtime_night_sunday'];
+            $totalCost['overtime_day_dominical'] += $cost['overtime_day_dominical'];
+            $totalCost['overtime_night_dominical'] += $cost['overtime_night_dominical'];
+            $totalCost['overtime_day_holiday'] += $cost['overtime_day_holiday'];
+            $totalCost['overtime_night_holiday'] += $cost['overtime_night_holiday'];
             $totalCost['base'] += $cost['base'];
             $totalCost['transport_allowance'] += $cost['transport_allowance'];
             $totalCost['total'] += $cost['total'];
@@ -117,12 +144,17 @@ class GenerateCompanyReport
                 'net_hours' => round((float) $emp->total_net, 2),
                 'regular_hours' => round((float) $emp->total_regular, 2),
                 'night_hours' => round((float) $emp->total_night, 2),
-                'sunday_holiday_hours' => round((float) $emp->total_sunday_holiday, 2),
-                'night_sunday_hours' => round((float) $emp->total_night_sunday, 2),
+                'dominical_hours' => round((float) $emp->total_dominical, 2),
+                'night_dominical_hours' => round((float) $emp->total_night_dominical, 2),
+                'holiday_hours' => round((float) $emp->total_holiday, 2),
+                'night_holiday_hours' => round((float) $emp->total_night_holiday, 2),
                 'overtime_day_hours' => round((float) $emp->total_overtime_day, 2),
                 'overtime_night_hours' => round((float) $emp->total_overtime_night, 2),
-                'overtime_day_sunday_hours' => round((float) $emp->total_overtime_day_sunday, 2),
-                'overtime_night_sunday_hours' => round((float) $emp->total_overtime_night_sunday, 2),
+                'overtime_day_dominical_hours' => round((float) $emp->total_overtime_day_dominical, 2),
+                'overtime_night_dominical_hours' => round((float) $emp->total_overtime_night_dominical, 2),
+                'overtime_day_holiday_hours' => round((float) $emp->total_overtime_day_holiday, 2),
+                'overtime_night_holiday_hours' => round((float) $emp->total_overtime_night_holiday, 2),
+                'dominical_worked_days' => (int) ($emp->dominical_worked_days ?? 0),
                 'cost' => $cost['total'],
             ];
         })->toArray();
@@ -162,7 +194,7 @@ class GenerateCompanyReport
             ->whereNull('time_entries.deleted_at')
             ->whereNotNull('time_entries.clock_out')
             ->when($departmentId, fn ($q) => $q->where('employees.department_id', $departmentId))
-            ->groupBy('employees.id', 'users.name', 'employees.hourly_rate', 'employees.salary_type', 'employees.monthly_base_salary', 'employees.receives_transport_allowance', 'departments.name')
+            ->groupBy('employees.id', 'users.name', 'employees.hourly_rate', 'employees.salary_type', 'employees.monthly_base_salary', 'employees.receives_transport_allowance', 'employees.dominical_payment_mode', 'employees.normal_day_value', 'employees.holiday_payment_mode', 'departments.name')
             ->selectRaw('
                 employees.id as employee_id,
                 users.name as employee_name,
@@ -171,18 +203,27 @@ class GenerateCompanyReport
                 employees.salary_type,
                 employees.monthly_base_salary,
                 employees.receives_transport_allowance,
+                employees.dominical_payment_mode,
+                employees.normal_day_value,
+                employees.holiday_payment_mode,
                 COUNT(*) as days_worked,
                 COALESCE(SUM(time_entries.gross_hours), 0) as total_gross,
                 COALESCE(SUM(time_entries.break_hours), 0) as total_breaks,
                 COALESCE(SUM(time_entries.net_hours), 0) as total_net,
                 COALESCE(SUM(time_entries.regular_hours), 0) as total_regular,
                 COALESCE(SUM(time_entries.night_hours), 0) as total_night,
-                COALESCE(SUM(time_entries.sunday_holiday_hours), 0) as total_sunday_holiday,
-                COALESCE(SUM(time_entries.night_sunday_hours), 0) as total_night_sunday,
+                COALESCE(SUM(time_entries.dominical_hours), 0) as total_dominical,
+                COALESCE(SUM(time_entries.night_dominical_hours), 0) as total_night_dominical,
+                COALESCE(SUM(time_entries.holiday_hours), 0) as total_holiday,
+                COALESCE(SUM(time_entries.night_holiday_hours), 0) as total_night_holiday,
                 COALESCE(SUM(time_entries.overtime_day_hours), 0) as total_overtime_day,
                 COALESCE(SUM(time_entries.overtime_night_hours), 0) as total_overtime_night,
-                COALESCE(SUM(time_entries.overtime_day_sunday_hours), 0) as total_overtime_day_sunday,
-                COALESCE(SUM(time_entries.overtime_night_sunday_hours), 0) as total_overtime_night_sunday
+                COALESCE(SUM(time_entries.overtime_day_dominical_hours), 0) as total_overtime_day_dominical,
+                COALESCE(SUM(time_entries.overtime_night_dominical_hours), 0) as total_overtime_night_dominical,
+                COALESCE(SUM(time_entries.overtime_day_holiday_hours), 0) as total_overtime_day_holiday,
+                COALESCE(SUM(time_entries.overtime_night_holiday_hours), 0) as total_overtime_night_holiday,
+                COUNT(DISTINCT CASE WHEN (time_entries.dominical_hours > 0 OR time_entries.night_dominical_hours > 0 OR time_entries.overtime_day_dominical_hours > 0 OR time_entries.overtime_night_dominical_hours > 0) THEN time_entries.date END) as dominical_worked_days,
+                COUNT(DISTINCT CASE WHEN (time_entries.holiday_hours > 0 OR time_entries.night_holiday_hours > 0 OR time_entries.overtime_day_holiday_hours > 0 OR time_entries.overtime_night_holiday_hours > 0) THEN time_entries.date END) as holiday_worked_days
             ')
             ->orderByDesc('total_net')
             ->get();
@@ -214,7 +255,10 @@ class GenerateCompanyReport
                 employees.hourly_rate,
                 employees.salary_type,
                 employees.monthly_base_salary,
-                employees.receives_transport_allowance
+                employees.receives_transport_allowance,
+                employees.dominical_payment_mode,
+                employees.normal_day_value,
+                employees.holiday_payment_mode
             ')
             ->get()
             ->map(fn ($e) => (object) [
@@ -225,18 +269,27 @@ class GenerateCompanyReport
                 'salary_type' => $e->salary_type,
                 'monthly_base_salary' => $e->monthly_base_salary,
                 'receives_transport_allowance' => $e->receives_transport_allowance,
+                'dominical_payment_mode' => $e->dominical_payment_mode,
+                'normal_day_value' => $e->normal_day_value,
+                'holiday_payment_mode' => $e->holiday_payment_mode,
                 'days_worked' => 0,
                 'total_gross' => 0,
                 'total_breaks' => 0,
                 'total_net' => 0,
                 'total_regular' => 0,
                 'total_night' => 0,
-                'total_sunday_holiday' => 0,
-                'total_night_sunday' => 0,
+                'total_dominical' => 0,
+                'total_night_dominical' => 0,
+                'total_holiday' => 0,
+                'total_night_holiday' => 0,
                 'total_overtime_day' => 0,
                 'total_overtime_night' => 0,
-                'total_overtime_day_sunday' => 0,
-                'total_overtime_night_sunday' => 0,
+                'total_overtime_day_dominical' => 0,
+                'total_overtime_night_dominical' => 0,
+                'total_overtime_day_holiday' => 0,
+                'total_overtime_night_holiday' => 0,
+                'dominical_worked_days' => 0,
+                'holiday_worked_days' => 0,
             ]);
 
         return $breakdown->concat($missing);
@@ -295,12 +348,32 @@ class GenerateCompanyReport
             'net_hours' => round((float) $employees->sum('total_net'), 2),
             'regular_hours' => round((float) $employees->sum('total_regular'), 2),
             'night_hours' => round((float) $employees->sum('total_night'), 2),
-            'sunday_holiday_hours' => round((float) $employees->sum('total_sunday_holiday'), 2),
-            'night_sunday_hours' => round((float) $employees->sum('total_night_sunday'), 2),
+            'dominical_hours' => round((float) $employees->sum('total_dominical'), 2),
+            'night_dominical_hours' => round((float) $employees->sum('total_night_dominical'), 2),
+            'holiday_hours' => round((float) $employees->sum('total_holiday'), 2),
+            'night_holiday_hours' => round((float) $employees->sum('total_night_holiday'), 2),
             'overtime_day_hours' => round((float) $employees->sum('total_overtime_day'), 2),
             'overtime_night_hours' => round((float) $employees->sum('total_overtime_night'), 2),
-            'overtime_day_sunday_hours' => round((float) $employees->sum('total_overtime_day_sunday'), 2),
-            'overtime_night_sunday_hours' => round((float) $employees->sum('total_overtime_night_sunday'), 2),
+            'overtime_day_dominical_hours' => round((float) $employees->sum('total_overtime_day_dominical'), 2),
+            'overtime_night_dominical_hours' => round((float) $employees->sum('total_overtime_night_dominical'), 2),
+            'overtime_day_holiday_hours' => round((float) $employees->sum('total_overtime_day_holiday'), 2),
+            'overtime_night_holiday_hours' => round((float) $employees->sum('total_overtime_night_holiday'), 2),
         ];
+    }
+
+    /**
+     * Carga las decisiones dominicales guardadas del periodo, mapeadas por employee_id → payable_count.
+     * Una sola query (sin N+1); el reporte de empresa respeta la decisión de cada empleado.
+     *
+     * @return array<int, int|null>
+     */
+    private function loadDominicalDecisions(int $companyId, CarbonInterface $startDate, CarbonInterface $endDate): array
+    {
+        return \App\Domain\Company\Models\DominicalPaymentDecision::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('start_date', $startDate->toDateString())
+            ->where('end_date', $endDate->toDateString())
+            ->pluck('payable_count', 'employee_id')
+            ->all();
     }
 }
