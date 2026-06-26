@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Company\Models\Company;
 use App\Domain\Company\Models\SurchargeRule;
 use App\Domain\Employee\Models\Employee;
+use App\Domain\Employee\Models\EmployeeAdjustment;
 use App\Domain\TimeTracking\Actions\GenerateEmployeeReport;
 use App\Domain\TimeTracking\Models\BreakEntry;
 use App\Domain\TimeTracking\Models\BreakType;
@@ -954,6 +955,71 @@ class GenerateEmployeeReportTest extends TestCase
         $this->assertEquals(40000.0, $cost['health_deduction']);  // 4%
         $this->assertEquals(40000.0, $cost['pension_deduction']); // 4%
         $this->assertEquals(1120000.0 - 80000.0, $cost['net_pay']);
+    }
+
+    // ----------------------------------------------------------------------------------
+    // Ajustes de nómina (bonos/deducciones) aplicados después del neto a pagar.
+    // ----------------------------------------------------------------------------------
+
+    public function test_report_applies_adjustments_within_period(): void
+    {
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-03-05',
+            'clock_in' => '2026-03-05 08:00:00',
+            'clock_out' => '2026-03-05 16:00:00',
+            'gross_hours' => 8.0,
+            'break_hours' => 0,
+            'net_hours' => 8.0,
+            'regular_hours' => 8.0,
+            'status' => 'calculated',
+        ]);
+
+        EmployeeAdjustment::factory()->bonus()->create([
+            'company_id' => $this->company->id,
+            'employee_id' => $this->employee->id,
+            'date' => '2026-03-06',
+            'amount' => 100000,
+        ]);
+        EmployeeAdjustment::factory()->deduction()->create([
+            'company_id' => $this->company->id,
+            'employee_id' => $this->employee->id,
+            'date' => '2026-03-07',
+            'amount' => 30000,
+        ]);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        $cost = $result['cost_summary'];
+        $this->assertEquals(100000.0, $cost['bonus_total']);
+        $this->assertEquals(30000.0, $cost['deduction_total']);
+        $this->assertEquals($cost['net_pay'] + 100000.0 - 30000.0, $cost['final_pay']);
+        $this->assertCount(2, $result['adjustments']);
+    }
+
+    public function test_report_ignores_adjustments_outside_period(): void
+    {
+        EmployeeAdjustment::factory()->bonus()->create([
+            'company_id' => $this->company->id,
+            'employee_id' => $this->employee->id,
+            'date' => '2026-04-02',
+            'amount' => 500000,
+        ]);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        $this->assertEquals(0.0, $result['cost_summary']['bonus_total']);
+        $this->assertEquals($result['cost_summary']['net_pay'], $result['cost_summary']['final_pay']);
+        $this->assertCount(0, $result['adjustments']);
     }
 
     private function setCompanyTransportAllowance(float $value): void

@@ -259,10 +259,23 @@
                         <td colspan="3">Pensión ({{ $report['cost_summary']['pension_rate'] }}%)</td>
                         <td class="text-right">-${{ number_format($report['cost_summary']['pension_deduction'], 0, ',', '.') }}</td>
                     </tr>
-                    <tr class="total-row">
+                    <tr class="@if(empty($report['adjustments'])) total-row @endif">
                         <td colspan="3">NETO A PAGAR</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['net_pay'], 0, ',', '.') }}</td>
                     </tr>
+                    @forelse($report['adjustments'] ?? [] as $adjustment)
+                    <tr>
+                        <td colspan="3">{{ $adjustment['type'] === 'Bonus' ? 'Bonificación' : 'Deducción' }}@if(!empty($adjustment['concept'])): {{ $adjustment['concept'] }}@endif</td>
+                        <td class="text-right">{{ $adjustment['type'] === 'Bonus' ? '+' : '-' }}${{ number_format($adjustment['amount'], 0, ',', '.') }}</td>
+                    </tr>
+                    @empty
+                    @endforelse
+                    @unless(empty($report['adjustments']))
+                    <tr class="total-row">
+                        <td colspan="3">TOTAL A PAGAR</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['final_pay'], 0, ',', '.') }}</td>
+                    </tr>
+                    @endunless
                 </tbody>
             </table>
         </div>

@@ -24,7 +24,13 @@ import {
 import DailyWorkTable from '@/components/DailyWorkTable.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import {
     Select,
     SelectContent,
@@ -37,6 +43,7 @@ import { formatDecimalHours } from '@/lib/utils';
 import type { BreadcrumbItem, DailyWorkDay } from '@/types';
 import DateRangeFilter from './partials/DateRangeFilter.vue';
 import OvertimePaymentToggle from './partials/OvertimePaymentToggle.vue';
+import ReportAdjustments from './partials/ReportAdjustments.vue';
 
 type CostDetail = {
     type: string;
@@ -45,6 +52,15 @@ type CostDetail = {
     surcharge: number;
     subtotal: number;
     compensated: boolean;
+};
+
+type Adjustment = {
+    id: number;
+    date: string;
+    type: 'Bonus' | 'Deduction';
+    amount: number;
+    concept: string;
+    note: string | null;
 };
 
 type Report = {
@@ -98,6 +114,9 @@ type Report = {
         pension_rate: number;
         pension_deduction: number;
         net_pay: number;
+        bonus_total: number;
+        deduction_total: number;
+        final_pay: number;
         salary_type: string;
         pay_overtime: boolean;
         pay_dominical: boolean;
@@ -114,6 +133,7 @@ type Report = {
         details: CostDetail[];
     };
     daily_breakdown: DailyWorkDay[];
+    adjustments: Adjustment[];
     period: { start: string; end: string };
 };
 
@@ -1040,7 +1060,7 @@ function hourTypeLabel(type: string): string {
                                             }}
                                         </td>
                                     </tr>
-                                    <tr class="border-t text-base font-bold">
+                                    <tr class="border-t font-semibold">
                                         <td class="pt-2" colspan="3">
                                             {{ t('reports.costs.net_pay') }}
                                         </td>
@@ -1052,9 +1072,75 @@ function hourTypeLabel(type: string): string {
                                             }}
                                         </td>
                                     </tr>
+                                    <tr
+                                        v-for="adjustment in report.adjustments"
+                                        :key="adjustment.id"
+                                        class="text-muted-foreground"
+                                    >
+                                        <td colspan="3">
+                                            {{
+                                                adjustment.type === 'Bonus'
+                                                    ? t('reports.costs.bonus')
+                                                    : t(
+                                                          'reports.costs.deduction',
+                                                      )
+                                            }}<template v-if="adjustment.concept"
+                                                >: {{ adjustment.concept }}</template
+                                            >
+                                        </td>
+                                        <td
+                                            class="text-right"
+                                            :class="
+                                                adjustment.type === 'Bonus'
+                                                    ? 'text-green-600'
+                                                    : 'text-red-600'
+                                            "
+                                        >
+                                            {{
+                                                adjustment.type === 'Bonus'
+                                                    ? '+'
+                                                    : '-'
+                                            }}{{ formatCurrency(adjustment.amount) }}
+                                        </td>
+                                    </tr>
+                                    <tr
+                                        v-if="report.adjustments.length > 0"
+                                        class="border-t text-base font-bold"
+                                    >
+                                        <td class="pt-2" colspan="3">
+                                            {{ t('reports.costs.final_pay') }}
+                                        </td>
+                                        <td class="pt-2 text-right">
+                                            {{
+                                                formatCurrency(
+                                                    report.cost_summary
+                                                        .final_pay,
+                                                )
+                                            }}
+                                        </td>
+                                    </tr>
                                 </tfoot>
                             </table>
                         </div>
+                    </CardContent>
+                </Card>
+
+                <!-- Ajustes del período: bonos y deducciones -->
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{{
+                            t('reports.adjustments.title')
+                        }}</CardTitle>
+                        <CardDescription>{{
+                            t('reports.adjustments.description')
+                        }}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ReportAdjustments
+                            :employee-id="filters.employee_id"
+                            :period-end="filters.end_date"
+                            :adjustments="report.adjustments"
+                        />
                     </CardContent>
                 </Card>
 

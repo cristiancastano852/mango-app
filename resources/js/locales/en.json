@@ -459,7 +459,10 @@
             "health": "Health ({rate}%)",
             "pension": "Pension ({rate}%)",
             "net_pay": "Net pay",
-            "days_count": "{n} day | {n} days"
+            "days_count": "{n} day | {n} days",
+            "bonus": "Bonus",
+            "deduction": "Deduction",
+            "final_pay": "Total to pay"
         },
         "overtime_payment": {
             "label": "Pay overtime",
@@ -482,6 +485,18 @@
             "days": "Days",
             "net_hours": "Net hours",
             "cost": "Cost"
+        },
+        "adjustments": {
+            "title": "Period adjustments",
+            "description": "Bonuses and loans/advances for this period; applied after net pay.",
+            "empty": "No adjustments for this period.",
+            "add": "Add adjustment",
+            "type": "Type",
+            "bonus": "Bonus",
+            "deduction": "Deduction",
+            "amount": "Amount",
+            "concept": "Concept",
+            "note": "Note"
         }
     },
     "settings": {

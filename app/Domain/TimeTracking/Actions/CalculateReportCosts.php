@@ -38,8 +38,11 @@ class CalculateReportCosts
      * @param  array{health?: float, pension?: float}  $socialSecurity  Tasas (%) del aporte de seguridad social a cargo del
      *                                                                  empleado: salud y pensión. Se aplican sobre el IBC
      *                                                                  (`total − auxilio de transporte`).
+     * @param  array{bonus_total?: float, deduction_total?: float}  $adjustments  Ajustes de nómina del periodo aplicados
+     *                                                                            DESPUÉS del neto: `final_pay = net_pay +
+     *                                                                            bonus_total − deduction_total`. No afectan el IBC.
      */
-    public function execute(float $hourlyRate, array $hourTotals, SurchargeRule $rules, bool $payOvertime = true, string $salaryType = 'hourly', float $baseSalary = 0.0, float $transportAllowance = 0.0, array $dominical = [], array $holiday = [], array $socialSecurity = []): array
+    public function execute(float $hourlyRate, array $hourTotals, SurchargeRule $rules, bool $payOvertime = true, string $salaryType = 'hourly', float $baseSalary = 0.0, float $transportAllowance = 0.0, array $dominical = [], array $holiday = [], array $socialSecurity = [], array $adjustments = []): array
     {
         $h = fn (string $key): float => (float) ($hourTotals[$key] ?? 0);
 
@@ -210,6 +213,11 @@ class CalculateReportCosts
         $pensionDeduction = round($socialSecurityBase * $pensionRate / 100, 2);
         $netPay = round($totalCost - $healthDeduction - $pensionDeduction, 2);
 
+        // --- Ajustes de nómina (bonos/deducciones) aplicados después del neto, sin tocar el IBC ---
+        $bonusTotal = round((float) ($adjustments['bonus_total'] ?? 0), 2);
+        $deductionTotal = round((float) ($adjustments['deduction_total'] ?? 0), 2);
+        $finalPay = round($netPay + $bonusTotal - $deductionTotal, 2);
+
         $otCompensated = ! $payOvertime;
 
         $detail = fn (string $type, float $hours, float $surcharge, float $subtotal, bool $compensated = false): array => [
@@ -243,6 +251,9 @@ class CalculateReportCosts
             'pension_rate' => $pensionRate,
             'pension_deduction' => $pensionDeduction,
             'net_pay' => $netPay,
+            'bonus_total' => $bonusTotal,
+            'deduction_total' => $deductionTotal,
+            'final_pay' => $finalPay,
             'salary_type' => $salaryType,
             'pay_overtime' => $payOvertime,
             'pay_dominical' => $payDominical,

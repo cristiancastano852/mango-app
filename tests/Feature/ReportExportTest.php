@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Company\Models\Company;
 use App\Domain\Company\Models\SurchargeRule;
 use App\Domain\Employee\Models\Employee;
+use App\Domain\Employee\Models\EmployeeAdjustment;
 use App\Domain\Organization\Models\Department;
 use App\Domain\TimeTracking\Actions\GenerateEmployeeReport;
 use App\Domain\TimeTracking\Models\TimeEntry;
@@ -421,6 +422,75 @@ class ReportExportTest extends TestCase
         $this->assertStringContainsString('Salud (4%)', $html);
         $this->assertStringContainsString('Pensión (4%)', $html);
         $this->assertStringContainsString('NETO A PAGAR', $html);
+    }
+
+    // --- Ajustes de nómina en los exports ---
+
+    public function test_employee_excel_includes_adjustments_and_final_pay(): void
+    {
+        EmployeeAdjustment::factory()->bonus()->create([
+            'company_id' => $this->company->id,
+            'employee_id' => $this->employee->id,
+            'date' => now()->toDateString(),
+            'amount' => 100000,
+            'concept' => 'Bono',
+        ]);
+        EmployeeAdjustment::factory()->deduction()->create([
+            'company_id' => $this->company->id,
+            'employee_id' => $this->employee->id,
+            'date' => now()->toDateString(),
+            'amount' => 40000,
+            'concept' => 'Préstamo',
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->startOfMonth(),
+            now()->endOfMonth(),
+        );
+
+        $rows = collect((new EmployeeReportExport($report))->sheets()[0]->array())
+            ->keyBy(fn ($row) => $row[0] ?? '');
+
+        $this->assertEquals(100000.0, $rows['Bonificación: Bono'][3]);
+        $this->assertEquals(-40000.0, $rows['Deducción: Préstamo'][3]);
+        $this->assertEquals($report['cost_summary']['final_pay'], $rows['TOTAL A PAGAR'][3]);
+    }
+
+    public function test_employee_pdf_view_includes_adjustments(): void
+    {
+        EmployeeAdjustment::factory()->bonus()->create([
+            'company_id' => $this->company->id,
+            'employee_id' => $this->employee->id,
+            'date' => now()->toDateString(),
+            'amount' => 100000,
+            'concept' => 'Bono',
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->startOfMonth(),
+            now()->endOfMonth(),
+        );
+
+        $html = view('exports.employee-report', ['report' => $report])->render();
+
+        $this->assertStringContainsString('Bonificación: Bono', $html);
+        $this->assertStringContainsString('TOTAL A PAGAR', $html);
+    }
+
+    public function test_employee_excel_omits_final_pay_row_without_adjustments(): void
+    {
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->startOfMonth(),
+            now()->endOfMonth(),
+        );
+
+        $labels = collect((new EmployeeReportExport($report))->sheets()[0]->array())
+            ->map(fn ($row) => $row[0] ?? '');
+
+        $this->assertFalse($labels->contains('TOTAL A PAGAR'));
     }
 
     // --- Employee PDF ---

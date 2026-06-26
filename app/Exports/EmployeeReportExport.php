@@ -136,6 +136,19 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
             ['NETO A PAGAR', '', '', $costs['net_pay']],
         ]);
 
+        $adjustments = $this->report['adjustments'] ?? [];
+        foreach ($adjustments as $adjustment) {
+            $isBonus = $adjustment['type'] === 'Bonus';
+            $label = $isBonus ? 'Bonificación' : 'Deducción';
+            if (! empty($adjustment['concept'])) {
+                $label .= ': '.$adjustment['concept'];
+            }
+            $rows[] = [$label, '', '', $isBonus ? $adjustment['amount'] : -$adjustment['amount']];
+        }
+        if (! empty($adjustments)) {
+            $rows[] = ['TOTAL A PAGAR', '', '', $costs['final_pay']];
+        }
+
         if (! empty($this->report['breaks_by_type'])) {
             $rows[] = [];
             $rows[] = ['--- Pausas ---', 'Minutos', 'Cantidad', 'Pagada'];

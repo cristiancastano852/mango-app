@@ -2,9 +2,10 @@
 
 ### Requirement: Registro de ajustes de nómina por empleado
 
-El sistema SHALL permitir registrar, editar y eliminar ajustes de nómina asociados a un empleado. Cada ajuste SHALL tener un tipo (`Bonus` que suma, o `Deduction` que resta), un monto positivo, una fecha que determina en qué periodo aplica, un concepto corto y una nota opcional.
+El sistema SHALL permitir registrar y eliminar ajustes de nómina asociados a un empleado **desde el reporte individual del empleado**, para el periodo que se está visualizando. Cada ajuste SHALL tener un tipo (`Bonus` que suma, o `Deduction` que resta), un monto positivo y una fecha que determina en qué periodo aplica; el concepto y la nota SHALL ser opcionales.
 
 **Business Rules:**
+- La gestión de ajustes SHALL realizarse en la vista del reporte individual (no en la ficha del empleado); el ajuste registrado allí SHALL quedar dentro del periodo visible (su `date` se asigna al periodo del reporte).
 - El `amount` SHALL ser un valor monetario positivo en COP; el signo lo determina el `type`.
 - El `type` SHALL ser uno de `Bonus` o `Deduction` (enum, TitleCase por convención).
 - Cada ajuste SHALL pertenecer a una empresa (`company_id`) y a un empleado (`employee_id`) de esa misma empresa.
@@ -25,6 +26,11 @@ El sistema SHALL permitir registrar, editar y eliminar ajustes de nómina asocia
 
 - **WHEN** un admin crea un ajuste de tipo `Deduction` por $50.000 con concepto "Préstamo"
 - **THEN** el ajuste se persiste como deducción asociada al empleado
+
+#### Scenario: Concepto y nota son opcionales
+
+- **WHEN** un admin crea un ajuste con tipo, monto y fecha pero sin concepto ni nota
+- **THEN** el ajuste se persiste correctamente con `concept` y `note` nulos
 
 #### Scenario: Monto inválido es rechazado
 

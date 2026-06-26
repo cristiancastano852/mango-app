@@ -755,4 +755,37 @@ class CalculateReportCostsTest extends TestCase
         $this->assertEquals(0.0, $result['pension_deduction']);
         $this->assertEquals($result['total'], $result['net_pay']);
     }
+
+    // ---------------------------------------------------------------------------
+    // Ajustes de nómina (bonos/deducciones) aplicados después del neto a pagar.
+    // ---------------------------------------------------------------------------
+
+    public function test_adjustments_apply_after_net_pay(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'regular_hours' => 10.0,
+        ], $this->rules, socialSecurity: self::SS, adjustments: ['bonus_total' => 100000, 'deduction_total' => 50000]);
+
+        // total 100.000; neto = 100.000 − 4.000 − 4.000 = 92.000.
+        $this->assertEquals(92000.0, $result['net_pay']);
+        $this->assertEquals(100000.0, $result['bonus_total']);
+        $this->assertEquals(50000.0, $result['deduction_total']);
+        // final = neto + bono − deducción = 92.000 + 100.000 − 50.000 = 142.000.
+        $this->assertEquals(142000.0, $result['final_pay']);
+        // Los ajustes no tocan la base de seguridad social ni las deducciones.
+        $this->assertEquals(100000.0, $result['social_security_base']);
+        $this->assertEquals(4000.0, $result['health_deduction']);
+        $this->assertEquals(4000.0, $result['pension_deduction']);
+    }
+
+    public function test_final_pay_equals_net_pay_without_adjustments(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'regular_hours' => 10.0,
+        ], $this->rules, socialSecurity: self::SS);
+
+        $this->assertEquals(0.0, $result['bonus_total']);
+        $this->assertEquals(0.0, $result['deduction_total']);
+        $this->assertEquals($result['net_pay'], $result['final_pay']);
+    }
 }

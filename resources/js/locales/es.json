@@ -459,7 +459,10 @@
             "health": "Salud ({rate}%)",
             "pension": "Pensión ({rate}%)",
             "net_pay": "Neto a pagar",
-            "days_count": "{n} día | {n} días"
+            "days_count": "{n} día | {n} días",
+            "bonus": "Bonificación",
+            "deduction": "Deducción",
+            "final_pay": "Total a pagar"
         },
         "overtime_payment": {
             "label": "Pagar horas extra",
@@ -482,6 +485,18 @@
             "days": "Días",
             "net_hours": "Horas netas",
             "cost": "Costo"
+        },
+        "adjustments": {
+            "title": "Ajustes del periodo",
+            "description": "Bonificaciones y préstamos/adelantos para este periodo; se aplican después del neto a pagar.",
+            "empty": "Sin ajustes en este periodo.",
+            "add": "Agregar ajuste",
+            "type": "Tipo",
+            "bonus": "Bonificación",
+            "deduction": "Deducción",
+            "amount": "Monto",
+            "concept": "Concepto",
+            "note": "Nota"
         }
     },
     "settings": {

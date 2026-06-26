@@ -26,9 +26,9 @@ Existe el patrón `BelongsToCompany` + global scope de tenant para todos los mod
 
 **4. `final_pay` se calcula sobre `net_pay`, no sobre `total`.** Los ajustes van estrictamente después del neto y NO tocan `social_security_base` ni las deducciones. `CalculateReportCosts` recibe `bonus_total`/`deduction_total` y añade `final_pay = round(net_pay + bonus_total − deduction_total, 2)` y los totales al `cost_summary`. Mantiene una sola fuente de verdad del cálculo.
 
-**5. CRUD anidado al empleado.** Rutas tipo `employees/{employee}/adjustments` (index/store/update/destroy), controller delgado + Form Request. Autorización: tenant scope + rol admin/super-admin; cross-company rechazado vía `assertSessionHasErrors` (no 404), consistente con el resto.
+**5. CRUD anidado al empleado, gestionado desde el reporte.** Rutas tipo `employees/{employee}/adjustments` (store/update/destroy), controller delgado + Form Request. La UI de gestión vive en la **vista del reporte individual** (no en la ficha del empleado): el admin agrega/elimina ajustes para el periodo visible y la `date` del ajuste se asigna al fin del periodo del reporte. Tras mutar, el redirect `back()` recarga el reporte (Inertia) y los totales se actualizan. Autorización: tenant scope + rol admin/super-admin; cross-company resuelto por `CompanyScope`/`scopeBindings` (404 tenant-safe).
 
-**6. Presentación.** Debajo del "Neto a pagar" se listan las bonificaciones (concepto + monto, en verde/+) y deducciones (concepto + monto, en rojo/−), y una fila final "Total a pagar" con `final_pay`. Mismas filas en PDF y Excel. Nuevas claves i18n.
+**6. Presentación.** Debajo del "Neto a pagar" se listan las bonificaciones (concepto + monto, en verde/+) y deducciones (concepto + monto, en rojo/−), y una fila final "Total a pagar" con `final_pay`. Mismas filas en PDF y Excel. La gestión (alta/baja) se hace en un panel del propio reporte. Nuevas claves i18n.
 
 ## Risks / Trade-offs
 
