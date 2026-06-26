@@ -16,6 +16,12 @@ class CalculateReportCosts
      *    (sunday_holiday/night_sunday/overtime_*_sunday).
      *  - `*_dominical`: configurables vía $dominical.
      *
+     * Recargo extra nocturno (`pay_overtime_night`): cuando está apagado, TODA hora extra nocturna
+     * (semana/dominical/festiva) se paga como su extra diurna correspondiente. Su renglón nocturno
+     * queda en 0h/$0 y las horas se funden en la extra diurna de su misma familia (o en la de semana
+     * si ya colapsó allí por su flag dominical/festivo). Solo cambia el % nocturno→diurno; no afecta
+     * la compensación de overtime ($payOvertime manda).
+     *
      * Config dominical ($dominical):
      *  - `pay` (bool): si no se paga, las horas dominicales se tratan como día normal:
      *    diurnas → regular, nocturnas → night (conservan recargo nocturno), overtime → overtime
@@ -96,11 +102,17 @@ class CalculateReportCosts
         $payNightHoliday = $rules->pay_night_holiday ?? true;
         $payOvertimeDominical = $rules->pay_overtime_dominical ?? true;
         $payOvertimeHoliday = $rules->pay_overtime_holiday ?? true;
+        $payOvertimeNight = $rules->pay_overtime_night ?? true;
 
         $collapseNightDominical = ! $payNightDominical;
         $collapseNightHoliday = ! $payNightHoliday;
         $collapseOvertimeDominical = ! $payOvertimeDominical;
         $collapseOvertimeHoliday = ! $payOvertimeHoliday;
+        // Extra nocturna sin recargo nocturno: cada hora extra nocturna se paga como su extra
+        // diurna correspondiente (semana → diurna, dominical → diurna dominical, festiva → diurna
+        // festiva). Se aplica DESPUÉS del colapso dominical/festivo, así una hora ya fundida en la
+        // semana usa el % diurno de semana; la que conserva su familia usa su % diurno premium.
+        $collapseOvertimeNight = ! $payOvertimeNight;
 
         // --- Semana / nocturno (las horas nocturnas premium colapsadas se funden en el nocturno base) ---
         $regularCost = $regularHours * $regularRate;
@@ -116,6 +128,10 @@ class CalculateReportCosts
         $effectiveOvertimeNightHours = $overtimeNightHours
             + ($collapseOvertimeDominical ? $overtimeNightDominicalHours : 0.0)
             + ($collapseOvertimeHoliday ? $overtimeNightHolidayHours : 0.0);
+        if ($collapseOvertimeNight) {
+            $effectiveOvertimeDayHours += $effectiveOvertimeNightHours;
+            $effectiveOvertimeNightHours = 0.0;
+        }
         $overtimeDayCost = $otCost($effectiveOvertimeDayHours, $otDayPct);
         $overtimeNightCost = $otCost($effectiveOvertimeNightHours, $otNightPct);
 
@@ -140,9 +156,15 @@ class CalculateReportCosts
             $nightHolidayCost = $nightHolidayHours * $hourlyRate * $premiumFactor($nightDominicalPct);
             $nightHolidaySurcharge = $nightDominicalPct;
         }
-        $overtimeDayHolidayCost = $collapseOvertimeHoliday ? 0.0 : $otCost($overtimeDayHolidayHours, $otDayDominicalPct);
+        // La extra nocturna festiva que conserva su familia (festivo ON) se funde en la extra diurna
+        // festiva cuando el recargo extra nocturno está apagado; si el festivo ya colapsó a semana,
+        // estas horas viajaron arriba y aquí quedan en 0.
+        $effectiveOvertimeDayHolidayHours = $overtimeDayHolidayHours
+            + ($collapseOvertimeNight ? $overtimeNightHolidayHours : 0.0);
+        $effectiveOvertimeNightHolidayHours = $collapseOvertimeNight ? 0.0 : $overtimeNightHolidayHours;
+        $overtimeDayHolidayCost = $collapseOvertimeHoliday ? 0.0 : $otCost($effectiveOvertimeDayHolidayHours, $otDayDominicalPct);
         $overtimeDayHolidaySurcharge = $collapseOvertimeHoliday ? 0.0 : $otDayDominicalPct;
-        $overtimeNightHolidayCost = $collapseOvertimeHoliday ? 0.0 : $otCost($overtimeNightHolidayHours, $otNightDominicalPct);
+        $overtimeNightHolidayCost = $collapseOvertimeHoliday ? 0.0 : $otCost($effectiveOvertimeNightHolidayHours, $otNightDominicalPct);
         $overtimeNightHolidaySurcharge = $collapseOvertimeHoliday ? 0.0 : $otNightDominicalPct;
 
         // --- Dominical (diurno configurable; noche y extra según sus flags premium) ---
@@ -179,9 +201,14 @@ class CalculateReportCosts
             $nightDominicalCost = $nightDominicalHours * $hourlyRate * $premiumFactor($nightDominicalPct);
             $nightDominicalSurcharge = $nightDominicalPct;
         }
-        $overtimeDayDominicalCost = $collapseOvertimeDominical ? 0.0 : $otCost($overtimeDayDominicalHours, $otDayDominicalPct);
+        // Igual que el festivo: la extra nocturna dominical que conserva su familia (dominical ON) se
+        // funde en la extra diurna dominical cuando el recargo extra nocturno está apagado.
+        $effectiveOvertimeDayDominicalHours = $overtimeDayDominicalHours
+            + ($collapseOvertimeNight ? $overtimeNightDominicalHours : 0.0);
+        $effectiveOvertimeNightDominicalHours = $collapseOvertimeNight ? 0.0 : $overtimeNightDominicalHours;
+        $overtimeDayDominicalCost = $collapseOvertimeDominical ? 0.0 : $otCost($effectiveOvertimeDayDominicalHours, $otDayDominicalPct);
         $overtimeDayDominicalSurcharge = $collapseOvertimeDominical ? 0.0 : $otDayDominicalPct;
-        $overtimeNightDominicalCost = $collapseOvertimeDominical ? 0.0 : $otCost($overtimeNightDominicalHours, $otNightDominicalPct);
+        $overtimeNightDominicalCost = $collapseOvertimeDominical ? 0.0 : $otCost($effectiveOvertimeNightDominicalHours, $otNightDominicalPct);
         $overtimeNightDominicalSurcharge = $collapseOvertimeDominical ? 0.0 : $otNightDominicalPct;
 
         // Horas a mostrar: el premium colapsado se funde en su base y su renglón queda en 0h.
@@ -190,10 +217,10 @@ class CalculateReportCosts
         $nightHolidayDisplayHours = $collapseNightHoliday ? 0.0 : $nightHolidayHours;
         $overtimeDayDisplayHours = $effectiveOvertimeDayHours;
         $overtimeNightDisplayHours = $effectiveOvertimeNightHours;
-        $overtimeDayDominicalDisplayHours = $collapseOvertimeDominical ? 0.0 : $overtimeDayDominicalHours;
-        $overtimeNightDominicalDisplayHours = $collapseOvertimeDominical ? 0.0 : $overtimeNightDominicalHours;
-        $overtimeDayHolidayDisplayHours = $collapseOvertimeHoliday ? 0.0 : $overtimeDayHolidayHours;
-        $overtimeNightHolidayDisplayHours = $collapseOvertimeHoliday ? 0.0 : $overtimeNightHolidayHours;
+        $overtimeDayDominicalDisplayHours = $collapseOvertimeDominical ? 0.0 : $effectiveOvertimeDayDominicalHours;
+        $overtimeNightDominicalDisplayHours = $collapseOvertimeDominical ? 0.0 : $effectiveOvertimeNightDominicalHours;
+        $overtimeDayHolidayDisplayHours = $collapseOvertimeHoliday ? 0.0 : $effectiveOvertimeDayHolidayHours;
+        $overtimeNightHolidayDisplayHours = $collapseOvertimeHoliday ? 0.0 : $effectiveOvertimeNightHolidayHours;
 
         $totalCost = $baseSalary + $transportAllowance
             + $regularCost + $nightCost
@@ -261,6 +288,7 @@ class CalculateReportCosts
             'pay_night_holiday' => $payNightHoliday,
             'pay_overtime_dominical' => $payOvertimeDominical,
             'pay_overtime_holiday' => $payOvertimeHoliday,
+            'pay_overtime_night' => $payOvertimeNight,
             'dominical_mode' => $dominicalMode,
             'normal_day_value' => round($normalDayValue, 2),
             'dominical_worked_days' => $workedDominicalDays,

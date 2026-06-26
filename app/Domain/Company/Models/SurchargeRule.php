@@ -40,6 +40,7 @@ class SurchargeRule extends Model
         'pay_night_holiday',
         'pay_overtime_dominical',
         'pay_overtime_holiday',
+        'pay_overtime_night',
         'default_dominical_payment_mode',
         'default_normal_day_value',
         'default_holiday_payment_mode',
@@ -67,6 +68,7 @@ class SurchargeRule extends Model
             'pay_night_holiday' => 'boolean',
             'pay_overtime_dominical' => 'boolean',
             'pay_overtime_holiday' => 'boolean',
+            'pay_overtime_night' => 'boolean',
             'default_normal_day_value' => 'decimal:2',
         ];
     }

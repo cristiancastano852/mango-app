@@ -124,6 +124,7 @@ type Report = {
         pay_night_holiday: boolean;
         pay_overtime_dominical: boolean;
         pay_overtime_holiday: boolean;
+        pay_overtime_night: boolean;
         dominical_mode: string;
         normal_day_value: number;
         dominical_worked_days: number;
@@ -323,9 +324,14 @@ const premiumPayFlag: Record<string, boolean> = {
     night_dominical: props.report.cost_summary.pay_night_dominical,
     night_holiday: props.report.cost_summary.pay_night_holiday,
     overtime_day_dominical: props.report.cost_summary.pay_overtime_dominical,
-    overtime_night_dominical: props.report.cost_summary.pay_overtime_dominical,
+    overtime_night_dominical:
+        props.report.cost_summary.pay_overtime_dominical &&
+        props.report.cost_summary.pay_overtime_night,
     overtime_day_holiday: props.report.cost_summary.pay_overtime_holiday,
-    overtime_night_holiday: props.report.cost_summary.pay_overtime_holiday,
+    overtime_night_holiday:
+        props.report.cost_summary.pay_overtime_holiday &&
+        props.report.cost_summary.pay_overtime_night,
+    overtime_night: props.report.cost_summary.pay_overtime_night,
 };
 
 const visibleDetails = computed(() =>

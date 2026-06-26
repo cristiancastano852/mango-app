@@ -175,6 +175,66 @@ class ReportExportTest extends TestCase
         $this->assertStringContainsString('Recargo festivo', $html);
     }
 
+    private function createNightOvertimeEntry(): void
+    {
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->subDay()->toDateString(),
+            'clock_in' => now()->subDay()->setTime(18, 0),
+            'clock_out' => now()->subDay()->setTime(22, 0),
+            'gross_hours' => 4.0,
+            'break_hours' => 0,
+            'net_hours' => 4.0,
+            'overtime_day_hours' => 1.0,
+            'overtime_night_hours' => 3.0,
+            'status' => 'completed',
+            'pin_verified' => true,
+        ]);
+    }
+
+    public function test_employee_excel_hides_night_overtime_row_when_flag_off(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['pay_overtime_night' => false]);
+        $this->createNightOvertimeEntry();
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $rows = collect((new EmployeeReportExport($report))->sheets()[0]->array())
+            ->keyBy(fn ($row) => $row[0] ?? '');
+
+        // La extra nocturna (0h/$0 tras el colapso) ya no se emite.
+        $this->assertFalse($rows->has('Horas extra nocturnas'));
+        // La extra diurna absorbe sus horas (1 + 3 = 4h) a tarifa diurna.
+        $this->assertTrue($rows->has('Horas extra diurnas'));
+        $this->assertEquals(4.0, $rows['Horas extra diurnas'][1]);
+    }
+
+    public function test_employee_pdf_hides_night_overtime_row_when_flag_off(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['pay_overtime_night' => false]);
+        $this->createNightOvertimeEntry();
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $html = view('exports.employee-report', ['report' => $report])->render();
+
+        $this->assertStringNotContainsString('<td>Extra nocturna</td>', $html);
+        $this->assertStringContainsString('<td>Extra diurna</td>', $html);
+    }
+
     public function test_employee_excel_keeps_unpaid_dominical_row_in_hourly_mode(): void
     {
         SurchargeRule::withoutGlobalScopes()

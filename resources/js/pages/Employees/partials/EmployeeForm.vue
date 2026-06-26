@@ -167,7 +167,7 @@ const showPasswordText = ref(false);
             <div class="space-y-2">
                 <Label for="salary_type">{{ t('employees.form.salary_type') }}</Label>
                 <Select v-model="form.salary_type">
-                    <SelectTrigger id="salary_type">
+                    <SelectTrigger id="salary_type" class="w-full">
                         <SelectValue :placeholder="t('common.select')" />
                     </SelectTrigger>
                     <SelectContent>
@@ -203,7 +203,7 @@ const showPasswordText = ref(false);
             <div class="space-y-2">
                 <Label for="dominical_payment_mode">{{ t('employees.form.dominical_payment_mode') }}</Label>
                 <Select v-model="form.dominical_payment_mode">
-                    <SelectTrigger id="dominical_payment_mode">
+                    <SelectTrigger id="dominical_payment_mode" class="w-full">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -216,7 +216,7 @@ const showPasswordText = ref(false);
             <div class="space-y-2">
                 <Label for="holiday_payment_mode">{{ t('employees.form.holiday_payment_mode') }}</Label>
                 <Select v-model="form.holiday_payment_mode">
-                    <SelectTrigger id="holiday_payment_mode">
+                    <SelectTrigger id="holiday_payment_mode" class="w-full">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
