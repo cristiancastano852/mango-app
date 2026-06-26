@@ -9,6 +9,7 @@ use App\Domain\Employee\Models\Employee;
 // use App\Domain\Organization\Models\Department;
 use App\Domain\TimeTracking\Actions\GenerateCompanyReport;
 use App\Domain\TimeTracking\Actions\GenerateEmployeeReport;
+use App\Domain\TimeTracking\Actions\RecalculateEmployeeHours;
 use App\Domain\TimeTracking\Actions\ResolveDominicalPaymentDecision;
 use App\Domain\TimeTracking\Actions\ResolveOvertimePaymentDecision;
 use App\Exports\CompanyReportExport;
@@ -17,6 +18,7 @@ use App\Http\Requests\ReportFilterRequest;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,6 +32,7 @@ class ReportController extends Controller
         private GenerateCompanyReport $companyReport,
         private ResolveOvertimePaymentDecision $resolveOvertimeDecision,
         private ResolveDominicalPaymentDecision $resolveDominicalDecision,
+        private RecalculateEmployeeHours $recalculateEmployeeHours,
     ) {}
 
     /**
@@ -97,6 +100,25 @@ class ReportController extends Controller
                 'name' => $e->user->name,
             ]),
         ]);
+    }
+
+    /**
+     * Recalcula los registros de un empleado para el rango, aplicando la configuración vigente
+     * (franja nocturna, límites de jornada, día dominical, pausas). Lo dispara el admin tras
+     * cambiar configuración; no hay recálculo histórico automático. Vuelve al reporte ya recalculado.
+     */
+    public function recalculateEmployee(ReportFilterRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+        [$startDate, $endDate] = $this->resolveDateRange($validated);
+
+        $count = $this->recalculateEmployeeHours->execute(
+            (int) $validated['employee_id'],
+            $startDate,
+            $endDate,
+        );
+
+        return back()->with('success', "Se recalcularon {$count} registro(s) con la configuración vigente.");
     }
 
     /**

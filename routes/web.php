@@ -75,6 +75,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/', [ReportController::class, 'index'])->name('index');
             Route::get('/employee', [ReportController::class, 'employee'])->name('employee');
+            Route::post('/employee/recalculate', [ReportController::class, 'recalculateEmployee'])->name('employee.recalculate');
             Route::get('/company', [ReportController::class, 'company'])->name('company');
             Route::get('/employee/excel', [ReportController::class, 'exportEmployeeExcel'])->name('employee.excel');
             Route::get('/employee/pdf', [ReportController::class, 'exportEmployeePdf'])->name('employee.pdf');

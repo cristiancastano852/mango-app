@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Company\Models\Company;
+use App\Domain\Company\Models\SurchargeRule;
 use App\Domain\Employee\Models\Employee;
 use App\Domain\Organization\Models\Department;
 use App\Domain\TimeTracking\Actions\GenerateEmployeeReport;
@@ -70,6 +71,46 @@ class ReportExportTest extends TestCase
             'status' => 'completed',
             'pin_verified' => true,
         ]);
+    }
+
+    // --- Colapso de recargo premium en el export ---
+
+    public function test_employee_excel_folds_collapsed_night_dominical_into_night(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['pay_night_dominical' => false]);
+
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->subDay()->toDateString(),
+            'clock_in' => now()->subDay()->setTime(20, 0),
+            'clock_out' => now()->subDay()->setTime(23, 0),
+            'gross_hours' => 6.0,
+            'break_hours' => 0,
+            'net_hours' => 6.0,
+            'night_hours' => 2.0,
+            'night_dominical_hours' => 4.0,
+            'status' => 'completed',
+            'pin_verified' => true,
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $rows = collect((new EmployeeReportExport($report))->sheets()[0]->array())
+            ->keyBy(fn ($row) => $row[0] ?? '');
+
+        // El nocturno absorbe las horas dominicales colapsadas (2 + 4 = 6h) y su costo fundido.
+        $this->assertEquals(6.0, $rows['Horas nocturnas'][1]);
+        $this->assertEquals(81000.0, $rows['Horas nocturnas'][3]);
+        // El renglón premium queda en 0h y $0.
+        $this->assertEquals(0.0, $rows['Horas nocturnas dominicales'][1]);
+        $this->assertEquals(0.0, $rows['Horas nocturnas dominicales'][3]);
     }
 
     // --- Employee Excel ---

@@ -84,6 +84,48 @@ class GenerateEmployeeReportTest extends TestCase
         $this->assertEquals(3.0, $result['totals']['night_hours']);
     }
 
+    public function test_pay_night_dominical_off_folds_night_dominical_into_night(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['pay_night_dominical' => false]);
+
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-03-01',
+            'clock_in' => '2026-03-01 20:00:00',
+            'clock_out' => '2026-03-01 23:00:00',
+            'gross_hours' => 6.0,
+            'break_hours' => 0,
+            'net_hours' => 6.0,
+            'night_hours' => 2.0,
+            'night_dominical_hours' => 4.0,
+            'status' => 'calculated',
+        ]);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-01'),
+        );
+
+        $cost = $result['cost_summary'];
+
+        // (2 + 4) × 10000 × 1.35 = 81000 todo en el nocturno; el premium queda en 0.
+        $this->assertEquals(81000.0, $cost['night']);
+        $this->assertEquals(0.0, $cost['night_dominical']);
+        $this->assertFalse($cost['pay_night_dominical']);
+
+        $byType = collect($cost['details'])->keyBy('type');
+        $this->assertEquals(6.0, $byType['night']['hours']);
+        $this->assertEquals(0.0, $byType['night_dominical']['hours']);
+        $this->assertEquals(0.0, $byType['night_dominical']['subtotal']);
+
+        // El total del reporte coincide con el nocturno fundido.
+        $this->assertEquals(81000.0, $cost['total']);
+    }
+
     public function test_excludes_entries_outside_date_range(): void
     {
         // Entry dentro del rango

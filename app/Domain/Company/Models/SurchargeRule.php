@@ -3,6 +3,7 @@
 namespace App\Domain\Company\Models;
 
 use App\Domain\Shared\Traits\BelongsToCompany;
+use Database\Factories\SurchargeRuleFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +11,11 @@ use Illuminate\Database\Eloquent\Model;
 class SurchargeRule extends Model
 {
     use BelongsToCompany, HasFactory;
+
+    protected static function newFactory(): SurchargeRuleFactory
+    {
+        return SurchargeRuleFactory::new();
+    }
 
     protected $fillable = [
         'company_id',
@@ -30,6 +36,10 @@ class SurchargeRule extends Model
         'transport_allowance',
         'dominical_weekday',
         'pay_dominical_by_default',
+        'pay_night_dominical',
+        'pay_night_holiday',
+        'pay_overtime_dominical',
+        'pay_overtime_holiday',
         'default_dominical_payment_mode',
         'default_normal_day_value',
         'default_holiday_payment_mode',
@@ -53,6 +63,10 @@ class SurchargeRule extends Model
             'transport_allowance' => 'decimal:2',
             'dominical_weekday' => 'integer',
             'pay_dominical_by_default' => 'boolean',
+            'pay_night_dominical' => 'boolean',
+            'pay_night_holiday' => 'boolean',
+            'pay_overtime_dominical' => 'boolean',
+            'pay_overtime_holiday' => 'boolean',
             'default_normal_day_value' => 'decimal:2',
         ];
     }

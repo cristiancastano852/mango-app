@@ -50,6 +50,8 @@ class CompanyReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadin
 
         $payOvertime = $c['pay_overtime'] ?? true;
         $overtimeCost = fn (float|int $value) => $payOvertime ? $value : 'Compensado con tiempo';
+        // Horas de presentación (premium colapsado fundido en su base); fallback a horas factuales.
+        $hours = fn (string $type, $fallback) => $c['display_hours'][$type] ?? $fallback;
 
         $costRows = [
             ['Salario base (total)', $c['base'] ?? 0],
@@ -83,18 +85,18 @@ class CompanyReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadin
             ['Horas netas', $t['net_hours']],
             [],
             ['--- Desglose de horas ---', ''],
-            ['Ordinarias', $t['regular_hours']],
-            ['Nocturnas', $t['night_hours']],
-            ['Dominicales', $t['dominical_hours']],
-            ['Noc. dominicales', $t['night_dominical_hours']],
-            ['Festivas', $t['holiday_hours']],
-            ['Noc. festivas', $t['night_holiday_hours']],
-            ['Extra diurnas', $t['overtime_day_hours']],
-            ['Extra nocturnas', $t['overtime_night_hours']],
-            ['Extra dom diurnas', $t['overtime_day_dominical_hours']],
-            ['Extra dom nocturnas', $t['overtime_night_dominical_hours']],
-            ['Extra fest diurnas', $t['overtime_day_holiday_hours']],
-            ['Extra fest nocturnas', $t['overtime_night_holiday_hours']],
+            ['Ordinarias', $hours('regular', $t['regular_hours'])],
+            ['Nocturnas', $hours('night', $t['night_hours'])],
+            ['Dominicales', $hours('dominical', $t['dominical_hours'])],
+            ['Noc. dominicales', $hours('night_dominical', $t['night_dominical_hours'])],
+            ['Festivas', $hours('holiday', $t['holiday_hours'])],
+            ['Noc. festivas', $hours('night_holiday', $t['night_holiday_hours'])],
+            ['Extra diurnas', $hours('overtime_day', $t['overtime_day_hours'])],
+            ['Extra nocturnas', $hours('overtime_night', $t['overtime_night_hours'])],
+            ['Extra dom diurnas', $hours('overtime_day_dominical', $t['overtime_day_dominical_hours'])],
+            ['Extra dom nocturnas', $hours('overtime_night_dominical', $t['overtime_night_dominical_hours'])],
+            ['Extra fest diurnas', $hours('overtime_day_holiday', $t['overtime_day_holiday_hours'])],
+            ['Extra fest nocturnas', $hours('overtime_night_holiday', $t['overtime_night_holiday_hours'])],
             [],
             ['--- Costos ---', $payOvertime ? '' : 'Horas extra compensadas con tiempo (pago $0)'],
         ], $costRows);

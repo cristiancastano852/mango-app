@@ -9,6 +9,7 @@ import {
     FileSpreadsheet,
     FileText,
     Moon,
+    RefreshCw,
     Sun,
     TrendingUp,
     Zap,
@@ -18,6 +19,7 @@ import { useI18n } from 'vue-i18n';
 import {
     exportEmployeeExcel,
     exportEmployeePdf,
+    recalculateEmployee,
 } from '@/actions/App/Http/Controllers/ReportController';
 import DailyWorkTable from '@/components/DailyWorkTable.vue';
 import { Badge } from '@/components/ui/badge';
@@ -236,6 +238,37 @@ function downloadPdf() {
     window.location.href = exportEmployeePdf.url() + exportQueryParams();
 }
 
+const recalculating = ref(false);
+
+function recalculate() {
+    if (
+        !window.confirm(
+            '¿Recalcular las horas de este empleado para el periodo mostrado con la configuración vigente? Se vuelven a clasificar los registros (franja nocturna, límites de jornada, día dominical, pausas). No modifica los fichajes.',
+        )
+    ) {
+        return;
+    }
+
+    router.post(
+        recalculateEmployee.url(),
+        {
+            date_range: props.filters.date_range,
+            start_date: props.filters.start_date,
+            end_date: props.filters.end_date,
+            employee_id: props.filters.employee_id,
+            pay_overtime: payOvertime.value ? 1 : 0,
+            ...(dominicalPayableCount.value !== null
+                ? { dominical_payable_count: dominicalPayableCount.value }
+                : {}),
+        },
+        {
+            preserveScroll: true,
+            onStart: () => (recalculating.value = true),
+            onFinish: () => (recalculating.value = false),
+        },
+    );
+}
+
 const avgPerDay = computed(() => {
     if (props.report.totals.days_worked === 0) return formatDecimalHours(0);
     return formatDecimalHours(
@@ -324,6 +357,18 @@ function hourTypeLabel(type: string): string {
                         </div>
                     </div>
                     <div v-if="hasReportData" class="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            :disabled="recalculating"
+                            class="border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-900/40 dark:hover:text-sky-200"
+                            @click="recalculate"
+                        >
+                            <RefreshCw
+                                class="mr-1.5 size-4"
+                                :class="{ 'animate-spin': recalculating }"
+                            />
+                            {{ recalculating ? 'Recalculando…' : 'Recalcular' }}
+                        </Button>
                         <Button
                             variant="outline"
                             class="border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/40 dark:hover:text-emerald-200"

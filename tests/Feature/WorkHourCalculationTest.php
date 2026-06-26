@@ -458,6 +458,7 @@ class WorkHourCalculationTest extends TestCase
         $result = app(CalculateWorkHours::class)->execute($entry);
 
         $this->assertEquals(8.00, (float) $result->dominical_hours);
+        $this->assertEquals(0.00, (float) $result->night_hours);
         $this->assertEquals(3.00, (float) $result->overtime_day_dominical_hours);
         $this->assertEquals(2.00, (float) $result->overtime_night_dominical_hours);
         $this->assertEquals(0.00, (float) $result->night_dominical_hours);
