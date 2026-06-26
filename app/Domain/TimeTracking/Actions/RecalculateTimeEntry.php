@@ -28,6 +28,28 @@ class RecalculateTimeEntry
             return $timeEntry;
         }
 
+        $this->recomputeDerivedHours($timeEntry);
+
+        $timeEntry->update([
+            'edited_by' => $editedBy?->id ?? $timeEntry->edited_by,
+            'edit_reason' => $editReason ?? $timeEntry->edit_reason,
+        ]);
+
+        $this->calculateWorkHours->execute($timeEntry->fresh());
+
+        $timeEntry->refresh();
+        $timeEntry->update(['status' => 'edited']);
+
+        return $timeEntry->fresh();
+    }
+
+    /**
+     * Recomputa gross_hours → break_hours (pausas no pagadas finalizadas) →
+     * paid_break_overage_hours → net_hours a partir de los fichajes y pausas reales.
+     * No toca el estado ni la reclasificación de buckets (eso lo hace CalculateWorkHours aparte).
+     */
+    public function recomputeDerivedHours(TimeEntry $timeEntry): void
+    {
         $grossHours = round($timeEntry->clock_in->diffInMinutes($timeEntry->clock_out) / 60, 2);
 
         $breakHours = round(
@@ -47,15 +69,6 @@ class RecalculateTimeEntry
             'break_hours' => $breakHours,
             'paid_break_overage_hours' => $paidBreakOverageHours,
             'net_hours' => $netHours,
-            'edited_by' => $editedBy?->id ?? $timeEntry->edited_by,
-            'edit_reason' => $editReason ?? $timeEntry->edit_reason,
         ]);
-
-        $this->calculateWorkHours->execute($timeEntry->fresh());
-
-        $timeEntry->refresh();
-        $timeEntry->update(['status' => 'edited']);
-
-        return $timeEntry->fresh();
     }
 }

@@ -388,4 +388,74 @@ class ReportControllerTest extends TestCase
 
         $response->assertRedirect();
     }
+
+    public function test_admin_can_recalculate_employee_hours(): void
+    {
+        $entry = TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-03-04',
+            'clock_in' => '2026-03-04 08:00:00',
+            'clock_out' => '2026-03-04 16:00:00',
+            'gross_hours' => 8.0,
+            'break_hours' => 0,
+            'net_hours' => 8.0,
+            'regular_hours' => 0, // bucket sucio: debe corregirse al recalcular
+            'status' => 'completed',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->post(route('reports.employee.recalculate'), [
+            'date_range' => 'custom',
+            'start_date' => '2026-03-01',
+            'end_date' => '2026-03-07',
+            'employee_id' => $this->employee->id,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $entry->refresh();
+        $this->assertEquals('calculated', $entry->status);
+        $this->assertGreaterThan(0, (float) $entry->regular_hours);
+    }
+
+    public function test_employee_cannot_recalculate_hours(): void
+    {
+        $response = $this->actingAs($this->employeeUser)->post(route('reports.employee.recalculate'), [
+            'date_range' => 'custom',
+            'start_date' => '2026-03-01',
+            'end_date' => '2026-03-07',
+            'employee_id' => $this->employee->id,
+        ]);
+
+        $response->assertForbidden();
+    }
+
+    public function test_recalculate_requires_employee_and_range(): void
+    {
+        $response = $this->actingAs($this->adminUser)->post(route('reports.employee.recalculate'), []);
+
+        $response->assertSessionHasErrors(['date_range', 'employee_id']);
+    }
+
+    public function test_admin_cannot_recalculate_employee_of_another_company(): void
+    {
+        $otherCompany = Company::create(['name' => 'Other Co', 'slug' => 'other-co']);
+        $otherUser = User::factory()->create(['company_id' => $otherCompany->id]);
+        $otherUser->assignRole('employee');
+        $otherEmployee = Employee::create([
+            'user_id' => $otherUser->id,
+            'company_id' => $otherCompany->id,
+            'hourly_rate' => 10000,
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->post(route('reports.employee.recalculate'), [
+            'date_range' => 'custom',
+            'start_date' => '2026-03-01',
+            'end_date' => '2026-03-07',
+            'employee_id' => $otherEmployee->id,
+        ]);
+
+        $response->assertSessionHasErrors('employee_id');
+    }
 }
