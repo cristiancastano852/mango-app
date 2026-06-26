@@ -809,6 +809,73 @@ class ReportExportTest extends TestCase
         $this->assertEquals(120000.0, $allowanceRow[1]);
     }
 
+    // --- Liquidación semanal de horas extra en los exports ---
+
+    public function test_employee_excel_shows_weekly_settlement_note(): void
+    {
+        $report = [
+            'employee' => ['name' => 'Ana', 'department' => null, 'position' => null],
+            'period' => ['start' => '2026-06-01', 'end' => '2026-06-15'],
+            'totals' => $this->zeroTotals(),
+            'cost_summary' => $this->monthlyCostSummary(transportAllowance: 0.0),
+            'breaks_by_type' => [],
+            'overtime_settlement' => [
+                'mode' => 'weekly',
+                'start' => '2026-06-01',
+                'end' => '2026-06-14',
+                'deferred' => true,
+            ],
+        ];
+
+        $note = collect((new \App\Exports\EmployeeReportSummarySheet($report))->headings())
+            ->flatten()
+            ->first(fn ($line) => str_contains((string) $line, 'Horas extra liquidadas'));
+
+        $this->assertNotNull($note);
+        $this->assertStringContainsString('2026-06-14', $note);
+        $this->assertStringContainsString('próximo periodo', $note);
+    }
+
+    public function test_employee_excel_omits_settlement_note_in_daily_mode(): void
+    {
+        $report = [
+            'employee' => ['name' => 'Ana', 'department' => null, 'position' => null],
+            'period' => ['start' => '2026-06-01', 'end' => '2026-06-15'],
+            'totals' => $this->zeroTotals(),
+            'cost_summary' => $this->monthlyCostSummary(transportAllowance: 0.0),
+            'breaks_by_type' => [],
+            'overtime_settlement' => ['mode' => 'daily', 'start' => '2026-06-01', 'end' => '2026-06-15', 'deferred' => false],
+        ];
+
+        $note = collect((new \App\Exports\EmployeeReportSummarySheet($report))->headings())
+            ->flatten()
+            ->first(fn ($line) => str_contains((string) $line, 'Horas extra liquidadas'));
+
+        $this->assertNull($note);
+    }
+
+    public function test_company_excel_shows_weekly_settlement_note(): void
+    {
+        $report = [
+            'period' => ['start' => '2026-06-01', 'end' => '2026-06-15'],
+            'totals' => array_merge($this->zeroTotals(), ['total_employees' => 1, 'total_days_worked' => 1]),
+            'cost_summary' => $this->monthlyCostSummary(transportAllowance: 0.0),
+            'overtime_settlement' => [
+                'mode' => 'weekly',
+                'start' => '2026-06-01',
+                'end' => '2026-06-14',
+                'deferred' => true,
+            ],
+        ];
+
+        $note = collect((new \App\Exports\CompanyReportSummarySheet($report))->headings())
+            ->flatten()
+            ->first(fn ($line) => str_contains((string) $line, 'Horas extra liquidadas'));
+
+        $this->assertNotNull($note);
+        $this->assertStringContainsString('2026-06-14', $note);
+    }
+
     /**
      * @return array<string, float|int>
      */

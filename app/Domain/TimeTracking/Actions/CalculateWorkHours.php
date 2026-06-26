@@ -61,6 +61,8 @@ class CalculateWorkHours
 
         $weeklyLimitMinutes = $rules?->max_weekly_minutes ?? 2520;
         $dailyLimitMinutes = $rules?->max_daily_minutes ?? 480;
+        // En modo semanal el tope diario queda inerte: solo el tope semanal dispara overtime.
+        $weeklyAccrual = ($rules?->overtime_accrual_mode ?? 'daily') === 'weekly';
 
         $nightStartTime = $rules?->night_start_time ?? '21:00';
         $nightEndTime = $rules?->night_end_time ?? '06:00';
@@ -105,6 +107,7 @@ class CalculateWorkHours
             $netRatio,
             $nightStartTime,
             $nightEndTime,
+            $weeklyAccrual,
         );
 
         // Precalcular qué breakpoints son medianoche para resetear el acumulador diario.
@@ -136,9 +139,12 @@ class CalculateWorkHours
             $isHoliday = in_array($segStart->toDateString(), $holidayDates);
             $isDominical = ! $isHoliday && $segStart->dayOfWeek === $dominicalWeekday;
 
-            // Overtime si supera el límite diario o el semanal (lo que llegue primero).
-            $isOvertime = $accumulatedDailyNetMinutes >= $dailyLimitMinutes
-                || $accumulatedWeeklyNetMinutes >= $weeklyLimitMinutes;
+            // Modo semanal: solo el tope semanal dispara overtime (el diario queda inerte).
+            // Modo diario: overtime si supera el límite diario o el semanal (lo que llegue primero).
+            $isOvertime = $weeklyAccrual
+                ? $accumulatedWeeklyNetMinutes >= $weeklyLimitMinutes
+                : ($accumulatedDailyNetMinutes >= $dailyLimitMinutes
+                    || $accumulatedWeeklyNetMinutes >= $weeklyLimitMinutes);
 
             match (true) {
                 $isOvertime && $isHoliday && $isNight => $buckets['overtime_night_holiday'] += $netContrib,
@@ -200,6 +206,7 @@ class CalculateWorkHours
         float $netRatio,
         string $nightStartTime = '21:00',
         string $nightEndTime = '06:00',
+        bool $weeklyAccrual = false,
     ): array {
         $breakpoints = [$clockIn->copy(), $clockOut->copy()];
 
@@ -232,11 +239,12 @@ class CalculateWorkHours
         }
 
         // Breakpoints diarios: uno por cada día calendario dentro del turno.
-        // El cupo diario se reinicia en cada medianoche.
+        // El cupo diario se reinicia en cada medianoche. En modo semanal el tope diario
+        // no clasifica overtime, así que estos breakpoints no se agregan.
         $currentDayPriorMinutes = $priorDailyNetMinutes;
         $day = $clockIn->copy()->startOfDay();
 
-        while ($day <= $clockOut) {
+        while (! $weeklyAccrual && $day <= $clockOut) {
             $dayEnd = $day->copy()->addDay()->startOfDay();
             $segStart = $day <= $clockIn ? $clockIn->copy() : $day->copy();
             $segEnd = $dayEnd < $clockOut ? $dayEnd->copy() : $clockOut->copy();

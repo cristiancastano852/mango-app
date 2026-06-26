@@ -11,6 +11,7 @@ class GenerateCompanyReport
     public function __construct(
         private CalculateReportCosts $costCalculator,
         private CalculatePeriodBaseSalary $baseSalaryCalculator,
+        private ResolveOvertimeSettlementWindow $settlementWindow,
     ) {}
 
     /**
@@ -41,6 +42,14 @@ class GenerateCompanyReport
         // El breakdown anterior parte de time_entries (inner join), así que se agregan aquí los
         // empleados monthly sin registros para que su base entre al total de la empresa.
         $employeeBreakdown = $this->includeMonthlyEmployeesWithoutEntries($companyId, $departmentId, $employeeBreakdown);
+
+        // En modo `weekly` el overtime se liquida por semanas completas (regla del domingo): se
+        // recalcula sobre su ventana, distinta del rango del periodo de las horas base.
+        $accrualMode = $rules->overtime_accrual_mode ?? 'daily';
+        $overtimeWindow = $this->settlementWindow->execute($startDate, $endDate, $accrualMode);
+        if ($accrualMode === 'weekly') {
+            $employeeBreakdown = $this->applyOvertimeSettlementWindow($employeeBreakdown, $companyId, $departmentId, $overtimeWindow);
+        }
 
         $dailyAttendance = $this->getDailyAttendance($companyId, $startDate, $endDate, $departmentId);
 
@@ -188,7 +197,144 @@ class GenerateCompanyReport
                 'start' => $startDate->toDateString(),
                 'end' => $endDate->toDateString(),
             ],
+            'overtime_settlement' => [
+                'mode' => $accrualMode,
+                'start' => $overtimeWindow['start'],
+                'end' => $overtimeWindow['end'],
+                'deferred' => $overtimeWindow['deferred'],
+            ],
         ];
+    }
+
+    /**
+     * Reemplaza las 6 columnas de overtime de cada empleado con la suma sobre la ventana de
+     * liquidación semanal. Los empleados cuyo overtime cae en la ventana pero no tienen turnos en
+     * el rango del periodo (semana de cierre diferida del periodo anterior) se agregan con horas
+     * base en cero.
+     *
+     * @param  array{start: ?string, end: ?string, deferred: bool}  $window
+     */
+    private function applyOvertimeSettlementWindow(
+        \Illuminate\Support\Collection $breakdown,
+        int $companyId,
+        ?int $departmentId,
+        array $window,
+    ): \Illuminate\Support\Collection {
+        $overtimeFields = [
+            'total_overtime_day', 'total_overtime_night',
+            'total_overtime_day_dominical', 'total_overtime_night_dominical',
+            'total_overtime_day_holiday', 'total_overtime_night_holiday',
+        ];
+
+        // Se parte de cero: las horas extra del periodo solo provienen de la ventana de liquidación.
+        $breakdown = $breakdown->map(function ($emp) use ($overtimeFields) {
+            foreach ($overtimeFields as $field) {
+                $emp->{$field} = 0;
+            }
+
+            return $emp;
+        });
+
+        if ($window['start'] === null || $window['end'] === null) {
+            return $breakdown;
+        }
+
+        $byId = $breakdown->keyBy('employee_id');
+
+        foreach ($this->getOvertimeWindowBreakdown($companyId, $departmentId, $window) as $row) {
+            if ($byId->has($row->employee_id)) {
+                $emp = $byId->get($row->employee_id);
+                foreach ($overtimeFields as $field) {
+                    $emp->{$field} = $row->{$field};
+                }
+
+                continue;
+            }
+
+            $byId->put($row->employee_id, $this->makeOvertimeOnlyEmployeeRow($row, $overtimeFields));
+        }
+
+        return $byId->values();
+    }
+
+    /**
+     * Suma por empleado de las 6 columnas de overtime sobre la ventana de liquidación (con meta del
+     * empleado para construir filas de empleados sin turnos en el periodo).
+     */
+    private function getOvertimeWindowBreakdown(
+        int $companyId,
+        ?int $departmentId,
+        array $window,
+    ): \Illuminate\Support\Collection {
+        return DB::table('time_entries')
+            ->join('employees', 'time_entries.employee_id', '=', 'employees.id')
+            ->join('users', 'employees.user_id', '=', 'users.id')
+            ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
+            ->where('time_entries.company_id', $companyId)
+            ->whereBetween('time_entries.date', [$window['start'], $window['end']])
+            ->whereNull('time_entries.deleted_at')
+            ->whereNotNull('time_entries.clock_out')
+            ->when($departmentId, fn ($q) => $q->where('employees.department_id', $departmentId))
+            ->groupBy('employees.id', 'users.name', 'employees.hourly_rate', 'employees.salary_type', 'employees.monthly_base_salary', 'employees.receives_transport_allowance', 'employees.dominical_payment_mode', 'employees.normal_day_value', 'employees.holiday_payment_mode', 'departments.name')
+            ->selectRaw('
+                employees.id as employee_id,
+                users.name as employee_name,
+                departments.name as department_name,
+                employees.hourly_rate,
+                employees.salary_type,
+                employees.monthly_base_salary,
+                employees.receives_transport_allowance,
+                employees.dominical_payment_mode,
+                employees.normal_day_value,
+                employees.holiday_payment_mode,
+                COALESCE(SUM(time_entries.overtime_day_hours), 0) as total_overtime_day,
+                COALESCE(SUM(time_entries.overtime_night_hours), 0) as total_overtime_night,
+                COALESCE(SUM(time_entries.overtime_day_dominical_hours), 0) as total_overtime_day_dominical,
+                COALESCE(SUM(time_entries.overtime_night_dominical_hours), 0) as total_overtime_night_dominical,
+                COALESCE(SUM(time_entries.overtime_day_holiday_hours), 0) as total_overtime_day_holiday,
+                COALESCE(SUM(time_entries.overtime_night_holiday_hours), 0) as total_overtime_night_holiday
+            ')
+            ->get();
+    }
+
+    /**
+     * Construye una fila de empleado con horas base en cero y solo el overtime de la ventana, para
+     * empleados cuyo extra diferido se liquida en este periodo aunque no tengan turnos en el rango.
+     *
+     * @param  array<int, string>  $overtimeFields
+     */
+    private function makeOvertimeOnlyEmployeeRow(object $row, array $overtimeFields): object
+    {
+        $emp = (object) [
+            'employee_id' => $row->employee_id,
+            'employee_name' => $row->employee_name,
+            'department_name' => $row->department_name,
+            'hourly_rate' => $row->hourly_rate,
+            'salary_type' => $row->salary_type,
+            'monthly_base_salary' => $row->monthly_base_salary,
+            'receives_transport_allowance' => $row->receives_transport_allowance,
+            'dominical_payment_mode' => $row->dominical_payment_mode,
+            'normal_day_value' => $row->normal_day_value,
+            'holiday_payment_mode' => $row->holiday_payment_mode,
+            'days_worked' => 0,
+            'total_gross' => 0,
+            'total_breaks' => 0,
+            'total_net' => 0,
+            'total_regular' => 0,
+            'total_night' => 0,
+            'total_dominical' => 0,
+            'total_night_dominical' => 0,
+            'total_holiday' => 0,
+            'total_night_holiday' => 0,
+            'dominical_worked_days' => 0,
+            'holiday_worked_days' => 0,
+        ];
+
+        foreach ($overtimeFields as $field) {
+            $emp->{$field} = $row->{$field};
+        }
+
+        return $emp;
     }
 
     /**

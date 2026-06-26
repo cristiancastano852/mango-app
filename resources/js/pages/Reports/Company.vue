@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { ArrowLeft, Calendar, Clock, DollarSign, Download, TrendingUp, Users } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { exportCompanyExcel, exportCompanyPdf } from '@/actions/App/Http/Controllers/ReportController';
 import { Button } from '@/components/ui/button';
@@ -86,6 +86,12 @@ type Report = {
         pay_overtime: boolean;
     };
     period: { start: string; end: string };
+    overtime_settlement: {
+        mode: string;
+        start: string | null;
+        end: string | null;
+        deferred: boolean;
+    };
 };
 
 const props = defineProps<{
@@ -105,6 +111,18 @@ const props = defineProps<{
 const { t } = useI18n();
 
 const payOvertime = ref(props.filters.pay_overtime);
+
+const showOvertimeSettlement = computed(
+    () => props.report.overtime_settlement?.mode === 'weekly',
+);
+
+const overtimeSettlementRange = computed(() => {
+    const settlement = props.report.overtime_settlement;
+    if (!settlement?.start || !settlement?.end) {
+        return null;
+    }
+    return `${settlement.start} → ${settlement.end}`;
+});
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: t('reports.breadcrumb'), href: '/reports' },
@@ -289,6 +307,28 @@ onMounted(async () => {
                     <Button @click="applyFilter">{{ t('reports.filter') }}</Button>
                 </CardContent>
             </Card>
+
+            <!-- Liquidación semanal de horas extra -->
+            <div
+                v-if="showOvertimeSettlement && report.totals.total_employees > 0"
+                class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+            >
+                <Clock class="mt-0.5 size-5 shrink-0" />
+                <div class="space-y-1">
+                    <p v-if="overtimeSettlementRange">
+                        Horas extra liquidadas de las semanas
+                        <strong>{{ overtimeSettlementRange }}</strong>
+                        (semanas completas con domingo dentro del periodo).
+                    </p>
+                    <p v-else>
+                        Este periodo no cierra ninguna semana completa, así que no se liquidan
+                        horas extra; se pagarán en el próximo periodo.
+                    </p>
+                    <p v-if="report.overtime_settlement.deferred">
+                        La semana en curso al cierre se liquidará en el próximo periodo.
+                    </p>
+                </div>
+            </div>
 
             <!-- Empty state -->
             <div v-if="report.totals.total_employees === 0" class="text-muted-foreground py-16 text-center">

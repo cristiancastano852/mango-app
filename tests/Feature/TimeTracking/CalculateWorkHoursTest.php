@@ -136,6 +136,96 @@ class CalculateWorkHoursTest extends TestCase
         $this->assertEqualsWithDelta(0.0, (float) $result->regular_hours, 0.02);
     }
 
+    private function makeEntry(string $date, string $clockIn, string $clockOut, float $hours): TimeEntry
+    {
+        $tz = 'America/Bogota';
+
+        return TimeEntry::create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => $date,
+            'clock_in' => Carbon::parse("$date $clockIn", $tz),
+            'clock_out' => Carbon::parse("$date $clockOut", $tz),
+            'gross_hours' => $hours,
+            'net_hours' => $hours,
+            'break_hours' => 0,
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_weekly_mode_does_not_flag_overtime_when_week_under_limit(): void
+    {
+        $this->surchargeRule->update([
+            'overtime_accrual_mode' => 'weekly',
+            'max_weekly_minutes' => 2520, // 42h
+            'max_daily_minutes' => 480,   // 8h
+        ]);
+
+        // Lunes 10h y martes 5h en la misma semana ISO: total 15h < 42h.
+        $monday = $this->makeEntry('2026-03-09', '08:00:00', '18:00:00', 10.0);
+        $tuesday = $this->makeEntry('2026-03-10', '08:00:00', '13:00:00', 5.0);
+
+        $mondayResult = (new CalculateWorkHours)->execute($monday);
+        $tuesdayResult = (new CalculateWorkHours)->execute($tuesday);
+
+        $this->assertEqualsWithDelta(0.0, (float) $mondayResult->overtime_day_hours, 0.02);
+        $this->assertEqualsWithDelta(10.0, (float) $mondayResult->regular_hours, 0.02);
+        $this->assertEqualsWithDelta(0.0, (float) $tuesdayResult->overtime_day_hours, 0.02);
+        $this->assertEqualsWithDelta(5.0, (float) $tuesdayResult->regular_hours, 0.02);
+    }
+
+    public function test_weekly_mode_flags_only_the_excess_over_the_weekly_limit(): void
+    {
+        $this->surchargeRule->update([
+            'overtime_accrual_mode' => 'weekly',
+            'max_weekly_minutes' => 2520, // 42h
+            'max_daily_minutes' => 480,   // 8h
+        ]);
+
+        // 40h previas en la semana ISO; el viernes trabaja 5h diurnas → cruza el tope a las 2h.
+        $this->makeEntry('2026-03-09', '06:00:00', '06:00:00', 40.0);
+        $friday = $this->makeEntry('2026-03-13', '08:00:00', '13:00:00', 5.0);
+
+        $result = (new CalculateWorkHours)->execute($friday);
+
+        $this->assertEqualsWithDelta(2.0, (float) $result->regular_hours, 0.02);
+        $this->assertEqualsWithDelta(3.0, (float) $result->overtime_day_hours, 0.02);
+    }
+
+    public function test_weekly_mode_ignores_the_daily_limit(): void
+    {
+        $this->surchargeRule->update([
+            'overtime_accrual_mode' => 'weekly',
+            'max_weekly_minutes' => 2520, // 42h
+            'max_daily_minutes' => 480,   // 8h
+        ]);
+
+        // 10h en un solo día diurno: en modo semanal el tope diario no clasifica overtime.
+        $entry = $this->makeEntry('2026-03-09', '08:00:00', '18:00:00', 10.0);
+
+        $result = (new CalculateWorkHours)->execute($entry);
+
+        $this->assertEqualsWithDelta(0.0, (float) $result->overtime_day_hours, 0.02);
+        $this->assertEqualsWithDelta(10.0, (float) $result->regular_hours, 0.02);
+    }
+
+    public function test_daily_mode_keeps_the_dual_trigger(): void
+    {
+        $this->surchargeRule->update([
+            'overtime_accrual_mode' => 'daily',
+            'max_weekly_minutes' => 2520, // 42h
+            'max_daily_minutes' => 480,   // 8h
+        ]);
+
+        // 10h en un solo día diurno: el tope diario dispara 2h de overtime.
+        $entry = $this->makeEntry('2026-03-09', '08:00:00', '18:00:00', 10.0);
+
+        $result = (new CalculateWorkHours)->execute($entry);
+
+        $this->assertEqualsWithDelta(8.0, (float) $result->regular_hours, 0.02);
+        $this->assertEqualsWithDelta(2.0, (float) $result->overtime_day_hours, 0.02);
+    }
+
     public function test_returns_entry_unchanged_when_no_clock_out(): void
     {
         $entry = TimeEntry::create([

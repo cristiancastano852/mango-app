@@ -77,6 +77,7 @@
 - overtime_night (decimal 5,2 default 75), sunday_holiday (decimal 5,2 default 75)
 - overtime_day_sunday (decimal 5,2 default 100), overtime_night_sunday (decimal 5,2 default 150)
 - night_sunday (decimal 5,2 default 110), max_weekly_hours (int default 42), max_daily_hours (int default 8)
+- overtime_accrual_mode (string default 'daily') — cómo se acumula/liquida el overtime: `daily` (doble trigger diario/semanal, comportamiento actual) | `weekly` (solo tope semanal; el extra se liquida en la quincena que contiene el domingo de cada semana ISO)
 - pay_overtime_by_default (boolean default true) — criterio general: pagar horas extra en dinero (true) o compensarlas con tiempo (false)
 - night_start_time (time, default '21:00'), night_end_time (time, default '06:00')
 - default_monthly_salary (decimal 10,2, default SMLV) — salario base mensual por defecto para empleados nuevos; sembrado con el SMLV vigente, editable por admin

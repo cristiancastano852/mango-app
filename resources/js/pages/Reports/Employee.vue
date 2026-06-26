@@ -136,6 +136,12 @@ type Report = {
     daily_breakdown: DailyWorkDay[];
     adjustments: Adjustment[];
     period: { start: string; end: string };
+    overtime_settlement: {
+        mode: string;
+        start: string | null;
+        end: string | null;
+        deferred: boolean;
+    };
 };
 
 const props = defineProps<{
@@ -189,6 +195,21 @@ const formattedPeriod = computed(() => {
     const start = formatPeriodDate(props.report.period.start);
     const end = formatPeriodDate(props.report.period.end);
     const year = props.report.period.end.split('-')[0];
+    return `${start} → ${end} ${year}`;
+});
+
+const showOvertimeSettlement = computed(
+    () => props.report.overtime_settlement?.mode === 'weekly',
+);
+
+const overtimeSettlementRange = computed(() => {
+    const settlement = props.report.overtime_settlement;
+    if (!settlement?.start || !settlement?.end) {
+        return null;
+    }
+    const start = formatPeriodDate(settlement.start);
+    const end = formatPeriodDate(settlement.end);
+    const year = settlement.end.split('-')[0];
     return `${start} → ${end} ${year}`;
 });
 
@@ -499,6 +520,28 @@ function hourTypeLabel(type: string): string {
                     </div>
                 </CardContent>
             </Card>
+
+            <!-- Liquidación semanal de horas extra -->
+            <div
+                v-if="showOvertimeSettlement && hasReportData"
+                class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+            >
+                <Clock class="mt-0.5 size-5 shrink-0" />
+                <div class="space-y-1">
+                    <p v-if="overtimeSettlementRange">
+                        Horas extra liquidadas de las semanas
+                        <strong>{{ overtimeSettlementRange }}</strong>
+                        (semanas completas con domingo dentro del periodo).
+                    </p>
+                    <p v-else>
+                        Este periodo no cierra ninguna semana completa, así que no se liquidan
+                        horas extra; se pagarán en el próximo periodo.
+                    </p>
+                    <p v-if="report.overtime_settlement.deferred">
+                        La semana en curso al cierre se liquidará en el próximo periodo.
+                    </p>
+                </div>
+            </div>
 
             <!-- Empty state -->
             <div

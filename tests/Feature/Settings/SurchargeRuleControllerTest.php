@@ -62,6 +62,7 @@ class SurchargeRuleControllerTest extends TestCase
             'pay_overtime_by_default' => true,
             'max_weekly_minutes' => 2520,
             'max_daily_minutes' => 480,
+            'overtime_accrual_mode' => 'daily',
             'night_start_time' => '21:00',
             'night_end_time' => '06:00',
             'default_monthly_salary' => 1750905,
@@ -495,6 +496,71 @@ class SurchargeRuleControllerTest extends TestCase
         $response = $this->actingAs($this->adminUser)->put(
             route('surcharge-rules.update'),
             $this->validPayload(['company_id' => $otherCompany->id, 'pay_night_dominical' => false]),
+        );
+
+        $response->assertSessionHasErrors('company_id');
+    }
+
+    public function test_admin_can_switch_to_weekly_overtime_accrual_mode(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['overtime_accrual_mode' => 'weekly']),
+        );
+
+        $response->assertRedirect(route('surcharge-rules.edit'));
+
+        $this->assertDatabaseHas('surcharge_rules', [
+            'company_id' => $this->company->id,
+            'overtime_accrual_mode' => 'weekly',
+        ]);
+    }
+
+    public function test_overtime_accrual_mode_rejects_invalid_value(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['overtime_accrual_mode' => 'monthly']),
+        );
+
+        $response->assertSessionHasErrors('overtime_accrual_mode');
+    }
+
+    public function test_employee_cannot_update_overtime_accrual_mode(): void
+    {
+        $response = $this->actingAs($this->employeeUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['overtime_accrual_mode' => 'weekly']),
+        );
+
+        $response->assertForbidden();
+    }
+
+    public function test_super_admin_can_update_overtime_accrual_mode_of_any_company(): void
+    {
+        $superAdmin = User::factory()->create(['company_id' => null]);
+        $superAdmin->assignRole('super-admin');
+
+        $response = $this->actingAs($superAdmin)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['company_id' => $this->company->id, 'overtime_accrual_mode' => 'weekly']),
+        );
+
+        $response->assertRedirect(route('surcharge-rules.edit'));
+
+        $this->assertDatabaseHas('surcharge_rules', [
+            'company_id' => $this->company->id,
+            'overtime_accrual_mode' => 'weekly',
+        ]);
+    }
+
+    public function test_admin_cannot_update_overtime_accrual_mode_of_another_company(): void
+    {
+        $otherCompany = Company::create(['name' => 'Other Co', 'slug' => 'other-co']);
+
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['company_id' => $otherCompany->id, 'overtime_accrual_mode' => 'weekly']),
         );
 
         $response->assertSessionHasErrors('company_id');

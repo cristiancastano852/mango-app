@@ -35,13 +35,41 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
 
     public function headings(): array
     {
-        return [
+        $headings = [
             ['Reporte Individual - '.$this->report['employee']['name']],
             ['Período: '.$this->report['period']['start'].' a '.$this->report['period']['end']],
             ['Departamento: '.($this->report['employee']['department'] ?? 'N/A').' | Cargo: '.($this->report['employee']['position'] ?? 'N/A')],
-            [],
-            ['Concepto', 'Horas', 'Recargo %', 'Costo'],
         ];
+
+        if (($settlement = $this->overtimeSettlementNote()) !== null) {
+            $headings[] = [$settlement];
+        }
+
+        $headings[] = [];
+        $headings[] = ['Concepto', 'Horas', 'Recargo %', 'Costo'];
+
+        return $headings;
+    }
+
+    /**
+     * Nota del rango de liquidación de horas extra en modo semanal (regla del domingo).
+     */
+    private function overtimeSettlementNote(): ?string
+    {
+        $settlement = $this->report['overtime_settlement'] ?? null;
+        if (($settlement['mode'] ?? 'daily') !== 'weekly') {
+            return null;
+        }
+
+        $note = ($settlement['start'] ?? null) && ($settlement['end'] ?? null)
+            ? 'Horas extra liquidadas de las semanas '.$settlement['start'].' a '.$settlement['end'].' (semanas con domingo dentro del periodo).'
+            : 'Este periodo no cierra ninguna semana completa: las horas extra se liquidan en el próximo periodo.';
+
+        if ($settlement['deferred'] ?? false) {
+            $note .= ' La semana en curso al cierre se liquida en el próximo periodo.';
+        }
+
+        return $note;
     }
 
     public function array(): array
@@ -170,11 +198,14 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
 
     public function styles(Worksheet $sheet): array
     {
+        // La fila de encabezados de la tabla se corre una posición cuando hay nota de liquidación.
+        $headerRow = $this->overtimeSettlementNote() !== null ? 6 : 5;
+
         return [
             1 => ['font' => ['bold' => true, 'size' => 14]],
             2 => ['font' => ['italic' => true]],
             3 => ['font' => ['italic' => true]],
-            5 => ['font' => ['bold' => true]],
+            $headerRow => ['font' => ['bold' => true]],
         ];
     }
 }

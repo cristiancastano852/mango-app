@@ -57,6 +57,19 @@
             </tr>
         </table>
 
+        @if (($report['overtime_settlement']['mode'] ?? 'daily') === 'weekly')
+            <p style="font-size: 10px; color: #92400e; background: #fffbeb; border: 1px solid #fcd34d; padding: 8px; border-radius: 4px; margin-bottom: 16px;">
+                @if (($report['overtime_settlement']['start'] ?? null) && ($report['overtime_settlement']['end'] ?? null))
+                    Horas extra liquidadas de las semanas {{ $report['overtime_settlement']['start'] }} a {{ $report['overtime_settlement']['end'] }} (semanas con domingo dentro del periodo).
+                @else
+                    Este periodo no cierra ninguna semana completa: las horas extra se liquidan en el próximo periodo.
+                @endif
+                @if ($report['overtime_settlement']['deferred'] ?? false)
+                    La semana en curso al cierre se liquidará en el próximo periodo.
+                @endif
+            </p>
+        @endif
+
         {{-- KPIs --}}
         <table class="kpi-grid">
             <tr>

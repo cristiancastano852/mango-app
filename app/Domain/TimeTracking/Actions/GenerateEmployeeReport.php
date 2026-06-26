@@ -16,6 +16,7 @@ class GenerateEmployeeReport
     public function __construct(
         private CalculateReportCosts $costCalculator,
         private CalculatePeriodBaseSalary $baseSalaryCalculator,
+        private ResolveOvertimeSettlementWindow $settlementWindow,
     ) {}
 
     /**
@@ -44,6 +45,13 @@ class GenerateEmployeeReport
             ->firstOrFail();
 
         $totals = $this->aggregateTotals($employeeId, $startDate, $endDate);
+
+        // En modo `weekly` las horas extra se liquidan por semanas completas (regla del domingo):
+        // se suman sobre su propia ventana, distinta del rango del periodo de las horas base.
+        $accrualMode = $rules->overtime_accrual_mode ?? 'daily';
+        $overtimeWindow = $this->settlementWindow->execute($startDate, $endDate, $accrualMode);
+        $this->overrideOvertimeTotals($totals, $employeeId, $overtimeWindow);
+
         $workedDominicalDays = (int) ($totals->dominical_worked_days ?? 0);
         $workedHolidayDays = (int) ($totals->holiday_worked_days ?? 0);
         $adjustments = $this->getAdjustments($employeeId, $startDate, $endDate);
@@ -53,7 +61,7 @@ class GenerateEmployeeReport
             ? $this->aggregateBreaksByType($employeeId, $startDate, $endDate)
             : [];
         $dailyBreakdown = $includeDailyBreakdown
-            ? $this->getDailyBreakdown($employeeId, $startDate, $endDate)
+            ? $this->getDailyBreakdown($employeeId, $startDate, $endDate, $accrualMode, $overtimeWindow)
             : [];
 
         $salaryType = $employee->salary_type ?? 'hourly';
@@ -149,7 +157,55 @@ class GenerateEmployeeReport
                 'start' => $startDate->toDateString(),
                 'end' => $endDate->toDateString(),
             ],
+            'overtime_settlement' => [
+                'mode' => $accrualMode,
+                'start' => $overtimeWindow['start'],
+                'end' => $overtimeWindow['end'],
+                'deferred' => $overtimeWindow['deferred'],
+            ],
         ];
+    }
+
+    /**
+     * Sobrescribe las 6 columnas de overtime de los totales con la suma sobre la ventana de
+     * liquidación semanal. En modo `daily` la ventana coincide con el periodo, así que el
+     * resultado es idéntico al cálculo base.
+     *
+     * @param  array{start: ?string, end: ?string, deferred: bool}  $window
+     */
+    private function overrideOvertimeTotals(object $totals, int $employeeId, array $window): void
+    {
+        $overtimeFields = [
+            'total_overtime_day', 'total_overtime_night',
+            'total_overtime_day_dominical', 'total_overtime_night_dominical',
+            'total_overtime_day_holiday', 'total_overtime_night_holiday',
+        ];
+
+        if ($window['start'] === null || $window['end'] === null) {
+            foreach ($overtimeFields as $field) {
+                $totals->{$field} = 0;
+            }
+
+            return;
+        }
+
+        $overtime = TimeEntry::withoutGlobalScopes([CompanyScope::class])
+            ->where('employee_id', $employeeId)
+            ->whereBetween('date', [$window['start'], $window['end']])
+            ->whereNotNull('clock_out')
+            ->selectRaw('
+                COALESCE(SUM(overtime_day_hours), 0) as total_overtime_day,
+                COALESCE(SUM(overtime_night_hours), 0) as total_overtime_night,
+                COALESCE(SUM(overtime_day_dominical_hours), 0) as total_overtime_day_dominical,
+                COALESCE(SUM(overtime_night_dominical_hours), 0) as total_overtime_night_dominical,
+                COALESCE(SUM(overtime_day_holiday_hours), 0) as total_overtime_day_holiday,
+                COALESCE(SUM(overtime_night_holiday_hours), 0) as total_overtime_night_holiday
+            ')
+            ->first();
+
+        foreach ($overtimeFields as $field) {
+            $totals->{$field} = $overtime->{$field};
+        }
     }
 
     /**
@@ -255,7 +311,7 @@ class GenerateEmployeeReport
      *
      * @return array<array{date: string, clock_in: ?string, clock_out: ?string, status: string, gross_hours: ?float, break_hours: ?float, paid_break_hours: ?float, paid_break_overage_hours: ?float, net_hours: ?float, regular_hours: ?float, night_hours: ?float, dominical_hours: ?float, night_dominical_hours: ?float, holiday_hours: ?float, night_holiday_hours: ?float, overtime_day_hours: ?float, overtime_night_hours: ?float, overtime_day_dominical_hours: ?float, overtime_night_dominical_hours: ?float, overtime_day_holiday_hours: ?float, overtime_night_holiday_hours: ?float, breaks: array}>
      */
-    private function getDailyBreakdown(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): array
+    private function getDailyBreakdown(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate, string $accrualMode = 'daily', array $overtimeWindow = []): array
     {
         return TimeEntry::withoutGlobalScopes([CompanyScope::class])
             ->with([
@@ -266,14 +322,33 @@ class GenerateEmployeeReport
             ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
             ->orderBy('date')
             ->get()
-            ->map(fn (TimeEntry $entry) => $this->mapDay($entry))
+            ->map(fn (TimeEntry $entry) => $this->mapDay($entry, $accrualMode, $overtimeWindow))
             ->toArray();
     }
 
     /**
+     * Indica si el recargo extra del día se difiere al próximo periodo: solo en modo `weekly`,
+     * cuando el día pertenece a la semana de cierre (sin domingo dueño en el periodo, o posterior
+     * al último domingo liquidado).
+     *
+     * @param  array{start: ?string, end: ?string, deferred: bool}  $overtimeWindow
+     */
+    private function isOvertimeDeferred(TimeEntry $entry, string $accrualMode, array $overtimeWindow): bool
+    {
+        if ($accrualMode !== 'weekly') {
+            return false;
+        }
+
+        $date = substr((string) $entry->date, 0, 10);
+
+        return $overtimeWindow['end'] === null || $date > $overtimeWindow['end'];
+    }
+
+    /**
+     * @param  array{start: ?string, end: ?string, deferred: bool}  $overtimeWindow
      * @return array<string, mixed>
      */
-    private function mapDay(TimeEntry $entry): array
+    private function mapDay(TimeEntry $entry, string $accrualMode = 'daily', array $overtimeWindow = []): array
     {
         $inProgress = $entry->clock_out === null;
 
@@ -290,6 +365,7 @@ class GenerateEmployeeReport
             'clock_out' => $entry->clock_out?->toIso8601String(),
             'status' => $inProgress ? 'in_progress' : $entry->status,
             'paid_break_hours' => $inProgress ? null : $entry->paidBreakHours(),
+            'overtime_deferred' => $inProgress ? false : $this->isOvertimeDeferred($entry, $accrualMode, $overtimeWindow),
             'breaks' => $entry->breaks->map(fn (BreakEntry $break) => $break->toDisplayArray())->all(),
         ];
 
