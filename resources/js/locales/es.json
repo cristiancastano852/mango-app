@@ -458,7 +458,8 @@
             "transport_allowance": "Auxilio de transporte",
             "health": "Salud ({rate}%)",
             "pension": "Pensión ({rate}%)",
-            "net_pay": "Neto a pagar"
+            "net_pay": "Neto a pagar",
+            "days_count": "{n} día | {n} días"
         },
         "overtime_payment": {
             "label": "Pagar horas extra",

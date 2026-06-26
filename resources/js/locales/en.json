@@ -458,7 +458,8 @@
             "transport_allowance": "Transport allowance",
             "health": "Health ({rate}%)",
             "pension": "Pension ({rate}%)",
-            "net_pay": "Net pay"
+            "net_pay": "Net pay",
+            "days_count": "{n} day | {n} days"
         },
         "overtime_payment": {
             "label": "Pay overtime",

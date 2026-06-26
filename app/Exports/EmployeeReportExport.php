@@ -75,19 +75,60 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
         // se funde en su base (night/overtime) y el renglón premium queda en 0h, igual que el costo.
         $hours = fn (string $type, float $fallback): float => (float) ($surcharges[$type]['hours'] ?? $fallback);
 
+        // Flag de pago por recargo premium; los tipos ausentes nunca se ocultan.
+        $premiumPayFlag = [
+            'dominical' => $costs['pay_dominical'] ?? true,
+            'night_dominical' => $costs['pay_night_dominical'] ?? true,
+            'night_holiday' => $costs['pay_night_holiday'] ?? true,
+            'overtime_day_dominical' => $costs['pay_overtime_dominical'] ?? true,
+            'overtime_night_dominical' => $costs['pay_overtime_dominical'] ?? true,
+            'overtime_day_holiday' => $costs['pay_overtime_holiday'] ?? true,
+            'overtime_night_holiday' => $costs['pay_overtime_holiday'] ?? true,
+        ];
+        // Oculta la fila premium cuando su toggle está OFF y no representa pago real (0h y $0).
+        $showRow = function (string $type) use ($premiumPayFlag, $costs, $surcharges): bool {
+            $flag = $premiumPayFlag[$type] ?? true;
+            if ($flag) {
+                return true;
+            }
+
+            return (float) ($costs[$type] ?? 0) !== 0.0 || (float) ($surcharges[$type]['hours'] ?? 0) !== 0.0;
+        };
+        // En modo por día, mostrar días en lugar de horas para dominical/festivo.
+        $dominicalByDay = ($costs['dominical_mode'] ?? 'hour') === 'day';
+        $holidayByDay = ($costs['holiday_mode'] ?? 'hour') === 'day';
+        $daysLabel = fn (int $n): string => $n.' '.($n === 1 ? 'día' : 'días');
+        $dominicalQty = $dominicalByDay ? $daysLabel((int) ($costs['dominical_paid_days'] ?? 0)) : $hours('dominical', $totals['dominical_hours']);
+        $holidayQty = $holidayByDay ? $daysLabel((int) ($costs['holiday_worked_days'] ?? 0)) : $hours('holiday', $totals['holiday_hours']);
+
+        $rows[] = ['Horas ordinarias', $hours('regular', $totals['regular_hours']), ($surcharges['regular']['surcharge'] ?? 0).'%', $costs['regular']];
+        $rows[] = ['Horas nocturnas', $hours('night', $totals['night_hours']), ($surcharges['night']['surcharge'] ?? 35).'%', $costs['night']];
+        if ($showRow('dominical')) {
+            $rows[] = ['Horas dominicales', $dominicalQty, ($surcharges['dominical']['surcharge'] ?? 75).'%', $costs['dominical']];
+        }
+        if ($showRow('night_dominical')) {
+            $rows[] = ['Horas nocturnas dominicales', $hours('night_dominical', $totals['night_dominical_hours']), ($surcharges['night_dominical']['surcharge'] ?? 110).'%', $costs['night_dominical']];
+        }
+        $rows[] = ['Horas festivas', $holidayQty, ($surcharges['holiday']['surcharge'] ?? 75).'%', $costs['holiday']];
+        if ($showRow('night_holiday')) {
+            $rows[] = ['Horas nocturnas festivas', $hours('night_holiday', $totals['night_holiday_hours']), ($surcharges['night_holiday']['surcharge'] ?? 110).'%', $costs['night_holiday']];
+        }
+        $rows[] = ['Horas extra diurnas', $hours('overtime_day', $totals['overtime_day_hours']), ($surcharges['overtime_day']['surcharge'] ?? 25).'%', $overtimeCost($costs['overtime_day'])];
+        $rows[] = ['Horas extra nocturnas', $hours('overtime_night', $totals['overtime_night_hours']), ($surcharges['overtime_night']['surcharge'] ?? 75).'%', $overtimeCost($costs['overtime_night'])];
+        if ($showRow('overtime_day_dominical')) {
+            $rows[] = ['Horas extra dominicales diurnas', $hours('overtime_day_dominical', $totals['overtime_day_dominical_hours']), ($surcharges['overtime_day_dominical']['surcharge'] ?? 100).'%', $overtimeCost($costs['overtime_day_dominical'])];
+        }
+        if ($showRow('overtime_night_dominical')) {
+            $rows[] = ['Horas extra dominicales nocturnas', $hours('overtime_night_dominical', $totals['overtime_night_dominical_hours']), ($surcharges['overtime_night_dominical']['surcharge'] ?? 150).'%', $overtimeCost($costs['overtime_night_dominical'])];
+        }
+        if ($showRow('overtime_day_holiday')) {
+            $rows[] = ['Horas extra festivas diurnas', $hours('overtime_day_holiday', $totals['overtime_day_holiday_hours']), ($surcharges['overtime_day_holiday']['surcharge'] ?? 100).'%', $overtimeCost($costs['overtime_day_holiday'])];
+        }
+        if ($showRow('overtime_night_holiday')) {
+            $rows[] = ['Horas extra festivas nocturnas', $hours('overtime_night_holiday', $totals['overtime_night_holiday_hours']), ($surcharges['overtime_night_holiday']['surcharge'] ?? 150).'%', $overtimeCost($costs['overtime_night_holiday'])];
+        }
+
         $rows = array_merge($rows, [
-            ['Horas ordinarias', $hours('regular', $totals['regular_hours']), ($surcharges['regular']['surcharge'] ?? 0).'%', $costs['regular']],
-            ['Horas nocturnas', $hours('night', $totals['night_hours']), ($surcharges['night']['surcharge'] ?? 35).'%', $costs['night']],
-            ['Horas dominicales', $hours('dominical', $totals['dominical_hours']), ($surcharges['dominical']['surcharge'] ?? 75).'%', $costs['dominical']],
-            ['Horas nocturnas dominicales', $hours('night_dominical', $totals['night_dominical_hours']), ($surcharges['night_dominical']['surcharge'] ?? 110).'%', $costs['night_dominical']],
-            ['Horas festivas', $hours('holiday', $totals['holiday_hours']), ($surcharges['holiday']['surcharge'] ?? 75).'%', $costs['holiday']],
-            ['Horas nocturnas festivas', $hours('night_holiday', $totals['night_holiday_hours']), ($surcharges['night_holiday']['surcharge'] ?? 110).'%', $costs['night_holiday']],
-            ['Horas extra diurnas', $hours('overtime_day', $totals['overtime_day_hours']), ($surcharges['overtime_day']['surcharge'] ?? 25).'%', $overtimeCost($costs['overtime_day'])],
-            ['Horas extra nocturnas', $hours('overtime_night', $totals['overtime_night_hours']), ($surcharges['overtime_night']['surcharge'] ?? 75).'%', $overtimeCost($costs['overtime_night'])],
-            ['Horas extra dominicales diurnas', $hours('overtime_day_dominical', $totals['overtime_day_dominical_hours']), ($surcharges['overtime_day_dominical']['surcharge'] ?? 100).'%', $overtimeCost($costs['overtime_day_dominical'])],
-            ['Horas extra dominicales nocturnas', $hours('overtime_night_dominical', $totals['overtime_night_dominical_hours']), ($surcharges['overtime_night_dominical']['surcharge'] ?? 150).'%', $overtimeCost($costs['overtime_night_dominical'])],
-            ['Horas extra festivas diurnas', $hours('overtime_day_holiday', $totals['overtime_day_holiday_hours']), ($surcharges['overtime_day_holiday']['surcharge'] ?? 100).'%', $overtimeCost($costs['overtime_day_holiday'])],
-            ['Horas extra festivas nocturnas', $hours('overtime_night_holiday', $totals['overtime_night_holiday_hours']), ($surcharges['overtime_night_holiday']['surcharge'] ?? 150).'%', $overtimeCost($costs['overtime_night_holiday'])],
             [],
             ['TOTAL DEVENGADO', $totals['net_hours'], '', $costs['total']],
             ['Salud ('.$costs['health_rate'].'%)', '', '', -$costs['health_deduction']],

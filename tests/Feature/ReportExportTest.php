@@ -108,9 +108,138 @@ class ReportExportTest extends TestCase
         // El nocturno absorbe las horas dominicales colapsadas (2 + 4 = 6h) y su costo fundido.
         $this->assertEquals(6.0, $rows['Horas nocturnas'][1]);
         $this->assertEquals(81000.0, $rows['Horas nocturnas'][3]);
-        // El renglón premium queda en 0h y $0.
-        $this->assertEquals(0.0, $rows['Horas nocturnas dominicales'][1]);
-        $this->assertEquals(0.0, $rows['Horas nocturnas dominicales'][3]);
+        // El renglón premium desactivado ya no se emite (sus horas quedan en el nocturno base).
+        $this->assertFalse($rows->has('Horas nocturnas dominicales'));
+    }
+
+    // --- Ocultar filas de recargo con pago desactivado ---
+
+    private function createNightDominicalEntry(): void
+    {
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->subDay()->toDateString(),
+            'clock_in' => now()->subDay()->setTime(20, 0),
+            'clock_out' => now()->subDay()->setTime(23, 0),
+            'gross_hours' => 6.0,
+            'break_hours' => 0,
+            'net_hours' => 6.0,
+            'night_hours' => 2.0,
+            'night_dominical_hours' => 4.0,
+            'status' => 'completed',
+            'pin_verified' => true,
+        ]);
+    }
+
+    public function test_employee_excel_hides_disabled_premium_row(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['pay_night_dominical' => false]);
+        $this->createNightDominicalEntry();
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $labels = collect((new EmployeeReportExport($report))->sheets()[0]->array())
+            ->map(fn ($row) => $row[0] ?? '');
+
+        // La fila premium desactivada (0h/$0 tras el colapso) ya no se emite.
+        $this->assertFalse($labels->contains('Horas nocturnas dominicales'));
+        // El nocturno base (que absorbió las horas) y el festivo diurno siguen presentes.
+        $this->assertTrue($labels->contains('Horas nocturnas'));
+        $this->assertTrue($labels->contains('Horas festivas'));
+    }
+
+    public function test_employee_pdf_hides_disabled_premium_row(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['pay_night_dominical' => false]);
+        $this->createNightDominicalEntry();
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $html = view('exports.employee-report', ['report' => $report])->render();
+
+        $this->assertStringNotContainsString('Recargo nocturno dominical', $html);
+        $this->assertStringContainsString('Recargo festivo', $html);
+    }
+
+    public function test_employee_excel_keeps_unpaid_dominical_row_in_hourly_mode(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['pay_dominical_by_default' => false]);
+
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->subDay()->toDateString(),
+            'clock_in' => now()->subDay()->setTime(8, 0),
+            'clock_out' => now()->subDay()->setTime(14, 0),
+            'gross_hours' => 6.0,
+            'break_hours' => 0,
+            'net_hours' => 6.0,
+            'dominical_hours' => 6.0,
+            'status' => 'completed',
+            'pin_verified' => true,
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $rows = collect((new EmployeeReportExport($report))->sheets()[0]->array())
+            ->keyBy(fn ($row) => $row[0] ?? '');
+
+        // Dominical sin recargo en modo hourly se paga a tarifa ordinaria: la fila permanece.
+        $this->assertTrue($rows->has('Horas dominicales'));
+        $this->assertEquals(60000.0, $rows['Horas dominicales'][3]); // 6h × 10.000
+    }
+
+    public function test_employee_excel_shows_days_in_dominical_day_mode(): void
+    {
+        $this->employee->update([
+            'dominical_payment_mode' => 'day',
+            'normal_day_value' => 60000,
+        ]);
+
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->subDay()->toDateString(),
+            'clock_in' => now()->subDay()->setTime(8, 0),
+            'clock_out' => now()->subDay()->setTime(14, 0),
+            'gross_hours' => 6.0,
+            'break_hours' => 0,
+            'net_hours' => 6.0,
+            'dominical_hours' => 6.0,
+            'status' => 'completed',
+            'pin_verified' => true,
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $rows = collect((new EmployeeReportExport($report))->sheets()[0]->array())
+            ->keyBy(fn ($row) => $row[0] ?? '');
+
+        // En modo por día la celda de cantidad muestra los días pagados, no las horas.
+        $this->assertEquals('1 día', $rows['Horas dominicales'][1]);
     }
 
     // --- Employee Excel ---

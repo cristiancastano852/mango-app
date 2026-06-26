@@ -101,6 +101,10 @@ type Report = {
         salary_type: string;
         pay_overtime: boolean;
         pay_dominical: boolean;
+        pay_night_dominical: boolean;
+        pay_night_holiday: boolean;
+        pay_overtime_dominical: boolean;
+        pay_overtime_holiday: boolean;
         dominical_mode: string;
         normal_day_value: number;
         dominical_worked_days: number;
@@ -288,6 +292,45 @@ function formatCurrency(value: number): string {
         currency: 'COP',
         minimumFractionDigits: 0,
     }).format(value);
+}
+
+// Recargos premium que se ocultan cuando su toggle de empresa está desactivado.
+// Las horas ya quedan reflejadas en las filas base (regular/nocturno/extra), así que
+// no se pierde información. El festivo diurno (`holiday`) nunca se oculta (se paga por ley)
+// y una fila con pago real (dominical hourly OFF: subtotal > 0) tampoco se oculta.
+const premiumPayFlag: Record<string, boolean> = {
+    dominical: props.report.cost_summary.pay_dominical,
+    night_dominical: props.report.cost_summary.pay_night_dominical,
+    night_holiday: props.report.cost_summary.pay_night_holiday,
+    overtime_day_dominical: props.report.cost_summary.pay_overtime_dominical,
+    overtime_night_dominical: props.report.cost_summary.pay_overtime_dominical,
+    overtime_day_holiday: props.report.cost_summary.pay_overtime_holiday,
+    overtime_night_holiday: props.report.cost_summary.pay_overtime_holiday,
+};
+
+const visibleDetails = computed(() =>
+    props.report.cost_summary.details.filter((detail) => {
+        const flag = premiumPayFlag[detail.type];
+        if (flag === undefined || flag) {
+            return true;
+        }
+        // Toggle apagado: ocultar solo si la fila no representa pago real.
+        return detail.subtotal !== 0 || detail.hours !== 0;
+    }),
+);
+
+// Para dominical/festivo en modo por día se muestran los días pagados en lugar de las horas.
+function detailHoursDisplay(detail: CostDetail): string {
+    if (detail.type === 'dominical' && isDominicalByDay.value) {
+        return t('reports.costs.days_count', props.report.cost_summary.dominical_paid_days);
+    }
+    if (
+        detail.type === 'holiday' &&
+        props.report.cost_summary.holiday_mode === 'day'
+    ) {
+        return t('reports.costs.days_count', props.report.cost_summary.holiday_worked_days);
+    }
+    return formatDecimalHours(detail.hours);
 }
 
 function hourTypeLabel(type: string): string {
@@ -884,17 +927,14 @@ function hourTypeLabel(type: string): string {
                                         </td>
                                     </tr>
                                     <tr
-                                        v-for="detail in report.cost_summary
-                                            .details"
+                                        v-for="detail in visibleDetails"
                                         :key="detail.type"
                                     >
                                         <td class="py-2">
                                             {{ hourTypeLabel(detail.type) }}
                                         </td>
                                         <td class="py-2 text-right">
-                                            {{
-                                                formatDecimalHours(detail.hours)
-                                            }}
+                                            {{ detailHoursDisplay(detail) }}
                                         </td>
                                         <td
                                             class="hidden py-2 text-right sm:table-cell"
