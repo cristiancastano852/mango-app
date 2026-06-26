@@ -32,6 +32,10 @@ type SurchargeRule = {
     transport_allowance: string;
     dominical_weekday: number;
     pay_dominical_by_default: boolean;
+    pay_night_dominical: boolean;
+    pay_night_holiday: boolean;
+    pay_overtime_dominical: boolean;
+    pay_overtime_holiday: boolean;
     default_dominical_payment_mode: string;
     default_normal_day_value: string;
     default_holiday_payment_mode: string;
@@ -281,7 +285,7 @@ const maxWeeklyMinutes = computed(
                             id="pay_overtime_by_default"
                             name="pay_overtime_by_default"
                             value="1"
-                            :default-checked="rule.pay_overtime_by_default"
+                            :default-value="rule.pay_overtime_by_default"
                         />
                     </div>
                     <InputError :message="errors.pay_overtime_by_default" />
@@ -324,7 +328,7 @@ const maxWeeklyMinutes = computed(
                                 id="pay_dominical_by_default"
                                 name="pay_dominical_by_default"
                                 value="1"
-                                :default-checked="rule.pay_dominical_by_default"
+                                :default-value="rule.pay_dominical_by_default"
                             />
                         </div>
                         <InputError :message="errors.pay_dominical_by_default" />
@@ -375,6 +379,86 @@ const maxWeeklyMinutes = computed(
                             </p>
                             <InputError :message="errors.default_holiday_payment_mode" />
                         </div>
+                    </div>
+
+                    <div class="space-y-4 rounded-lg border p-4">
+                        <div class="space-y-0.5">
+                            <h3 class="text-base font-medium">Recargos premium (nocturno/extra en dominical y festivo)</h3>
+                            <p class="max-w-prose text-sm text-muted-foreground">
+                                Algunas empresas no pagan estos recargos como premium. Si desactivas un switch, esas
+                                horas se pagan con su recargo <strong>base</strong> (nocturno normal o extra normal), no
+                                con el recargo dominical/festivo. Distinto de "Pagar horas extra", que cuando se apaga
+                                <strong>no paga</strong> las extras (las compensa con tiempo a $0).
+                            </p>
+                        </div>
+
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="space-y-1">
+                                <Label for="pay_night_dominical" class="text-base">Pagar nocturno dominical</Label>
+                                <p class="max-w-prose text-sm text-muted-foreground">
+                                    Si lo desactivas, las horas nocturnas en día dominical se pagan como nocturno normal.
+                                </p>
+                            </div>
+                            <input type="hidden" name="pay_night_dominical" value="0" />
+                            <Checkbox
+                                id="pay_night_dominical"
+                                name="pay_night_dominical"
+                                value="1"
+                                :default-value="rule.pay_night_dominical"
+                            />
+                        </div>
+                        <InputError :message="errors.pay_night_dominical" />
+
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="space-y-1">
+                                <Label for="pay_night_holiday" class="text-base">Pagar nocturno festivo</Label>
+                                <p class="max-w-prose text-sm text-muted-foreground">
+                                    Si lo desactivas, las horas nocturnas en festivo se pagan como nocturno normal.
+                                </p>
+                            </div>
+                            <input type="hidden" name="pay_night_holiday" value="0" />
+                            <Checkbox
+                                id="pay_night_holiday"
+                                name="pay_night_holiday"
+                                value="1"
+                                :default-value="rule.pay_night_holiday"
+                            />
+                        </div>
+                        <InputError :message="errors.pay_night_holiday" />
+
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="space-y-1">
+                                <Label for="pay_overtime_dominical" class="text-base">Pagar extra dominical</Label>
+                                <p class="max-w-prose text-sm text-muted-foreground">
+                                    Si lo desactivas, las horas extra en día dominical se pagan como horas extra normales.
+                                </p>
+                            </div>
+                            <input type="hidden" name="pay_overtime_dominical" value="0" />
+                            <Checkbox
+                                id="pay_overtime_dominical"
+                                name="pay_overtime_dominical"
+                                value="1"
+                                :default-value="rule.pay_overtime_dominical"
+                            />
+                        </div>
+                        <InputError :message="errors.pay_overtime_dominical" />
+
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="space-y-1">
+                                <Label for="pay_overtime_holiday" class="text-base">Pagar extra festiva</Label>
+                                <p class="max-w-prose text-sm text-muted-foreground">
+                                    Si lo desactivas, las horas extra en festivo se pagan como horas extra normales.
+                                </p>
+                            </div>
+                            <input type="hidden" name="pay_overtime_holiday" value="0" />
+                            <Checkbox
+                                id="pay_overtime_holiday"
+                                name="pay_overtime_holiday"
+                                value="1"
+                                :default-value="rule.pay_overtime_holiday"
+                            />
+                        </div>
+                        <InputError :message="errors.pay_overtime_holiday" />
                     </div>
 
                     <div class="flex items-center gap-4 pt-2">

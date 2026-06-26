@@ -336,11 +336,13 @@ class CalculateReportCostsTest extends TestCase
     }
 
     // ---------------------------------------------------------------------------
-    // Dominical no pagado: día normal (base ordinaria/nocturna), conserva nocturno.
+    // Dominical no pagado (diurno): pay_dominical_by_default solo afecta el DIURNO.
+    // La noche y la extra dominical son independientes (siguen sus propios flags).
     // ---------------------------------------------------------------------------
 
-    public function test_unpaid_dominical_falls_back_to_regular_and_night(): void
+    public function test_unpaid_dominical_only_collapses_the_diurnal_bucket(): void
     {
+        // Flags premium en su default (true = pagar). Solo el diurno cae a regular.
         $result = $this->calculator->execute(10000, [
             'dominical_hours' => 5.0,
             'night_dominical_hours' => 2.0,
@@ -349,13 +351,221 @@ class CalculateReportCostsTest extends TestCase
 
         // diurno → regular base
         $this->assertEquals(50000.0, $result['dominical']);          // 5 × 10000
-        // nocturno → conserva recargo nocturno 35%
-        $this->assertEquals(27000.0, $result['night_dominical']);    // 2 × 10000 × 1.35
-        // overtime dominical → overtime de semana (25%) al tratarse como día normal
-        $this->assertEquals(25000.0, $result['overtime_day_dominical']); // 2 × 10000 × 1.25
+        // nocturno dominical: independiente del switch diurno → conserva recargo 110%
+        $this->assertEquals(42000.0, $result['night_dominical']);    // 2 × 10000 × 2.10
+        // extra dominical: independiente → recargo dominical 100%
+        $this->assertEquals(40000.0, $result['overtime_day_dominical']); // 2 × 10000 × 2.00
 
         $byType = collect($result['details'])->keyBy('type');
         $this->assertEquals(0, $byType['dominical']['surcharge']);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Colapso de recargos premium (cost-time): night_dominical/holiday → night,
+    // overtime dominical/festivo → overtime de semana, según los 4 flags de empresa.
+    // ---------------------------------------------------------------------------
+
+    public function test_night_dominical_collapses_into_night_when_flag_off(): void
+    {
+        $this->rules->pay_night_dominical = false;
+
+        $result = $this->calculator->execute(10000, [
+            'night_hours' => 2.0,
+            'night_dominical_hours' => 4.0,
+        ], $this->rules);
+
+        // (2 + 4) × 10000 × 1.35 = 81000 todo en el renglón nocturno
+        $this->assertEquals(81000.0, $result['night']);
+        $this->assertEquals(0.0, $result['night_dominical']);
+        $this->assertEquals(81000.0, $result['total']);
+
+        $byType = collect($result['details'])->keyBy('type');
+        $this->assertEquals(6.0, $byType['night']['hours']);
+        $this->assertEquals(0.0, $byType['night_dominical']['hours']);
+    }
+
+    public function test_night_holiday_collapses_into_night_when_flag_off(): void
+    {
+        $this->rules->pay_night_holiday = false;
+
+        $result = $this->calculator->execute(10000, [
+            'night_hours' => 1.0,
+            'night_holiday_hours' => 3.0,
+        ], $this->rules);
+
+        // (1 + 3) × 10000 × 1.35 = 54000
+        $this->assertEquals(54000.0, $result['night']);
+        $this->assertEquals(0.0, $result['night_holiday']);
+        $this->assertEquals(54000.0, $result['total']);
+    }
+
+    public function test_both_night_flags_off_collapse_dominical_and_holiday_into_night(): void
+    {
+        $this->rules->pay_night_dominical = false;
+        $this->rules->pay_night_holiday = false;
+
+        $result = $this->calculator->execute(10000, [
+            'night_hours' => 2.0,
+            'night_dominical_hours' => 3.0,
+            'night_holiday_hours' => 5.0,
+        ], $this->rules);
+
+        // (2 + 3 + 5) × 10000 × 1.35 = 135000
+        $this->assertEquals(135000.0, $result['night']);
+        $this->assertEquals(0.0, $result['night_dominical']);
+        $this->assertEquals(0.0, $result['night_holiday']);
+        $this->assertEquals(135000.0, $result['total']);
+    }
+
+    public function test_overtime_dominical_collapses_into_week_overtime_when_flag_off(): void
+    {
+        $this->rules->pay_overtime_dominical = false;
+
+        $result = $this->calculator->execute(10000, [
+            'overtime_day_hours' => 1.0,
+            'overtime_night_hours' => 1.0,
+            'overtime_day_dominical_hours' => 2.0,
+            'overtime_night_dominical_hours' => 2.0,
+        ], $this->rules);
+
+        // diurnas: (1 + 2) × 10000 × 1.25 = 37500
+        $this->assertEquals(37500.0, $result['overtime_day']);
+        // nocturnas: (1 + 2) × 10000 × 1.75 = 52500
+        $this->assertEquals(52500.0, $result['overtime_night']);
+        $this->assertEquals(0.0, $result['overtime_day_dominical']);
+        $this->assertEquals(0.0, $result['overtime_night_dominical']);
+        $this->assertEquals(37500.0 + 52500.0, $result['total']);
+    }
+
+    public function test_overtime_holiday_collapses_into_week_overtime_when_flag_off(): void
+    {
+        $this->rules->pay_overtime_holiday = false;
+
+        $result = $this->calculator->execute(10000, [
+            'overtime_day_holiday_hours' => 2.0,
+            'overtime_night_holiday_hours' => 2.0,
+        ], $this->rules);
+
+        $this->assertEquals(25000.0, $result['overtime_day']);   // 2 × 10000 × 1.25
+        $this->assertEquals(35000.0, $result['overtime_night']); // 2 × 10000 × 1.75
+        $this->assertEquals(0.0, $result['overtime_day_holiday']);
+        $this->assertEquals(0.0, $result['overtime_night_holiday']);
+    }
+
+    public function test_all_premium_flags_true_keeps_current_behavior(): void
+    {
+        // Regresión: con los 4 flags en true (default), los premiums se pagan como tales.
+        $this->rules->pay_night_dominical = true;
+        $this->rules->pay_night_holiday = true;
+        $this->rules->pay_overtime_dominical = true;
+        $this->rules->pay_overtime_holiday = true;
+
+        $result = $this->calculator->execute(10000, [
+            'night_dominical_hours' => 2.0,
+            'night_holiday_hours' => 2.0,
+            'overtime_day_dominical_hours' => 2.0,
+            'overtime_night_holiday_hours' => 2.0,
+        ], $this->rules);
+
+        $this->assertEquals(42000.0, $result['night_dominical']);       // 2 × 10000 × 2.10
+        $this->assertEquals(42000.0, $result['night_holiday']);         // 2 × 10000 × 2.10
+        $this->assertEquals(40000.0, $result['overtime_day_dominical']); // 2 × 10000 × 2.00
+        $this->assertEquals(50000.0, $result['overtime_night_holiday']); // 2 × 10000 × 2.50
+    }
+
+    public function test_overtime_flag_off_does_not_resurrect_pay_when_overtime_compensated(): void
+    {
+        // payOvertime=false manda: aunque el flag dominical esté off, el overtime sigue en $0.
+        // El display SÍ se funde (las horas van al renglón base), pero el pago no se "resucita".
+        $this->rules->pay_overtime_dominical = false;
+
+        $result = $this->calculator->execute(10000, [
+            'overtime_day_dominical_hours' => 4.0,
+        ], $this->rules, payOvertime: false);
+
+        $this->assertEquals(0.0, $result['overtime_day']);
+        $this->assertEquals(0.0, $result['overtime_day_dominical']);
+        $this->assertEquals(0.0, $result['total']);
+
+        // Las horas se funden en el renglón base (extra de semana), compensadas; el premium queda en 0h.
+        $byType = collect($result['details'])->keyBy('type');
+        $this->assertEquals(4.0, $byType['overtime_day']['hours']);
+        $this->assertEquals(0.0, $byType['overtime_day_dominical']['hours']);
+        $this->assertTrue($byType['overtime_day']['compensated']);
+    }
+
+    public function test_night_dominical_flag_independent_from_diurnal_switch(): void
+    {
+        // pay_dominical_by_default(diurno)=false pero noche premium ON → noche con recargo 110%.
+        $this->rules->pay_night_dominical = true;
+
+        $result = $this->calculator->execute(10000, [
+            'dominical_hours' => 4.0,
+            'night_dominical_hours' => 2.0,
+        ], $this->rules, dominical: ['pay' => false]);
+
+        $this->assertEquals(40000.0, $result['dominical']);       // diurno → regular 4×10000
+        $this->assertEquals(42000.0, $result['night_dominical']); // noche → 2×10000×2.10
+    }
+
+    public function test_diurnal_paid_but_night_collapsed(): void
+    {
+        // pay_dominical_by_default(diurno)=true pero noche premium OFF → noche como night.
+        $this->rules->pay_night_dominical = false;
+
+        $result = $this->calculator->execute(10000, [
+            'dominical_hours' => 4.0,
+            'night_dominical_hours' => 2.0,
+        ], $this->rules, dominical: ['pay' => true, 'mode' => 'hour']);
+
+        $this->assertEquals(70000.0, $result['dominical']);     // diurno con recargo 4×10000×1.75
+        $this->assertEquals(0.0, $result['night_dominical']);   // colapsada
+        $this->assertEquals(27000.0, $result['night']);         // 2×10000×1.35
+    }
+
+    public function test_day_mode_night_flag_off_folds_into_night_and_overtime_collapses(): void
+    {
+        // Modo por día con flags apagados: la noche dominical se funde en el nocturno base (mismo
+        // 35% que en su renglón, ahora unificado) y la extra dominical colapsa a extra de semana.
+        $this->rules->pay_overtime_dominical = false;
+        $this->rules->pay_night_dominical = false;
+
+        $result = $this->calculator->execute(10000, [
+            'night_dominical_hours' => 2.0,
+            'overtime_day_dominical_hours' => 2.0,
+        ], $this->rules, dominical: [
+            'pay' => true,
+            'mode' => 'day',
+            'day_value' => 60000,
+            'worked_days' => 1,
+        ]);
+
+        // noche dominical fundida en 'night' (2×10000×1.35), su renglón queda en 0.
+        $this->assertEquals(27000.0, $result['night']);
+        $this->assertEquals(0.0, $result['night_dominical']);
+        // overtime dominical colapsa a overtime de semana: 2×10000×1.25
+        $this->assertEquals(25000.0, $result['overtime_day']);
+        $this->assertEquals(0.0, $result['overtime_day_dominical']);
+    }
+
+    public function test_day_mode_night_flag_on_keeps_night_dominical_row(): void
+    {
+        // Modo por día con flag encendido: la noche dominical se muestra en su propio renglón a
+        // tarifa nocturna normal (35%), sin fundirse.
+        $this->rules->pay_night_dominical = true;
+
+        $result = $this->calculator->execute(10000, [
+            'night_hours' => 1.0,
+            'night_dominical_hours' => 2.0,
+        ], $this->rules, dominical: [
+            'pay' => true,
+            'mode' => 'day',
+            'day_value' => 60000,
+            'worked_days' => 1,
+        ]);
+
+        $this->assertEquals(10000.0 * 1.35, $result['night']);          // 1×10000×1.35
+        $this->assertEquals(27000.0, $result['night_dominical']);       // 2×10000×1.35, renglón propio
     }
 
     // ---------------------------------------------------------------------------

@@ -83,7 +83,11 @@
 - default_hourly_rate (decimal 10,2, default round(SMLV/220)) — valor hora por defecto para empleados nuevos; derivado del SMLV con divisor 220 al sembrar, editable por admin
 - transport_allowance (decimal 10,2) — auxilio de transporte mensual por defecto
 - dominical_weekday (tinyint, default 0) — día de la semana que recibe el recargo dominical (0=Dom … 6=Sáb); solo empresa
-- pay_dominical_by_default (boolean default true) — pagar dominicales por defecto; si false se tratan como día normal (los festivos siempre pagan)
+- pay_dominical_by_default (boolean default true) — pagar el recargo dominical DIURNO por defecto; si false el dominical diurno se trata como día normal (los festivos siempre pagan). Tras configurable-premium-surcharge-toggles solo afecta el diurno
+- pay_night_dominical (boolean default true) — si false, las horas nocturnas dominicales se pagan como nocturno normal (`night`); sembrado desde pay_dominical_by_default en la migración
+- pay_night_holiday (boolean default true) — si false, las horas nocturnas festivas se pagan como nocturno normal (`night`)
+- pay_overtime_dominical (boolean default true) — si false, las horas extra dominicales (diurnas/nocturnas) se pagan como extra normal; sembrado desde pay_dominical_by_default en la migración
+- pay_overtime_holiday (boolean default true) — si false, las horas extra festivas (diurnas/nocturnas) se pagan como extra normal
 - default_dominical_payment_mode (string default hour) — modo de pago dominical por defecto (`hour`|`day`); siembra a employees
 - default_normal_day_value (decimal 12,2 default 0) — valor del día normal por defecto; siembra a employees (el recargo dominical/festivo en modo `day` aplica sunday_holiday% sobre este valor)
 - default_holiday_payment_mode (string default hour) — modo de pago festivo por defecto (`hour`|`day`); siembra a employees

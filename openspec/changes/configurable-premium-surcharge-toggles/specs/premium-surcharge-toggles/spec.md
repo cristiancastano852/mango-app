@@ -43,9 +43,10 @@ El sistema SHALL permitir que cada compañía configure, mediante 4 campos boole
 `CalculateReportCosts` SHALL aplicar el colapso en cost-time: las horas premium cuyo switch esté en `false` SHALL sumarse a su bucket base **antes** de multiplicar por la tarifa, sin calcular el premium descartado. SHALL NO modificarse la clasificación ni los buckets de `time_entries`.
 
 **Business Rules:**
-- Horas nocturnas efectivas = `night` + (¬`pay_night_dominical` ? `night_dominical` : 0) + (¬`pay_night_holiday` ? `night_holiday` : 0); el costo nocturno se calcula una sola vez sobre ese total con el recargo nocturno.
+- El colapso depende **solo del flag** (`colapsa = ¬flag`), de forma uniforme: en modo hora y en modo día, y aun con overtime compensado. Así "switch apagado" siempre significa "esas horas aparecen en el renglón base".
+- Horas nocturnas efectivas = `night` + (¬`pay_night_dominical` ? `night_dominical` : 0) + (¬`pay_night_holiday` ? `night_holiday` : 0); el costo nocturno se calcula una sola vez sobre ese total con el recargo nocturno. En modo día la noche premium ya valía 35%, así que fundirla no cambia el costo, solo la presentación.
 - Overtime diurno efectivo = `overtime_day` + las extras dominicales/festivas diurnas colapsadas; análogo para el nocturno.
-- El colapso de overtime aplica solo cuando el overtime se paga (si `pay_overtime` es `false`, todo overtime va a $0 y los switches no aplican).
+- Si `pay_overtime` es `false`, todo overtime va a $0 (vía `otCost`); el colapso **sí funde el display** hacia el renglón base, pero **no resucita pago** (el costo sigue en $0).
 - No hay queries adicionales ni recálculo de turnos.
 
 #### Scenario: Las horas colapsadas suman al bucket base, no se duplican

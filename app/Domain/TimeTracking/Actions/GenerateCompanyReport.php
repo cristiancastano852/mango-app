@@ -66,10 +66,19 @@ class GenerateCompanyReport
             'total' => 0.0,
         ];
 
+        // Horas de presentación agregadas por tipo (con el premium colapsado fundido en su base),
+        // tomadas de los details[] de cada empleado para que los exports muestren lo mismo que el costo.
+        $displayHours = [
+            'regular' => 0.0, 'night' => 0.0, 'dominical' => 0.0, 'night_dominical' => 0.0,
+            'holiday' => 0.0, 'night_holiday' => 0.0, 'overtime_day' => 0.0, 'overtime_night' => 0.0,
+            'overtime_day_dominical' => 0.0, 'overtime_night_dominical' => 0.0,
+            'overtime_day_holiday' => 0.0, 'overtime_night_holiday' => 0.0,
+        ];
+
         // Decisiones dominicales guardadas del periodo, keyed por employee_id (una query, sin N+1).
         $dominicalDecisions = $this->loadDominicalDecisions($companyId, $startDate, $endDate);
 
-        $employeesWithCosts = $employeeBreakdown->map(function ($emp) use ($rules, $payOvertime, $startDate, $endDate, $dominicalDecisions, &$totalCost) {
+        $employeesWithCosts = $employeeBreakdown->map(function ($emp) use ($rules, $payOvertime, $startDate, $endDate, $dominicalDecisions, &$totalCost, &$displayHours) {
             $salaryType = $emp->salary_type ?? 'hourly';
             $baseSalary = $salaryType === 'monthly'
                 ? $this->baseSalaryCalculator->execute((float) $emp->monthly_base_salary, $startDate, $endDate)
@@ -130,6 +139,12 @@ class GenerateCompanyReport
             $totalCost['transport_allowance'] += $cost['transport_allowance'];
             $totalCost['total'] += $cost['total'];
 
+            foreach ($cost['details'] as $detail) {
+                if (isset($displayHours[$detail['type']])) {
+                    $displayHours[$detail['type']] += (float) $detail['hours'];
+                }
+            }
+
             return [
                 'employee_id' => $emp->employee_id,
                 'name' => $emp->employee_name,
@@ -162,6 +177,7 @@ class GenerateCompanyReport
         // Redondear costos totales
         $totalCost = array_map(fn ($v) => round($v, 2), $totalCost);
         $totalCost['pay_overtime'] = $payOvertime;
+        $totalCost['display_hours'] = array_map(fn ($v) => round($v, 2), $displayHours);
 
         return [
             'totals' => $totals,

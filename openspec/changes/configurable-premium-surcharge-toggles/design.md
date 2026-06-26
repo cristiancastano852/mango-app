@@ -85,10 +85,12 @@ Así nadie ve subir su nómina por el cambio técnico; tras migrar, los 4 quedan
 
 Cuando un recargo se colapsa, en `details[]` y en los reportes/exports: sus horas y costo se suman al renglón base (`night` / `overtime_day` / `overtime_night`), y el renglón premium queda en `0h / $0`. El reporte refleja exactamente lo que se paga.
 
-### 6. Interacciones
+### 6. Interacciones (colapso uniforme por flag)
 
-- **Modo por día (dominical):** `night_dominical` ya se paga a tarifa nocturna normal (decisión preexistente). El flag de noche aplica sobre todo al modo **hora**; en por-día el comportamiento de la noche no cambia (el premium dominical de ese día está en el valor plano). El flag de **overtime** sí aplica en ambos modos (el overtime es independiente del modo hora/día).
-- **`pay_overtime` (global):** si OFF, todas las extras → $0; los flags `pay_overtime_*` no aplican (no hay nada que tarifar). Solo deciden la **tarifa** (premium vs base) cuando el overtime sí se paga.
+El colapso de cada recargo premium hacia su base depende **solo de su flag** (`collapse = !flag`), de forma uniforme en todos los casos. Esto mantiene la presentación consistente: "si el switch está apagado, esas horas aparecen en el renglón base".
+
+- **Modo por día (dominical/festivo):** `night_dominical`/`night_holiday` ya se pagan a tarifa nocturna normal (35%). Con el flag de noche **apagado** se **funden** en "Recargo nocturno" también en por-día — el costo no cambia (35% en ambos casos), solo unifica la presentación. Con el flag **encendido** se muestran en su propio renglón a 35%.
+- **`pay_overtime` (global) OFF:** todas las extras → $0 (vía `otCost`). El colapso de overtime **sí se aplica al display** (las horas se funden en el renglón base de extra, compensadas), pero **no resucita pago**: el costo sigue en $0. Cuando el overtime se paga, el flag además baja la **tarifa** (premium → base).
 - **Festivo diurno:** sigue pagándose siempre (sin switch); los flags festivos solo tocan noche y extra.
 
 ## Risks / Trade-offs

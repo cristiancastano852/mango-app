@@ -69,6 +69,10 @@ class SurchargeRuleControllerTest extends TestCase
             'transport_allowance' => 249095,
             'dominical_weekday' => 0,
             'pay_dominical_by_default' => true,
+            'pay_night_dominical' => true,
+            'pay_night_holiday' => true,
+            'pay_overtime_dominical' => true,
+            'pay_overtime_holiday' => true,
             'default_dominical_payment_mode' => 'hour',
             'default_normal_day_value' => 0,
             'default_holiday_payment_mode' => 'hour',
@@ -397,6 +401,99 @@ class SurchargeRuleControllerTest extends TestCase
         $response = $this->actingAs($this->adminUser)->put(
             route('surcharge-rules.update'),
             $this->validPayload(['company_id' => $otherCompany->id, 'max_daily_minutes' => 999]),
+        );
+
+        $response->assertSessionHasErrors('company_id');
+    }
+
+    public function test_admin_can_update_premium_surcharge_toggles(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload([
+                'pay_night_dominical' => false,
+                'pay_night_holiday' => false,
+                'pay_overtime_dominical' => false,
+                'pay_overtime_holiday' => false,
+            ]),
+        );
+
+        $response->assertRedirect(route('surcharge-rules.edit'));
+
+        $this->assertDatabaseHas('surcharge_rules', [
+            'company_id' => $this->company->id,
+            'pay_night_dominical' => false,
+            'pay_night_holiday' => false,
+            'pay_overtime_dominical' => false,
+            'pay_overtime_holiday' => false,
+        ]);
+    }
+
+    public function test_super_admin_can_update_premium_surcharge_toggles(): void
+    {
+        $superAdmin = User::factory()->create(['company_id' => null]);
+        $superAdmin->assignRole('super-admin');
+
+        $response = $this->actingAs($superAdmin)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload([
+                'company_id' => $this->company->id,
+                'pay_night_dominical' => false,
+                'pay_overtime_holiday' => false,
+            ]),
+        );
+
+        $response->assertRedirect(route('surcharge-rules.edit'));
+
+        $this->assertDatabaseHas('surcharge_rules', [
+            'company_id' => $this->company->id,
+            'pay_night_dominical' => false,
+            'pay_overtime_holiday' => false,
+        ]);
+    }
+
+    public function test_premium_surcharge_toggles_must_be_boolean(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload([
+                'pay_night_dominical' => 'maybe',
+                'pay_overtime_dominical' => 'maybe',
+            ]),
+        );
+
+        $response->assertSessionHasErrors(['pay_night_dominical', 'pay_overtime_dominical']);
+    }
+
+    public function test_premium_surcharge_toggles_are_required(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(route('surcharge-rules.update'), []);
+
+        $response->assertSessionHasErrors([
+            'pay_night_dominical',
+            'pay_night_holiday',
+            'pay_overtime_dominical',
+            'pay_overtime_holiday',
+        ]);
+    }
+
+    public function test_employee_cannot_update_premium_surcharge_toggles(): void
+    {
+        $response = $this->actingAs($this->employeeUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['pay_night_dominical' => false]),
+        );
+
+        $response->assertForbidden();
+    }
+
+    public function test_admin_cannot_update_premium_toggles_of_another_company(): void
+    {
+        $otherCompany = Company::create(['name' => 'Other Co', 'slug' => 'other-co']);
+
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['company_id' => $otherCompany->id, 'pay_night_dominical' => false]),
         );
 
         $response->assertSessionHasErrors('company_id');
