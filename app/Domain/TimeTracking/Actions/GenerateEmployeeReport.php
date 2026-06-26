@@ -43,8 +43,8 @@ class GenerateEmployeeReport
             ->firstOrFail();
 
         $totals = $this->aggregateTotals($employeeId, $startDate, $endDate);
-        $workedDominicalDays = $this->countWorkedDominicalDays($employeeId, $startDate, $endDate);
-        $workedHolidayDays = $this->countWorkedHolidayDays($employeeId, $startDate, $endDate);
+        $workedDominicalDays = (int) ($totals->dominical_worked_days ?? 0);
+        $workedHolidayDays = (int) ($totals->holiday_worked_days ?? 0);
         $breaksByType = $includeBreaksByType
             ? $this->aggregateBreaksByType($employeeId, $startDate, $endDate)
             : [];
@@ -140,7 +140,10 @@ class GenerateEmployeeReport
     }
 
     /**
-     * Agrega totales de horas a nivel de BD con una sola query.
+     * Agrega totales de horas a nivel de BD con una sola query. Incluye el conteo de días
+     * dominicales y festivos distintos trabajados (COUNT DISTINCT CASE), para el modo de pago
+     * por día — evita queries extra. Limitación aceptada: cuenta por entry.date, no por la
+     * fecha calendario real de las horas (cruce de medianoche).
      */
     private function aggregateTotals(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): object
     {
@@ -165,50 +168,11 @@ class GenerateEmployeeReport
                 COALESCE(SUM(overtime_day_dominical_hours), 0) as total_overtime_day_dominical,
                 COALESCE(SUM(overtime_night_dominical_hours), 0) as total_overtime_night_dominical,
                 COALESCE(SUM(overtime_day_holiday_hours), 0) as total_overtime_day_holiday,
-                COALESCE(SUM(overtime_night_holiday_hours), 0) as total_overtime_night_holiday
+                COALESCE(SUM(overtime_night_holiday_hours), 0) as total_overtime_night_holiday,
+                COUNT(DISTINCT CASE WHEN (dominical_hours > 0 OR night_dominical_hours > 0 OR overtime_day_dominical_hours > 0 OR overtime_night_dominical_hours > 0) THEN time_entries.date END) as dominical_worked_days,
+                COUNT(DISTINCT CASE WHEN (holiday_hours > 0 OR night_holiday_hours > 0 OR overtime_day_holiday_hours > 0 OR overtime_night_holiday_hours > 0) THEN time_entries.date END) as holiday_worked_days
             ')
             ->first();
-    }
-
-    /**
-     * Cuenta los días dominicales distintos trabajados (por entry.date) en el periodo.
-     * N para el modo de pago dominical por día. Limitación aceptada: cuenta por entry.date,
-     * no por la fecha calendario real de las horas dominicales (cruce de medianoche).
-     */
-    private function countWorkedDominicalDays(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): int
-    {
-        return TimeEntry::withoutGlobalScopes([CompanyScope::class])
-            ->where('employee_id', $employeeId)
-            ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->whereNotNull('clock_out')
-            ->where(fn ($q) => $q
-                ->where('dominical_hours', '>', 0)
-                ->orWhere('night_dominical_hours', '>', 0)
-                ->orWhere('overtime_day_dominical_hours', '>', 0)
-                ->orWhere('overtime_night_dominical_hours', '>', 0)
-            )
-            ->distinct()
-            ->count('date');
-    }
-
-    /**
-     * Cuenta los días festivos distintos trabajados (por entry.date) en el periodo.
-     * N para el modo de pago festivo por día (todos se pagan, no editable).
-     */
-    private function countWorkedHolidayDays(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate): int
-    {
-        return TimeEntry::withoutGlobalScopes([CompanyScope::class])
-            ->where('employee_id', $employeeId)
-            ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->whereNotNull('clock_out')
-            ->where(fn ($q) => $q
-                ->where('holiday_hours', '>', 0)
-                ->orWhere('night_holiday_hours', '>', 0)
-                ->orWhere('overtime_day_holiday_hours', '>', 0)
-                ->orWhere('overtime_night_holiday_hours', '>', 0)
-            )
-            ->distinct()
-            ->count('date');
     }
 
     /**
