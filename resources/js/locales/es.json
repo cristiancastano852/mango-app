@@ -452,9 +452,13 @@
             "surcharge": "Recargo %",
             "subtotal": "Subtotal",
             "total": "Total",
+            "total_earned": "Total devengado",
             "base_salary": "Salario base del periodo",
             "base_salary_hint": "Cubre las horas ordinarias",
-            "transport_allowance": "Auxilio de transporte"
+            "transport_allowance": "Auxilio de transporte",
+            "health": "Salud ({rate}%)",
+            "pension": "Pensión ({rate}%)",
+            "net_pay": "Neto a pagar"
         },
         "overtime_payment": {
             "label": "Pagar horas extra",

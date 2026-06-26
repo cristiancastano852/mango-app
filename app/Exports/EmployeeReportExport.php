@@ -89,7 +89,10 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
             ['Horas extra festivas diurnas', $hours('overtime_day_holiday', $totals['overtime_day_holiday_hours']), ($surcharges['overtime_day_holiday']['surcharge'] ?? 100).'%', $overtimeCost($costs['overtime_day_holiday'])],
             ['Horas extra festivas nocturnas', $hours('overtime_night_holiday', $totals['overtime_night_holiday_hours']), ($surcharges['overtime_night_holiday']['surcharge'] ?? 150).'%', $overtimeCost($costs['overtime_night_holiday'])],
             [],
-            ['TOTAL', $totals['net_hours'], '', $costs['total']],
+            ['TOTAL DEVENGADO', $totals['net_hours'], '', $costs['total']],
+            ['Salud ('.$costs['health_rate'].'%)', '', '', -$costs['health_deduction']],
+            ['Pensión ('.$costs['pension_rate'].'%)', '', '', -$costs['pension_deduction']],
+            ['NETO A PAGAR', '', '', $costs['net_pay']],
         ]);
 
         if (! empty($this->report['breaks_by_type'])) {

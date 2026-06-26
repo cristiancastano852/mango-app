@@ -92,6 +92,12 @@ type Report = {
         base: number;
         transport_allowance: number;
         total: number;
+        social_security_base: number;
+        health_rate: number;
+        health_deduction: number;
+        pension_rate: number;
+        pension_deduction: number;
+        net_pay: number;
         salary_type: string;
         pay_overtime: boolean;
         pay_dominical: boolean;
@@ -940,7 +946,7 @@ function hourTypeLabel(type: string): string {
                                 <tfoot>
                                     <tr class="border-t font-semibold">
                                         <td class="pt-2">
-                                            {{ t('reports.costs.total') }}
+                                            {{ t('reports.costs.total_earned') }}
                                         </td>
                                         <td class="pt-2 text-right">
                                             {{
@@ -954,6 +960,54 @@ function hourTypeLabel(type: string): string {
                                             {{
                                                 formatCurrency(
                                                     report.cost_summary.total,
+                                                )
+                                            }}
+                                        </td>
+                                    </tr>
+                                    <tr class="text-muted-foreground">
+                                        <td class="pt-2" colspan="3">
+                                            {{
+                                                t('reports.costs.health', {
+                                                    rate: report.cost_summary
+                                                        .health_rate,
+                                                })
+                                            }}
+                                        </td>
+                                        <td class="pt-2 text-right">
+                                            -{{
+                                                formatCurrency(
+                                                    report.cost_summary
+                                                        .health_deduction,
+                                                )
+                                            }}
+                                        </td>
+                                    </tr>
+                                    <tr class="text-muted-foreground">
+                                        <td colspan="3">
+                                            {{
+                                                t('reports.costs.pension', {
+                                                    rate: report.cost_summary
+                                                        .pension_rate,
+                                                })
+                                            }}
+                                        </td>
+                                        <td class="text-right">
+                                            -{{
+                                                formatCurrency(
+                                                    report.cost_summary
+                                                        .pension_deduction,
+                                                )
+                                            }}
+                                        </td>
+                                    </tr>
+                                    <tr class="border-t text-base font-bold">
+                                        <td class="pt-2" colspan="3">
+                                            {{ t('reports.costs.net_pay') }}
+                                        </td>
+                                        <td class="pt-2 text-right">
+                                            {{
+                                                formatCurrency(
+                                                    report.cost_summary.net_pay,
                                                 )
                                             }}
                                         </td>

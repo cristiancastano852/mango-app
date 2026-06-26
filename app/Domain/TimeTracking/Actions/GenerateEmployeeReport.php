@@ -96,6 +96,10 @@ class GenerateEmployeeReport
                 'day_value' => (float) $employee->normal_day_value,
                 'worked_days' => $workedHolidayDays,
             ],
+            [
+                'health' => (float) config('payroll.social_security.health'),
+                'pension' => (float) config('payroll.social_security.pension'),
+            ],
         );
 
         return [

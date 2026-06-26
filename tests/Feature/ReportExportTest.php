@@ -230,6 +230,70 @@ class ReportExportTest extends TestCase
         $this->assertStringNotContainsString($openDate->toDateString(), $html);
     }
 
+    // --- Seguridad social en los exports ---
+
+    public function test_employee_excel_includes_social_security_deduction_and_net_pay(): void
+    {
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->subDay()->toDateString(),
+            'clock_in' => now()->subDay()->setTime(8, 0),
+            'clock_out' => now()->subDay()->setTime(16, 0),
+            'gross_hours' => 8.0,
+            'break_hours' => 0,
+            'net_hours' => 8.0,
+            'regular_hours' => 8.0,
+            'status' => 'completed',
+            'pin_verified' => true,
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $rows = collect((new EmployeeReportExport($report))->sheets()[0]->array())
+            ->keyBy(fn ($row) => $row[0] ?? '');
+
+        $total = $report['cost_summary']['total'];
+        $this->assertEquals($total, $rows['TOTAL DEVENGADO'][3]);
+        $this->assertEquals(-round($total * 0.04, 2), $rows['Salud (4%)'][3]);
+        $this->assertEquals(-round($total * 0.04, 2), $rows['Pensión (4%)'][3]);
+        $this->assertEquals($report['cost_summary']['net_pay'], $rows['NETO A PAGAR'][3]);
+    }
+
+    public function test_employee_pdf_view_includes_social_security_deduction(): void
+    {
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => now()->subDay()->toDateString(),
+            'clock_in' => now()->subDay()->setTime(8, 0),
+            'clock_out' => now()->subDay()->setTime(16, 0),
+            'gross_hours' => 8.0,
+            'break_hours' => 0,
+            'net_hours' => 8.0,
+            'regular_hours' => 8.0,
+            'status' => 'completed',
+            'pin_verified' => true,
+        ]);
+
+        $report = app(GenerateEmployeeReport::class)->execute(
+            $this->employee->id,
+            now()->subDays(2)->startOfDay(),
+            now()->endOfDay(),
+        );
+
+        $html = view('exports.employee-report', ['report' => $report])->render();
+
+        $this->assertStringContainsString('TOTAL DEVENGADO', $html);
+        $this->assertStringContainsString('Salud (4%)', $html);
+        $this->assertStringContainsString('Pensión (4%)', $html);
+        $this->assertStringContainsString('NETO A PAGAR', $html);
+    }
+
     // --- Employee PDF ---
 
     public function test_admin_can_export_employee_report_as_pdf(): void
@@ -512,6 +576,8 @@ class ReportExportTest extends TestCase
             'overtime_day_holiday' => 0, 'overtime_night_holiday' => 0,
             'base' => 1000000.0, 'transport_allowance' => $transportAllowance,
             'total' => 1000000.0 + $transportAllowance,
+            'social_security_base' => 1000000.0, 'health_rate' => 4.0, 'health_deduction' => 40000.0,
+            'pension_rate' => 4.0, 'pension_deduction' => 40000.0, 'net_pay' => 920000.0 + $transportAllowance,
             'salary_type' => 'monthly', 'pay_overtime' => true, 'pay_dominical' => true,
             'dominical_mode' => 'hour', 'normal_day_value' => 0, 'dominical_worked_days' => 0, 'dominical_paid_days' => 0,
             'details' => [],

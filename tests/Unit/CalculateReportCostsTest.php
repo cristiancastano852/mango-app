@@ -683,4 +683,76 @@ class CalculateReportCostsTest extends TestCase
         $this->assertEquals(0.0, $result['transport_allowance']);
         $this->assertEquals(80000.0, $result['total']);
     }
+
+    // ---------------------------------------------------------------------------
+    // Seguridad social a cargo del empleado (4% salud + 4% pensión sobre el IBC).
+    // ---------------------------------------------------------------------------
+
+    private const SS = ['health' => 4.0, 'pension' => 4.0];
+
+    public function test_social_security_base_in_monthly_excludes_transport_allowance(): void
+    {
+        $result = $this->calculator->execute(8000, [
+            'regular_hours' => 96.0,
+            'night_hours' => 4.0,
+        ], $this->rules, salaryType: 'monthly', baseSalary: 1000000.0, transportAllowance: 124547.5, socialSecurity: self::SS);
+
+        // total = base 1.000.000 + nocturno (4 × 8000 × 0.35 = 11.200) + auxilio 124.547,5
+        $this->assertEquals(1135747.5, $result['total']);
+        // IBC = total − auxilio = 1.011.200
+        $this->assertEquals(1011200.0, $result['social_security_base']);
+        $this->assertEquals(40448.0, $result['health_deduction']);  // 4%
+        $this->assertEquals(40448.0, $result['pension_deduction']); // 4%
+        $this->assertEquals(1135747.5 - 40448.0 - 40448.0, $result['net_pay']);
+    }
+
+    public function test_social_security_base_in_hourly_equals_total(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'regular_hours' => 8.0,
+            'overtime_day_hours' => 2.0,
+        ], $this->rules, salaryType: 'hourly', socialSecurity: self::SS);
+
+        // total = 8 × 10000 + 2 × 10000 × 1.25 = 80.000 + 25.000 = 105.000
+        $this->assertEquals(105000.0, $result['total']);
+        $this->assertEquals(105000.0, $result['social_security_base']);
+        $this->assertEquals(4200.0, $result['health_deduction']);
+        $this->assertEquals(4200.0, $result['pension_deduction']);
+        $this->assertEquals(96600.0, $result['net_pay']);
+    }
+
+    public function test_social_security_is_zero_when_no_hours_worked(): void
+    {
+        $result = $this->calculator->execute(10000, [], $this->rules, socialSecurity: self::SS);
+
+        $this->assertEquals(0.0, $result['total']);
+        $this->assertEquals(0.0, $result['social_security_base']);
+        $this->assertEquals(0.0, $result['health_deduction']);
+        $this->assertEquals(0.0, $result['pension_deduction']);
+        $this->assertEquals(0.0, $result['net_pay']);
+    }
+
+    public function test_social_security_rates_come_from_parameter(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'regular_hours' => 10.0,
+        ], $this->rules, socialSecurity: ['health' => 4.0, 'pension' => 4.0]);
+
+        // 8% total sobre 100.000 = 8.000 de deducción
+        $this->assertEquals(100000.0, $result['social_security_base']);
+        $this->assertEquals(4000.0, $result['health_deduction']);
+        $this->assertEquals(4000.0, $result['pension_deduction']);
+        $this->assertEquals(92000.0, $result['net_pay']);
+    }
+
+    public function test_social_security_defaults_to_zero_without_rates(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'regular_hours' => 8.0,
+        ], $this->rules);
+
+        $this->assertEquals(0.0, $result['health_deduction']);
+        $this->assertEquals(0.0, $result['pension_deduction']);
+        $this->assertEquals($result['total'], $result['net_pay']);
+    }
 }

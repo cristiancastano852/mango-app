@@ -452,9 +452,13 @@
             "surcharge": "Surcharge %",
             "subtotal": "Subtotal",
             "total": "Total",
+            "total_earned": "Total earned",
             "base_salary": "Base salary for the period",
             "base_salary_hint": "Covers ordinary hours",
-            "transport_allowance": "Transport allowance"
+            "transport_allowance": "Transport allowance",
+            "health": "Health ({rate}%)",
+            "pension": "Pension ({rate}%)",
+            "net_pay": "Net pay"
         },
         "overtime_payment": {
             "label": "Pay overtime",

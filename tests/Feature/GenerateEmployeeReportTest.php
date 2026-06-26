@@ -896,6 +896,66 @@ class GenerateEmployeeReportTest extends TestCase
         $this->assertEquals(0.0, $result['cost_summary']['transport_allowance']);
     }
 
+    // ----------------------------------------------------------------------------------
+    // Seguridad social a cargo del empleado (4% salud + 4% pensión sobre el IBC).
+    // ----------------------------------------------------------------------------------
+
+    public function test_hourly_report_includes_social_security_deduction(): void
+    {
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-03-05',
+            'clock_in' => '2026-03-05 08:00:00',
+            'clock_out' => '2026-03-05 17:00:00',
+            'gross_hours' => 9.0,
+            'break_hours' => 1.0,
+            'net_hours' => 8.0,
+            'regular_hours' => 8.0,
+            'status' => 'calculated',
+        ]);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-07'),
+        );
+
+        $cost = $result['cost_summary'];
+
+        // total = 8h × 10.000 = 80.000; hourly → IBC = total.
+        $this->assertEquals(80000.0, $cost['total']);
+        $this->assertEquals(80000.0, $cost['social_security_base']);
+        $this->assertEquals(3200.0, $cost['health_deduction']);  // 4%
+        $this->assertEquals(3200.0, $cost['pension_deduction']); // 4%
+        $this->assertEquals(73600.0, $cost['net_pay']);
+    }
+
+    public function test_monthly_report_ibc_excludes_transport_allowance(): void
+    {
+        $this->setCompanyTransportAllowance(240000);
+        $employee = $this->makeMonthlyEmployee(2000000, 8000, receivesTransportAllowance: true);
+
+        foreach (['2026-03-02', '2026-03-03', '2026-03-04'] as $date) {
+            $this->createMonthlyEntry($employee, $date, regular: 8.0);
+        }
+
+        $result = $this->action->execute(
+            $employee->id,
+            Carbon::parse('2026-03-01'),
+            Carbon::parse('2026-03-15'),
+        );
+
+        $cost = $result['cost_summary'];
+
+        // total = base 1.000.000 + auxilio 120.000; IBC = total − auxilio = 1.000.000.
+        $this->assertEquals(1120000.0, $cost['total']);
+        $this->assertEquals(1000000.0, $cost['social_security_base']);
+        $this->assertEquals(40000.0, $cost['health_deduction']);  // 4%
+        $this->assertEquals(40000.0, $cost['pension_deduction']); // 4%
+        $this->assertEquals(1120000.0 - 80000.0, $cost['net_pay']);
+    }
+
     private function setCompanyTransportAllowance(float $value): void
     {
         SurchargeRule::withoutGlobalScopes()

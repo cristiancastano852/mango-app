@@ -211,10 +211,22 @@
                         </td>
                     </tr>
                     <tr class="total-row">
-                        <td>TOTAL</td>
+                        <td>TOTAL DEVENGADO</td>
                         <td class="text-right">{{ $report['totals']['net_hours'] }}</td>
                         <td></td>
                         <td class="text-right">${{ number_format($report['cost_summary']['total'], 0, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="3">Salud ({{ $report['cost_summary']['health_rate'] }}%)</td>
+                        <td class="text-right">-${{ number_format($report['cost_summary']['health_deduction'], 0, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="3">Pensión ({{ $report['cost_summary']['pension_rate'] }}%)</td>
+                        <td class="text-right">-${{ number_format($report['cost_summary']['pension_deduction'], 0, ',', '.') }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="3">NETO A PAGAR</td>
+                        <td class="text-right">${{ number_format($report['cost_summary']['net_pay'], 0, ',', '.') }}</td>
                     </tr>
                 </tbody>
             </table>
