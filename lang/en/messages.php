@@ -4,6 +4,8 @@ return [
     'employee_created' => 'Employee created successfully.',
     'employee_updated' => 'Employee updated successfully.',
     'employee_deleted' => 'Employee deleted successfully.',
+    'adjustment_saved' => 'Adjustment saved successfully.',
+    'adjustment_deleted' => 'Adjustment deleted successfully.',
     'clock_in' => 'Check-in recorded.',
     'clock_out' => 'Check-out recorded.',
     'break_started' => 'Break started.',

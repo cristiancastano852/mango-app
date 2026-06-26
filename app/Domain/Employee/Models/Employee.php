@@ -89,4 +89,9 @@ class Employee extends Model
     {
         return $this->hasMany(BreakEntry::class);
     }
+
+    public function adjustments(): HasMany
+    {
+        return $this->hasMany(EmployeeAdjustment::class);
+    }
 }

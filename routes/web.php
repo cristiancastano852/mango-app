@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\TimeEntryBreakController;
 use App\Http\Controllers\Admin\TimeEntryController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmployeeAdjustmentController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\KioskController;
 use App\Http\Controllers\LandingController;
@@ -51,6 +52,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Admin-only routes
     Route::middleware('role:admin|super-admin')->group(function () {
         Route::resource('employees', EmployeeController::class);
+        Route::post('employees/{employee}/adjustments', [EmployeeAdjustmentController::class, 'store'])->name('employees.adjustments.store');
+        Route::put('employees/{employee}/adjustments/{adjustment}', [EmployeeAdjustmentController::class, 'update'])->scopeBindings()->name('employees.adjustments.update');
+        Route::delete('employees/{employee}/adjustments/{adjustment}', [EmployeeAdjustmentController::class, 'destroy'])->scopeBindings()->name('employees.adjustments.destroy');
         // TODO: Schedules feature temporarily disabled (hidden from UI) — remove this comment when resuming
         Route::resource('schedules', SchedulesController::class);
         Route::get('calendar', [CalendarController::class, 'index'])->name('calendar.index');

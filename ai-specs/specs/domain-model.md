@@ -8,8 +8,9 @@
 - Controllers: Settings/HolidayController, Settings/SurchargeRuleController, Settings/CompanyProfileController, Settings/CompanySettingsController (admin-only)
 
 ## Employee (app/Domain/Employee/)
-- Models: Employee
-- Actions: CreateEmployee (with default schedule fallback from company settings), UpdateEmployee, DeleteEmployee (si existen)
+- Models: Employee, EmployeeAdjustment (ajustes de nómina: Bonus/Deduction por empleado y fecha; se aplican en el reporte después del neto)
+- Enums: AdjustmentType (Bonus | Deduction; sign() = +1/-1)
+- Actions: CreateEmployee (with default schedule fallback from company settings), UpdateEmployee, DeleteEmployee (si existen), SaveEmployeeAdjustment y DeleteEmployeeAdjustment (CRUD de ajustes de nómina)
 
 ## TimeTracking (app/Domain/TimeTracking/)
 - Actions (clock): ClockIn, ClockOut, StartBreak, EndBreak, AdminClockIn
