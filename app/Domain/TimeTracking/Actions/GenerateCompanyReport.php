@@ -2,6 +2,7 @@
 
 namespace App\Domain\TimeTracking\Actions;
 
+use App\Domain\Company\Models\OvertimePaymentDecision;
 use App\Domain\Company\Models\SurchargeRule;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,7 @@ class GenerateCompanyReport
         private CalculateReportCosts $costCalculator,
         private CalculatePeriodBaseSalary $baseSalaryCalculator,
         private ResolveOvertimeSettlementWindow $settlementWindow,
+        private ResolveNightSettlementWindow $nightSettlementWindow,
     ) {}
 
     /**
@@ -51,6 +53,15 @@ class GenerateCompanyReport
             $employeeBreakdown = $this->applyOvertimeSettlementWindow($employeeBreakdown, $companyId, $departmentId, $overtimeWindow);
         }
 
+        // En modo `deferred` el recargo nocturno del día de corte se difiere al periodo siguiente.
+        // Se suman las horas nocturnas por empleado sobre la ventana corrida (una query, sin N+1);
+        // en `immediate` no se consulta nada (el costo nocturno queda igual que hoy).
+        $nightMode = $rules->night_settlement_mode ?? 'immediate';
+        $nightWindow = $this->nightSettlementWindow->execute($startDate, $endDate, $nightMode);
+        $nightWindowHoursByEmployee = $nightWindow['deferred']
+            ? $this->loadNightWindowHours($companyId, $departmentId, $nightWindow)
+            : [];
+
         $dailyAttendance = $this->getDailyAttendance($companyId, $startDate, $endDate, $departmentId);
 
         // Calcular totales sumando los datos de empleados (ya agregados por BD)
@@ -87,7 +98,10 @@ class GenerateCompanyReport
         // Decisiones dominicales guardadas del periodo, keyed por employee_id (una query, sin N+1).
         $dominicalDecisions = $this->loadDominicalDecisions($companyId, $startDate, $endDate);
 
-        $employeesWithCosts = $employeeBreakdown->map(function ($emp) use ($rules, $payOvertime, $startDate, $endDate, $dominicalDecisions, &$totalCost, &$displayHours) {
+        // Decisiones de horas extra pagables guardadas del periodo, keyed por employee_id.
+        $overtimePayableDecisions = $this->loadOvertimePayableDecisions($companyId, $startDate, $endDate);
+
+        $employeesWithCosts = $employeeBreakdown->map(function ($emp) use ($rules, $payOvertime, $startDate, $endDate, $dominicalDecisions, $overtimePayableDecisions, $nightWindow, $nightWindowHoursByEmployee, &$totalCost, &$displayHours) {
             $salaryType = $emp->salary_type ?? 'hourly';
             $baseSalary = $salaryType === 'monthly'
                 ? $this->baseSalaryCalculator->execute((float) $emp->monthly_base_salary, $startDate, $endDate)
@@ -130,6 +144,16 @@ class GenerateCompanyReport
                     'day_value' => (float) $emp->normal_day_value,
                     'worked_days' => (int) ($emp->holiday_worked_days ?? 0),
                 ],
+                overtimePayableHours: isset($overtimePayableDecisions[$emp->employee_id])
+                    ? (float) $overtimePayableDecisions[$emp->employee_id]
+                    : null,
+                // En modo `deferred` todo empleado debe recibir la ventana (ceros si no tiene turnos
+                // en ella), para que el recargo nocturno de su día de corte se difiera aunque sus
+                // únicas horas nocturnas caigan justo en ese día (fuera de la ventana corrida).
+                // `null` solo en `immediate`, donde no hay diferimiento.
+                nightWindowHours: $nightWindow['deferred']
+                    ? ($nightWindowHoursByEmployee[$emp->employee_id] ?? ['night_hours' => 0.0, 'night_dominical_hours' => 0.0, 'night_holiday_hours' => 0.0])
+                    : null,
             );
 
             $totalCost['regular'] += $cost['regular'];
@@ -187,6 +211,9 @@ class GenerateCompanyReport
         $totalCost = array_map(fn ($v) => round($v, 2), $totalCost);
         $totalCost['pay_overtime'] = $payOvertime;
         $totalCost['display_hours'] = array_map(fn ($v) => round($v, 2), $displayHours);
+        $totalCost['overtime_unified'] = ! ($rules->pay_overtime_dominical ?? true)
+            && ! ($rules->pay_overtime_holiday ?? true)
+            && ! ($rules->pay_overtime_night ?? true);
 
         return [
             'totals' => $totals,
@@ -203,7 +230,51 @@ class GenerateCompanyReport
                 'end' => $overtimeWindow['end'],
                 'deferred' => $overtimeWindow['deferred'],
             ],
+            'night_settlement' => [
+                'mode' => $nightMode,
+                'start' => $nightWindow['start'],
+                'end' => $nightWindow['end'],
+                'deferred' => $nightWindow['deferred'],
+            ],
         ];
+    }
+
+    /**
+     * Suma por empleado las horas de los 3 buckets nocturnos sobre la ventana de liquidación nocturna
+     * corrida, mapeadas por employee_id. Una sola query (sin N+1); solo se invoca en modo `deferred`.
+     *
+     * Limitación aceptada: solo cubre empleados con turnos en el periodo. Un empleado que solo trabajó
+     * el día de corte del periodo anterior (sin turnos en este periodo) no recibe aquí su recargo
+     * nocturno diferido; su reporte individual sí lo liquida correctamente.
+     *
+     * @param  array{start: string, end: string, deferred: bool}  $window
+     * @return array<int, array{night_hours: float, night_dominical_hours: float, night_holiday_hours: float}>
+     */
+    private function loadNightWindowHours(int $companyId, ?int $departmentId, array $window): array
+    {
+        return DB::table('time_entries')
+            ->join('employees', 'time_entries.employee_id', '=', 'employees.id')
+            ->where('time_entries.company_id', $companyId)
+            ->whereBetween('time_entries.date', [$window['start'], $window['end']])
+            ->whereNull('time_entries.deleted_at')
+            ->whereNotNull('time_entries.clock_out')
+            ->when($departmentId, fn ($q) => $q->where('employees.department_id', $departmentId))
+            ->groupBy('time_entries.employee_id')
+            ->selectRaw('
+                time_entries.employee_id,
+                COALESCE(SUM(time_entries.night_hours), 0) as night_hours,
+                COALESCE(SUM(time_entries.night_dominical_hours), 0) as night_dominical_hours,
+                COALESCE(SUM(time_entries.night_holiday_hours), 0) as night_holiday_hours
+            ')
+            ->get()
+            ->mapWithKeys(fn ($row) => [
+                (int) $row->employee_id => [
+                    'night_hours' => (float) $row->night_hours,
+                    'night_dominical_hours' => (float) $row->night_dominical_hours,
+                    'night_holiday_hours' => (float) $row->night_holiday_hours,
+                ],
+            ])
+            ->all();
     }
 
     /**
@@ -536,6 +607,24 @@ class GenerateCompanyReport
             ->where('start_date', $startDate->toDateString())
             ->where('end_date', $endDate->toDateString())
             ->pluck('payable_count', 'employee_id')
+            ->all();
+    }
+
+    /**
+     * Carga las decisiones de horas extra pagables guardadas del periodo, mapeadas por
+     * employee_id → overtime_payable_hours. Una sola query (sin N+1).
+     *
+     * @return array<int, float|null>
+     */
+    private function loadOvertimePayableDecisions(int $companyId, CarbonInterface $startDate, CarbonInterface $endDate): array
+    {
+        return OvertimePaymentDecision::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->whereNotNull('employee_id')
+            ->where('start_date', $startDate->toDateString())
+            ->where('end_date', $endDate->toDateString())
+            ->whereNotNull('overtime_payable_hours')
+            ->pluck('overtime_payable_hours', 'employee_id')
             ->all();
     }
 }

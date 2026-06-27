@@ -1066,4 +1066,166 @@ class GenerateEmployeeReportTest extends TestCase
             'status' => 'calculated',
         ]);
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // overtime_payable_hours — cap sobre bolsa única (3 flags premium en off)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private function setUnifiedOvertimeRules(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update([
+                'pay_overtime_dominical' => false,
+                'pay_overtime_holiday' => false,
+                'pay_overtime_night' => false,
+            ]);
+    }
+
+    public function test_overtime_payable_hours_caps_cost_to_fewer_hours(): void
+    {
+        $this->setUnifiedOvertimeRules();
+
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-06-02',
+            'clock_in' => '2026-06-02 08:00:00',
+            'clock_out' => '2026-06-02 20:00:00',
+            'gross_hours' => 12.0,
+            'break_hours' => 0,
+            'net_hours' => 12.0,
+            'regular_hours' => 8.0,
+            'overtime_day_hours' => 4.0, // 4h extra
+            'status' => 'calculated',
+        ]);
+
+        // Pagar solo 2 de las 4h extra
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-06-01'),
+            Carbon::parse('2026-06-15'),
+            overtimePayableHours: 2.0,
+        );
+
+        // 2h × 10000 × 1.25 = 25000 (no 50000)
+        $this->assertEquals(25000.0, $result['cost_summary']['overtime_day']);
+        // Las horas trabajadas siguen mostrando 4h
+        $this->assertEquals(4.0, $result['totals']['overtime_day_hours']);
+        $this->assertEquals(2.0, $result['cost_summary']['overtime_payable_hours']);
+        $this->assertEquals(4.0, $result['cost_summary']['overtime_worked_hours']);
+        $this->assertTrue($result['cost_summary']['overtime_unified']);
+    }
+
+    public function test_overtime_payable_hours_null_pays_all(): void
+    {
+        $this->setUnifiedOvertimeRules();
+
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => '2026-06-02',
+            'clock_in' => '2026-06-02 08:00:00',
+            'clock_out' => '2026-06-02 20:00:00',
+            'gross_hours' => 12.0,
+            'break_hours' => 0,
+            'net_hours' => 12.0,
+            'regular_hours' => 8.0,
+            'overtime_day_hours' => 4.0,
+            'status' => 'calculated',
+        ]);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-06-01'),
+            Carbon::parse('2026-06-15'),
+            overtimePayableHours: null,
+        );
+
+        // null → paga todas (4h × 10000 × 1.25 = 50000)
+        $this->assertEquals(50000.0, $result['cost_summary']['overtime_day']);
+        $this->assertNull($result['cost_summary']['overtime_payable_hours']);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // night_settlement deferred — recargo nocturno del día de corte diferido
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private function setDeferredNightMode(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['night_settlement_mode' => 'deferred']);
+    }
+
+    private function createNightEntry(string $date, float $nightHours): void
+    {
+        TimeEntry::withoutGlobalScopes()->create([
+            'employee_id' => $this->employee->id,
+            'company_id' => $this->company->id,
+            'date' => $date,
+            'clock_in' => "{$date} 21:00:00",
+            'clock_out' => "{$date} 23:00:00",
+            'gross_hours' => $nightHours,
+            'break_hours' => 0,
+            'net_hours' => $nightHours,
+            'regular_hours' => 0,
+            'night_hours' => $nightHours,
+            'status' => 'calculated',
+        ]);
+    }
+
+    public function test_cutoff_day_night_surcharge_is_deferred_out_of_the_period(): void
+    {
+        $this->setDeferredNightMode();
+        $this->createNightEntry('2026-06-14', 4.0); // dentro de la ventana
+        $this->createNightEntry('2026-06-15', 2.0); // día de corte → se difiere
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-06-01'),
+            Carbon::parse('2026-06-15'),
+        );
+
+        // 14: base+35% (54000) ; 15: solo base (20000) = 74000
+        $this->assertEquals(74000.0, $result['cost_summary']['night']);
+        $this->assertTrue($result['night_settlement']['deferred']);
+        $this->assertEquals('2026-06-14', $result['night_settlement']['end']);
+
+        // La fila del 15 (día de corte) queda marcada como diferida.
+        $cutoffRow = collect($result['daily_breakdown'])->firstWhere('date', '2026-06-15');
+        $this->assertTrue($cutoffRow['night_deferred']);
+    }
+
+    public function test_deferred_cutoff_surcharge_is_paid_in_the_next_period(): void
+    {
+        $this->setDeferredNightMode();
+        $this->createNightEntry('2026-06-15', 2.0); // corte de la 1ª quincena
+        $this->createNightEntry('2026-06-20', 3.0); // turno normal de la 2ª quincena
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-06-16'),
+            Carbon::parse('2026-06-30'),
+        );
+
+        // 20: base+35% (40500) + recargo diferido del 15: 2h×0.35×10000 (7000) = 47500
+        $this->assertEquals(47500.0, $result['cost_summary']['night']);
+        $this->assertEquals('2026-06-15', $result['night_settlement']['start']);
+    }
+
+    public function test_immediate_mode_pays_cutoff_day_night_surcharge_normally(): void
+    {
+        $this->createNightEntry('2026-06-15', 2.0); // default immediate
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-06-01'),
+            Carbon::parse('2026-06-15'),
+        );
+
+        // Sin diferimiento: 2h × 10000 × 1.35 = 27000
+        $this->assertEquals(27000.0, $result['cost_summary']['night']);
+        $this->assertFalse($result['night_settlement']['deferred']);
+    }
 }

@@ -394,6 +394,69 @@ class GenerateCompanyReportTest extends TestCase
         $this->assertEquals(0.0, $byId[$this->employee1->id]['transport_allowance']);
     }
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // night_settlement deferred — recargo nocturno del día de corte
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private function setDeferredNightMode(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['night_settlement_mode' => 'deferred']);
+    }
+
+    public function test_deferred_night_settlement_excludes_cutoff_day_surcharge(): void
+    {
+        $this->setDeferredNightMode();
+        // emp1 (rate 10000): 14 jun dentro de la ventana; 15 jun (corte) se difiere.
+        $this->createEntry($this->employee1, '2026-06-14', 4.0, 0, 4.0);
+        $this->createEntry($this->employee1, '2026-06-15', 2.0, 0, 2.0);
+
+        $result = $this->action->execute(
+            $this->company->id,
+            Carbon::parse('2026-06-01'),
+            Carbon::parse('2026-06-15'),
+        );
+
+        // 14: base+35% (54000) ; 15: solo base (20000) = 74000
+        $this->assertEquals(74000.0, $result['cost_summary']['night']);
+        $this->assertTrue($result['night_settlement']['deferred']);
+    }
+
+    public function test_deferred_night_defers_cutoff_for_employee_without_window_entries(): void
+    {
+        // Regresión: empleado cuyas ÚNICAS horas nocturnas caen en el día de corte (fuera de la
+        // ventana corrida). Antes el reporte de empresa le pagaba el recargo completo; debe diferirlo.
+        $this->setDeferredNightMode();
+        // emp2 (rate 15000): solo trabaja la noche del 15 (corte de la 1ª quincena).
+        $this->createEntry($this->employee2, '2026-06-15', 3.0, 0, 3.0);
+
+        $result = $this->action->execute(
+            $this->company->id,
+            Carbon::parse('2026-06-01'),
+            Carbon::parse('2026-06-15'),
+        );
+
+        // Solo base, sin el 35% nocturno: 3 × 15000 × 1.0 = 45000 (no 60750).
+        $this->assertEquals(45000.0, $result['cost_summary']['night']);
+    }
+
+    public function test_immediate_mode_pays_cutoff_day_night_surcharge_normally(): void
+    {
+        // Default immediate: el día de corte se paga completo.
+        $this->createEntry($this->employee1, '2026-06-15', 2.0, 0, 2.0);
+
+        $result = $this->action->execute(
+            $this->company->id,
+            Carbon::parse('2026-06-01'),
+            Carbon::parse('2026-06-15'),
+        );
+
+        // 2 × 10000 × 1.35 = 27000
+        $this->assertEquals(27000.0, $result['cost_summary']['night']);
+        $this->assertFalse($result['night_settlement']['deferred']);
+    }
+
     private function createEntry(Employee $employee, string $date, float $netHours, float $regularHours, float $nightHours): void
     {
         $this->createEntryForEmployee($employee, $this->company->id, $date, $netHours, $regularHours, $nightHours);

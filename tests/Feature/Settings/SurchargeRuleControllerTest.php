@@ -63,6 +63,7 @@ class SurchargeRuleControllerTest extends TestCase
             'max_weekly_minutes' => 2520,
             'max_daily_minutes' => 480,
             'overtime_accrual_mode' => 'daily',
+            'night_settlement_mode' => 'immediate',
             'night_start_time' => '21:00',
             'night_end_time' => '06:00',
             'default_monthly_salary' => 1750905,
@@ -561,6 +562,60 @@ class SurchargeRuleControllerTest extends TestCase
         $response = $this->actingAs($this->adminUser)->put(
             route('surcharge-rules.update'),
             $this->validPayload(['company_id' => $otherCompany->id, 'overtime_accrual_mode' => 'weekly']),
+        );
+
+        $response->assertSessionHasErrors('company_id');
+    }
+
+    public function test_admin_can_switch_to_deferred_night_settlement_mode(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['night_settlement_mode' => 'deferred']),
+        );
+
+        $response->assertRedirect(route('surcharge-rules.edit'));
+
+        $this->assertDatabaseHas('surcharge_rules', [
+            'company_id' => $this->company->id,
+            'night_settlement_mode' => 'deferred',
+        ]);
+    }
+
+    public function test_night_settlement_mode_rejects_invalid_value(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['night_settlement_mode' => 'monthly']),
+        );
+
+        $response->assertSessionHasErrors('night_settlement_mode');
+    }
+
+    public function test_night_settlement_mode_is_required(): void
+    {
+        $response = $this->actingAs($this->adminUser)->put(route('surcharge-rules.update'), []);
+
+        $response->assertSessionHasErrors('night_settlement_mode');
+    }
+
+    public function test_employee_cannot_update_night_settlement_mode(): void
+    {
+        $response = $this->actingAs($this->employeeUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['night_settlement_mode' => 'deferred']),
+        );
+
+        $response->assertForbidden();
+    }
+
+    public function test_admin_cannot_update_night_settlement_mode_of_another_company(): void
+    {
+        $otherCompany = Company::create(['name' => 'Other Co', 'slug' => 'other-co']);
+
+        $response = $this->actingAs($this->adminUser)->put(
+            route('surcharge-rules.update'),
+            $this->validPayload(['company_id' => $otherCompany->id, 'night_settlement_mode' => 'deferred']),
         );
 
         $response->assertSessionHasErrors('company_id');

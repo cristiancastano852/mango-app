@@ -107,6 +107,15 @@ function hasOvertime(day: DailyWorkDay): boolean {
     );
 }
 
+function hasNight(day: DailyWorkDay): boolean {
+    return (
+        (day.night_hours ?? 0) +
+            (day.night_dominical_hours ?? 0) +
+            (day.night_holiday_hours ?? 0) >
+        0
+    );
+}
+
 const expanded = ref(new Set<string>());
 
 function toggle(date: string) {
@@ -280,6 +289,17 @@ const gridCols = 'sm:grid-cols-[8.5rem_1fr_6.5rem_7rem_7rem_2rem]';
                                     title="El recargo extra de esta semana se paga en el próximo periodo"
                                 >
                                     Extra diferido
+                                </Badge>
+                                <Badge
+                                    v-if="
+                                        hasNight(row.day) &&
+                                        row.day.night_deferred
+                                    "
+                                    variant="outline"
+                                    class="border-indigo-400 text-[10px] font-normal text-indigo-700 dark:text-indigo-300"
+                                    title="El recargo nocturno de este día se paga en el próximo periodo"
+                                >
+                                    Nocturno diferido
                                 </Badge>
                             </span>
 

@@ -84,12 +84,19 @@ type Report = {
         transport_allowance: number;
         total: number;
         pay_overtime: boolean;
+        overtime_unified: boolean;
     };
     period: { start: string; end: string };
     overtime_settlement: {
         mode: string;
         start: string | null;
         end: string | null;
+        deferred: boolean;
+    };
+    night_settlement: {
+        mode: string;
+        start: string;
+        end: string;
         deferred: boolean;
     };
 };
@@ -118,6 +125,18 @@ const showOvertimeSettlement = computed(
 
 const overtimeSettlementRange = computed(() => {
     const settlement = props.report.overtime_settlement;
+    if (!settlement?.start || !settlement?.end) {
+        return null;
+    }
+    return `${settlement.start} → ${settlement.end}`;
+});
+
+const showNightSettlement = computed(
+    () => props.report.night_settlement?.mode === 'deferred',
+);
+
+const nightSettlementRange = computed(() => {
+    const settlement = props.report.night_settlement;
     if (!settlement?.start || !settlement?.end) {
         return null;
     }
@@ -330,6 +349,22 @@ onMounted(async () => {
                 </div>
             </div>
 
+            <!-- Liquidación diferida del recargo nocturno -->
+            <div
+                v-if="showNightSettlement && report.totals.total_employees > 0"
+                class="flex items-start gap-3 rounded-lg border border-indigo-300 bg-indigo-50 p-4 text-sm text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200"
+            >
+                <Clock class="mt-0.5 size-5 shrink-0" />
+                <div class="space-y-1">
+                    <p v-if="nightSettlementRange">
+                        {{ t('reports.night_settlement.range', { range: nightSettlementRange }) }}
+                    </p>
+                    <p v-if="report.night_settlement.deferred">
+                        {{ t('reports.night_settlement.deferred_notice') }}
+                    </p>
+                </div>
+            </div>
+
             <!-- Empty state -->
             <div v-if="report.totals.total_employees === 0" class="text-muted-foreground py-16 text-center">
                 <Calendar class="mx-auto mb-3 size-12 opacity-30" />
@@ -338,7 +373,14 @@ onMounted(async () => {
 
             <template v-else>
                 <!-- Overtime payment toggle -->
-                <div class="flex justify-end">
+                <div class="flex flex-wrap items-center justify-end gap-3">
+                    <!-- Overtime unified indicator -->
+                    <div
+                        v-if="report.cost_summary.overtime_unified && payOvertime"
+                        class="text-muted-foreground rounded-lg border bg-card px-3 py-2 text-xs"
+                    >
+                        {{ t('reports.overtime.unified_hint') }}
+                    </div>
                     <OvertimePaymentToggle
                         :model-value="payOvertime"
                         class="w-full sm:w-auto sm:min-w-[340px]"

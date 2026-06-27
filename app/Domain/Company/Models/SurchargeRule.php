@@ -30,6 +30,7 @@ class SurchargeRule extends Model
         'max_weekly_minutes',
         'max_daily_minutes',
         'overtime_accrual_mode',
+        'night_settlement_mode',
         'night_start_time',
         'night_end_time',
         'default_monthly_salary',

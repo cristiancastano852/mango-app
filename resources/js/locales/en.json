@@ -436,6 +436,15 @@
             "payable_count_label": "Sundays to pay",
             "worked_hint": "{n} worked this period"
         },
+        "overtime": {
+            "payable_hours_label": "Overtime hours to pay",
+            "worked_hint": "{n}h worked this period",
+            "unified_hint": "Overtime as single rate — adjust per employee in the individual report"
+        },
+        "night_settlement": {
+            "range": "Night surcharge settled for the range {range} (the cutoff day is deferred to the next period).",
+            "deferred_notice": "The night surcharge of the cutoff day will be paid in the next pay period."
+        },
         "breaks": {
             "title": "Breaks Breakdown",
             "type": "Type",

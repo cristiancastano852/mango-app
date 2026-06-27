@@ -11,6 +11,7 @@ use App\Domain\TimeTracking\Actions\GenerateCompanyReport;
 use App\Domain\TimeTracking\Actions\GenerateEmployeeReport;
 use App\Domain\TimeTracking\Actions\RecalculateEmployeeHours;
 use App\Domain\TimeTracking\Actions\ResolveDominicalPaymentDecision;
+use App\Domain\TimeTracking\Actions\ResolveOvertimePayableHours;
 use App\Domain\TimeTracking\Actions\ResolveOvertimePaymentDecision;
 use App\Exports\CompanyReportExport;
 use App\Exports\EmployeeReportExport;
@@ -32,6 +33,7 @@ class ReportController extends Controller
         private GenerateCompanyReport $companyReport,
         private ResolveOvertimePaymentDecision $resolveOvertimeDecision,
         private ResolveDominicalPaymentDecision $resolveDominicalDecision,
+        private ResolveOvertimePayableHours $resolveOvertimePayableHours,
         private RecalculateEmployeeHours $recalculateEmployeeHours,
     ) {}
 
@@ -74,6 +76,13 @@ class ReportController extends Controller
             $endDate,
             $this->requestDominicalCount($request),
         );
+        $overtimePayableHours = $this->resolveOvertimePayableHours->execute(
+            $companyId,
+            $employeeId,
+            $startDate,
+            $endDate,
+            $this->requestOvertimePayableHours($request),
+        );
 
         $report = $this->buildEmployeeReport(
             $request,
@@ -83,6 +92,7 @@ class ReportController extends Controller
             includeDailyBreakdown: true,
             includeBreaksByType: false,
             dominicalPayableCount: $dominicalCount,
+            overtimePayableHours: $overtimePayableHours,
         );
 
         return Inertia::render('Reports/Employee', [
@@ -94,6 +104,7 @@ class ReportController extends Controller
                 'employee_id' => $employeeId,
                 'pay_overtime' => $payOvertime,
                 'dominical_payable_count' => $dominicalCount,
+                'overtime_payable_hours' => $overtimePayableHours,
             ],
             'employees' => Employee::with('user')->get()->map(fn ($e) => [
                 'id' => $e->id,
@@ -166,7 +177,8 @@ class ReportController extends Controller
         [$startDate, $endDate] = $this->resolveDateRange($validated);
         $payOvertime = $this->persistEmployeeDecision($request, $startDate, $endDate);
         $dominicalCount = $this->persistEmployeeDominicalDecision($request, $startDate, $endDate);
-        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime, dominicalPayableCount: $dominicalCount);
+        $overtimePayableHours = $this->persistEmployeeOvertimePayableDecision($request, $startDate, $endDate);
+        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime, dominicalPayableCount: $dominicalCount, overtimePayableHours: $overtimePayableHours);
         $name = 'reporte-'.str($report['employee']['name'])->slug().'.xlsx';
 
         return Excel::download(new EmployeeReportExport($report), $name);
@@ -181,7 +193,8 @@ class ReportController extends Controller
         [$startDate, $endDate] = $this->resolveDateRange($validated);
         $payOvertime = $this->persistEmployeeDecision($request, $startDate, $endDate);
         $dominicalCount = $this->persistEmployeeDominicalDecision($request, $startDate, $endDate);
-        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime, dominicalPayableCount: $dominicalCount);
+        $overtimePayableHours = $this->persistEmployeeOvertimePayableDecision($request, $startDate, $endDate);
+        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime, dominicalPayableCount: $dominicalCount, overtimePayableHours: $overtimePayableHours);
         $name = 'reporte-'.str($report['employee']['name'])->slug().'.pdf';
 
         return Pdf::loadView('exports.employee-report', compact('report'))
@@ -220,7 +233,7 @@ class ReportController extends Controller
     /**
      * Genera los datos del reporte de empleado (reutilizado por vista y exports).
      */
-    private function buildEmployeeReport(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true, bool $includeDailyBreakdown = true, bool $includeBreaksByType = true, ?int $dominicalPayableCount = null): array
+    private function buildEmployeeReport(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true, bool $includeDailyBreakdown = true, bool $includeBreaksByType = true, ?int $dominicalPayableCount = null, ?float $overtimePayableHours = null): array
     {
         $validated = $request->validated();
 
@@ -232,6 +245,7 @@ class ReportController extends Controller
             $includeDailyBreakdown,
             $includeBreaksByType,
             $dominicalPayableCount,
+            $overtimePayableHours,
         );
     }
 
@@ -275,6 +289,17 @@ class ReportController extends Controller
         $value = $request->input('dominical_payable_count');
 
         return $value === null || $value === '' ? null : (int) $value;
+    }
+
+    /**
+     * Lee el override explícito de horas extra pagables (null si no viene).
+     * Acepta 0 como valor válido (no pagar ninguna).
+     */
+    private function requestOvertimePayableHours(ReportFilterRequest $request): ?float
+    {
+        $value = $request->input('overtime_payable_hours');
+
+        return $value === null || $value === '' ? null : (float) $value;
     }
 
     /**
@@ -351,6 +376,48 @@ class ReportController extends Controller
         ]));
 
         return $count;
+    }
+
+    /**
+     * Resuelve y persiste (upsert) las horas extra pagables de un empleado al exportar; retorna el valor efectivo.
+     * Reutiliza el upsert de overtime_payment_decisions (agrega overtime_payable_hours a la misma fila).
+     */
+    private function persistEmployeeOvertimePayableDecision(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate): ?float
+    {
+        $employeeId = (int) $request->validated()['employee_id'];
+        $companyId = $this->employeeCompanyId($employeeId);
+
+        $hours = $this->resolveOvertimePayableHours->execute(
+            $companyId,
+            $employeeId,
+            $startDate,
+            $endDate,
+            $this->requestOvertimePayableHours($request),
+        );
+
+        $existing = OvertimePaymentDecision::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('employee_id', $employeeId)
+            ->where('start_date', $startDate->toDateString())
+            ->where('end_date', $endDate->toDateString())
+            ->first();
+
+        if ($existing !== null) {
+            $existing->update(['overtime_payable_hours' => $hours]);
+
+            return $hours;
+        }
+
+        OvertimePaymentDecision::withoutGlobalScopes()->create([
+            'company_id' => $companyId,
+            'employee_id' => $employeeId,
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+            'pay_overtime' => true,
+            'overtime_payable_hours' => $hours,
+        ]);
+
+        return $hours;
     }
 
     /**
