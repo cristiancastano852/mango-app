@@ -101,7 +101,7 @@ class GenerateCompanyReport
         // Decisiones de horas extra pagables guardadas del periodo, keyed por employee_id.
         $overtimePayableDecisions = $this->loadOvertimePayableDecisions($companyId, $startDate, $endDate);
 
-        $employeesWithCosts = $employeeBreakdown->map(function ($emp) use ($rules, $payOvertime, $startDate, $endDate, $dominicalDecisions, $overtimePayableDecisions, $nightWindowHoursByEmployee, &$totalCost, &$displayHours) {
+        $employeesWithCosts = $employeeBreakdown->map(function ($emp) use ($rules, $payOvertime, $startDate, $endDate, $dominicalDecisions, $overtimePayableDecisions, $nightWindow, $nightWindowHoursByEmployee, &$totalCost, &$displayHours) {
             $salaryType = $emp->salary_type ?? 'hourly';
             $baseSalary = $salaryType === 'monthly'
                 ? $this->baseSalaryCalculator->execute((float) $emp->monthly_base_salary, $startDate, $endDate)
@@ -147,7 +147,13 @@ class GenerateCompanyReport
                 overtimePayableHours: isset($overtimePayableDecisions[$emp->employee_id])
                     ? (float) $overtimePayableDecisions[$emp->employee_id]
                     : null,
-                nightWindowHours: $nightWindowHoursByEmployee[$emp->employee_id] ?? null,
+                // En modo `deferred` todo empleado debe recibir la ventana (ceros si no tiene turnos
+                // en ella), para que el recargo nocturno de su día de corte se difiera aunque sus
+                // únicas horas nocturnas caigan justo en ese día (fuera de la ventana corrida).
+                // `null` solo en `immediate`, donde no hay diferimiento.
+                nightWindowHours: $nightWindow['deferred']
+                    ? ($nightWindowHoursByEmployee[$emp->employee_id] ?? ['night_hours' => 0.0, 'night_dominical_hours' => 0.0, 'night_holiday_hours' => 0.0])
+                    : null,
             );
 
             $totalCost['regular'] += $cost['regular'];
