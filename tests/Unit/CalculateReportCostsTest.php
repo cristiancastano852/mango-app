@@ -900,4 +900,184 @@ class CalculateReportCostsTest extends TestCase
         $this->assertEquals(0.0, $result['deduction_total']);
         $this->assertEquals($result['net_pay'], $result['final_pay']);
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // overtime_payable_hours — cap sobre bolsa única (3 flags premium en off)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /** Escenario de "overtime unificado": los 3 flags premium en off. */
+    private function unifiedRules(): SurchargeRule
+    {
+        $rules = clone $this->rules;
+        $rules->pay_overtime_dominical = false;
+        $rules->pay_overtime_holiday = false;
+        $rules->pay_overtime_night = false;
+
+        return $rules;
+    }
+
+    public function test_overtime_payable_hours_null_pays_all_worked_hours(): void
+    {
+        $rules = $this->unifiedRules();
+
+        // 10 horas extra (en varios buckets que colapsan en la bolsa diurna).
+        $result = $this->calculator->execute(10000, [
+            'overtime_day_hours' => 6.0,
+            'overtime_day_dominical_hours' => 2.0,
+            'overtime_day_holiday_hours' => 2.0,
+        ], $rules, overtimePayableHours: null);
+
+        // 10h × 10000 × 1.25 = 125000
+        $this->assertEquals(125000.0, $result['overtime_day']);
+        $this->assertEquals(10.0, $result['overtime_worked_hours']);
+        $this->assertNull($result['overtime_payable_hours']);
+        $this->assertTrue($result['overtime_unified']);
+    }
+
+    public function test_overtime_payable_hours_cap_pays_fewer_hours(): void
+    {
+        $rules = $this->unifiedRules();
+
+        // 10 horas trabajadas, pagar solo 5.
+        $result = $this->calculator->execute(10000, [
+            'overtime_day_hours' => 10.0,
+        ], $rules, overtimePayableHours: 5.0);
+
+        // 5h × 10000 × 1.25 = 62500
+        $this->assertEquals(62500.0, $result['overtime_day']);
+        $this->assertEquals(10.0, $result['overtime_worked_hours']); // trabajadas no cambian
+        $this->assertEquals(5.0, $result['overtime_payable_hours']);
+    }
+
+    public function test_overtime_payable_hours_zero_pays_nothing(): void
+    {
+        $rules = $this->unifiedRules();
+
+        $result = $this->calculator->execute(10000, [
+            'overtime_day_hours' => 10.0,
+        ], $rules, overtimePayableHours: 0.0);
+
+        $this->assertEquals(0.0, $result['overtime_day']);
+        $this->assertEquals(10.0, $result['overtime_worked_hours']);
+        $this->assertEquals(0.0, $result['overtime_payable_hours']);
+    }
+
+    public function test_overtime_payable_hours_overpay_exceeds_worked(): void
+    {
+        $rules = $this->unifiedRules();
+
+        // 10 horas trabajadas, pagar 12 (saldar pendiente de otra quincena).
+        $result = $this->calculator->execute(10000, [
+            'overtime_day_hours' => 10.0,
+        ], $rules, overtimePayableHours: 12.0);
+
+        // 12h × 10000 × 1.25 = 150000
+        $this->assertEquals(150000.0, $result['overtime_day']);
+        $this->assertEquals(10.0, $result['overtime_worked_hours']);
+        $this->assertEquals(12.0, $result['overtime_payable_hours']);
+    }
+
+    public function test_overtime_payable_hours_ignored_when_pay_overtime_false(): void
+    {
+        $rules = $this->unifiedRules();
+
+        // pay_overtime = false → todo compensado; el input no importa.
+        $result = $this->calculator->execute(10000, [
+            'overtime_day_hours' => 10.0,
+        ], $rules, payOvertime: false, overtimePayableHours: 5.0);
+
+        $this->assertEquals(0.0, $result['overtime_day']);
+    }
+
+    public function test_overtime_payable_hours_ignored_when_premium_flags_active(): void
+    {
+        // Un flag premium ON → overtime no está unificado → input se ignora.
+        $rules = clone $this->rules;
+        $rules->pay_overtime_dominical = true; // UN flag activo basta
+        $rules->pay_overtime_holiday = false;
+        $rules->pay_overtime_night = false;
+
+        $result = $this->calculator->execute(10000, [
+            'overtime_day_hours' => 10.0,
+        ], $rules, overtimePayableHours: 5.0);
+
+        // El input no aplica; paga las 10h trabajadas a tarifa diurna.
+        $this->assertEquals(125000.0, $result['overtime_day']);
+        $this->assertFalse($result['overtime_unified']);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // night_settlement deferred — solo el componente night_surcharge% se difiere
+    // ──────────────────────────────────────────────────────────────────────────
+
+    public function test_night_deferral_removes_cutoff_day_surcharge_keeping_base(): void
+    {
+        // 4h nocturnas en el periodo; de ellas 2h (día de corte) se difieren → la ventana
+        // corrida solo tiene 2h. La base de las 2h del corte se queda; su 35% se va.
+        $result = $this->calculator->execute(10000, [
+            'night_hours' => 4.0,
+        ], $this->rules, nightWindowHours: ['night_hours' => 2.0]);
+
+        // 2h base+35% (27000) + 2h solo base (20000) = 47000
+        $this->assertEquals(47000.0, $result['night']);
+        $this->assertEquals(47000.0, $result['total']);
+    }
+
+    public function test_night_deferral_adds_surcharge_carried_from_previous_cutoff(): void
+    {
+        // 4h en el periodo, pero la ventana corrida tiene 6h (2h diferidas del corte anterior).
+        $result = $this->calculator->execute(10000, [
+            'night_hours' => 4.0,
+        ], $this->rules, nightWindowHours: ['night_hours' => 6.0]);
+
+        // 54000 (4h×1.35) + 2h×10000×0.35 (7000) = 61000
+        $this->assertEquals(61000.0, $result['night']);
+    }
+
+    public function test_night_dominical_deferral_keeps_dominical_premium_only_night_defers(): void
+    {
+        // night_dominical en modo hora = 110% (75 dominical + 35 noche). El día de corte conserva
+        // el 75% dominical y solo difiere el 35% nocturno.
+        $result = $this->calculator->execute(10000, [
+            'night_dominical_hours' => 4.0,
+        ], $this->rules, nightWindowHours: ['night_dominical_hours' => 2.0]);
+
+        // 2h corte: base+75% (35000) ; 2h normales: base+110% (42000) = 77000
+        $this->assertEquals(77000.0, $result['night_dominical']);
+    }
+
+    public function test_night_deferral_in_monthly_defers_only_surcharge(): void
+    {
+        // En monthly el costo nocturno es solo el recargo (la base va en el salario).
+        $result = $this->calculator->execute(10000, [
+            'night_hours' => 4.0,
+        ], $this->rules, salaryType: 'monthly', nightWindowHours: ['night_hours' => 2.0]);
+
+        // Solo 2h pagan su 35%: 2×10000×0.35 = 7000
+        $this->assertEquals(7000.0, $result['night']);
+    }
+
+    public function test_immediate_mode_null_window_leaves_night_unchanged(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'night_hours' => 4.0,
+        ], $this->rules, nightWindowHours: null);
+
+        $this->assertEquals(54000.0, $result['night']); // 4 × 10000 × 1.35
+    }
+
+    public function test_collapsed_night_dominical_defers_with_the_night_bucket(): void
+    {
+        // pay_night_dominical off → night_dominical colapsa en night base; su diferimiento viaja con él.
+        $rules = clone $this->rules;
+        $rules->pay_night_dominical = false;
+
+        $result = $this->calculator->execute(10000, [
+            'night_dominical_hours' => 4.0,
+        ], $rules, nightWindowHours: ['night_dominical_hours' => 2.0]);
+
+        // Colapsado a night (35%): 54000 − 2h×0.35×10000 (7000) = 47000 en la línea night; dominical en 0
+        $this->assertEquals(47000.0, $result['night']);
+        $this->assertEquals(0.0, $result['night_dominical']);
+    }
 }

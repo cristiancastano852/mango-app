@@ -41,14 +41,41 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
             ['Departamento: '.($this->report['employee']['department'] ?? 'N/A').' | Cargo: '.($this->report['employee']['position'] ?? 'N/A')],
         ];
 
-        if (($settlement = $this->overtimeSettlementNote()) !== null) {
-            $headings[] = [$settlement];
+        foreach ($this->settlementNotes() as $note) {
+            $headings[] = [$note];
         }
 
         $headings[] = [];
         $headings[] = ['Concepto', 'Horas', 'Recargo %', 'Costo'];
 
         return $headings;
+    }
+
+    /**
+     * Notas de liquidación (overtime semanal y/o recargo nocturno diferido) que se anteponen a la
+     * tabla. Cada nota ocupa una fila; el encabezado de la tabla se corre según cuántas haya.
+     *
+     * @return array<int, string>
+     */
+    private function settlementNotes(): array
+    {
+        return array_values(array_filter([
+            $this->overtimeSettlementNote(),
+            $this->nightSettlementNote(),
+        ]));
+    }
+
+    /**
+     * Nota del rango de liquidación del recargo nocturno en modo diferido.
+     */
+    private function nightSettlementNote(): ?string
+    {
+        $settlement = $this->report['night_settlement'] ?? null;
+        if (($settlement['mode'] ?? 'immediate') !== 'deferred') {
+            return null;
+        }
+
+        return 'Recargo nocturno liquidado del rango '.$settlement['start'].' a '.$settlement['end'].'. El recargo nocturno del día de corte se paga en la siguiente quincena.';
     }
 
     /**
@@ -198,8 +225,8 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
 
     public function styles(Worksheet $sheet): array
     {
-        // La fila de encabezados de la tabla se corre una posición cuando hay nota de liquidación.
-        $headerRow = $this->overtimeSettlementNote() !== null ? 6 : 5;
+        // La fila de encabezados de la tabla se corre según cuántas notas de liquidación haya.
+        $headerRow = 5 + count($this->settlementNotes());
 
         return [
             1 => ['font' => ['bold' => true, 'size' => 14]],

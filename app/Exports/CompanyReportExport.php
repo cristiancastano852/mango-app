@@ -40,14 +40,40 @@ class CompanyReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadin
             ['Período: '.$this->report['period']['start'].' a '.$this->report['period']['end']],
         ];
 
-        if (($settlement = $this->overtimeSettlementNote()) !== null) {
-            $headings[] = [$settlement];
+        foreach ($this->settlementNotes() as $note) {
+            $headings[] = [$note];
         }
 
         $headings[] = [];
         $headings[] = ['Indicador', 'Valor'];
 
         return $headings;
+    }
+
+    /**
+     * Notas de liquidación (overtime semanal y/o recargo nocturno diferido) antepuestas a la tabla.
+     *
+     * @return array<int, string>
+     */
+    private function settlementNotes(): array
+    {
+        return array_values(array_filter([
+            $this->overtimeSettlementNote(),
+            $this->nightSettlementNote(),
+        ]));
+    }
+
+    /**
+     * Nota del rango de liquidación del recargo nocturno en modo diferido.
+     */
+    private function nightSettlementNote(): ?string
+    {
+        $settlement = $this->report['night_settlement'] ?? null;
+        if (($settlement['mode'] ?? 'immediate') !== 'deferred') {
+            return null;
+        }
+
+        return 'Recargo nocturno liquidado del rango '.$settlement['start'].' a '.$settlement['end'].'. El recargo nocturno del día de corte se paga en la siguiente quincena.';
     }
 
     /**
@@ -132,8 +158,8 @@ class CompanyReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadin
 
     public function styles(Worksheet $sheet): array
     {
-        // La fila de encabezados de la tabla se corre una posición cuando hay nota de liquidación.
-        $headerRow = $this->overtimeSettlementNote() !== null ? 5 : 4;
+        // La fila de encabezados de la tabla se corre según cuántas notas de liquidación haya.
+        $headerRow = 4 + count($this->settlementNotes());
 
         return [
             1 => ['font' => ['bold' => true, 'size' => 14]],

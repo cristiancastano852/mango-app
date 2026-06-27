@@ -32,6 +32,7 @@ class SurchargeRuleFactory extends Factory
             'max_weekly_minutes' => 2520,
             'max_daily_minutes' => 480,
             'overtime_accrual_mode' => 'daily',
+            'night_settlement_mode' => 'immediate',
             'night_start_time' => '21:00',
             'night_end_time' => '06:00',
             'default_monthly_salary' => $smlv,
@@ -57,6 +58,16 @@ class SurchargeRuleFactory extends Factory
     {
         return $this->state(fn (array $attributes): array => [
             'overtime_accrual_mode' => 'weekly',
+        ]);
+    }
+
+    /**
+     * El recargo nocturno del día de corte se difiere al periodo siguiente.
+     */
+    public function deferredNight(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'night_settlement_mode' => 'deferred',
         ]);
     }
 }

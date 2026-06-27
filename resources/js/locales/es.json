@@ -436,6 +436,15 @@
             "payable_count_label": "Dominicales a pagar",
             "worked_hint": "{n} trabajados en el periodo"
         },
+        "overtime": {
+            "payable_hours_label": "Horas extra a pagar",
+            "worked_hint": "{n}h trabajadas en el periodo",
+            "unified_hint": "Extra como tarifa única — ajuste por empleado en el reporte individual"
+        },
+        "night_settlement": {
+            "range": "Recargo nocturno liquidado del rango {range} (el día de corte se difiere al próximo periodo).",
+            "deferred_notice": "El recargo nocturno del día de corte se pagará en la siguiente quincena."
+        },
         "breaks": {
             "title": "Desglose de Pausas",
             "type": "Tipo",

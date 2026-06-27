@@ -26,6 +26,7 @@ type SurchargeRule = {
     max_weekly_minutes: number;
     max_daily_minutes: number;
     overtime_accrual_mode: string;
+    night_settlement_mode: string;
     night_start_time: string;
     night_end_time: string;
     default_monthly_salary: string;
@@ -267,6 +268,25 @@ const maxWeeklyMinutes = computed(
                             paga en el siguiente periodo.
                         </p>
                         <InputError :message="errors.overtime_accrual_mode" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="night_settlement_mode">Liquidación del recargo nocturno</Label>
+                        <select
+                            id="night_settlement_mode"
+                            name="night_settlement_mode"
+                            class="block w-full rounded-md border bg-background px-3 py-2 text-sm"
+                            :value="rule.night_settlement_mode"
+                        >
+                            <option value="immediate">Inmediata (se paga por fecha del turno)</option>
+                            <option value="deferred">Diferida (el recargo del día de corte se paga en la siguiente quincena)</option>
+                        </select>
+                        <p class="max-w-prose text-sm text-muted-foreground">
+                            En modo diferido, como la empresa paga en la mañana del día de corte (15 o 30), el
+                            recargo nocturno de ese día aún no se conoce y se difiere al periodo siguiente. La
+                            base de las horas y el recargo dominical/festivo se siguen pagando por fecha.
+                        </p>
+                        <InputError :message="errors.night_settlement_mode" />
                     </div>
 
                     <div class="grid gap-2">

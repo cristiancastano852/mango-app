@@ -70,6 +70,12 @@
             </p>
         @endif
 
+        @if (($report['night_settlement']['mode'] ?? 'immediate') === 'deferred')
+            <p style="font-size: 10px; color: #3730a3; background: #eef2ff; border: 1px solid #a5b4fc; padding: 8px; border-radius: 4px; margin-bottom: 16px;">
+                Recargo nocturno liquidado del rango {{ $report['night_settlement']['start'] }} a {{ $report['night_settlement']['end'] }}. El recargo nocturno del día de corte se paga en la siguiente quincena.
+            </p>
+        @endif
+
         {{-- KPIs --}}
         <table class="kpi-grid">
             <tr>

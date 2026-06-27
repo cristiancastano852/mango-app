@@ -125,6 +125,9 @@ type Report = {
         pay_overtime_dominical: boolean;
         pay_overtime_holiday: boolean;
         pay_overtime_night: boolean;
+        overtime_unified: boolean;
+        overtime_worked_hours: number;
+        overtime_payable_hours: number | null;
         dominical_mode: string;
         normal_day_value: number;
         dominical_worked_days: number;
@@ -142,6 +145,12 @@ type Report = {
         end: string | null;
         deferred: boolean;
     };
+    night_settlement: {
+        mode: string;
+        start: string;
+        end: string;
+        deferred: boolean;
+    };
 };
 
 const props = defineProps<{
@@ -153,6 +162,7 @@ const props = defineProps<{
         employee_id: number;
         pay_overtime: boolean;
         dominical_payable_count: number | null;
+        overtime_payable_hours: number | null;
     };
     employees: Array<{ id: number; name: string }>;
 }>();
@@ -161,7 +171,9 @@ const { t, locale } = useI18n();
 
 const payOvertime = ref(props.filters.pay_overtime);
 const dominicalPayableCount = ref<number | null>(props.filters.dominical_payable_count);
+const overtimePayableHours = ref<number | null>(props.filters.overtime_payable_hours);
 const isDominicalByDay = computed(() => props.report.cost_summary.dominical_mode === 'day');
+const isOvertimeUnified = computed(() => props.report.cost_summary.overtime_unified === true);
 
 const isMonthly = computed(
     () => props.report.cost_summary.salary_type === 'monthly',
@@ -213,6 +225,21 @@ const overtimeSettlementRange = computed(() => {
     return `${start} → ${end} ${year}`;
 });
 
+const showNightSettlement = computed(
+    () => props.report.night_settlement?.mode === 'deferred',
+);
+
+const nightSettlementRange = computed(() => {
+    const settlement = props.report.night_settlement;
+    if (!settlement?.start || !settlement?.end) {
+        return null;
+    }
+    const start = formatPeriodDate(settlement.start);
+    const end = formatPeriodDate(settlement.end);
+    const year = settlement.end.split('-')[0];
+    return `${start} → ${end} ${year}`;
+});
+
 const dateFilter = ref({
     date_range: props.filters.date_range as
         | 'day'
@@ -247,6 +274,7 @@ function setPayOvertime(value: boolean) {
             employee_id: props.filters.employee_id,
             pay_overtime: value ? 1 : 0,
             ...(dominicalPayableCount.value !== null ? { dominical_payable_count: dominicalPayableCount.value } : {}),
+            ...(overtimePayableHours.value !== null ? { overtime_payable_hours: overtimePayableHours.value } : {}),
         },
         { preserveScroll: true },
     );
@@ -268,6 +296,23 @@ function setDominicalPayableCount(value: number) {
     );
 }
 
+function setOvertimePayableHours(value: number) {
+    overtimePayableHours.value = value;
+    router.get(
+        '/reports/employee',
+        {
+            date_range: props.filters.date_range,
+            start_date: props.filters.start_date,
+            end_date: props.filters.end_date,
+            employee_id: props.filters.employee_id,
+            pay_overtime: payOvertime.value ? 1 : 0,
+            overtime_payable_hours: value,
+            ...(dominicalPayableCount.value !== null ? { dominical_payable_count: dominicalPayableCount.value } : {}),
+        },
+        { preserveScroll: true },
+    );
+}
+
 function exportQueryParams(): string {
     const params = new URLSearchParams({
         date_range: props.filters.date_range,
@@ -278,6 +323,9 @@ function exportQueryParams(): string {
     });
     if (dominicalPayableCount.value !== null) {
         params.append('dominical_payable_count', String(dominicalPayableCount.value));
+    }
+    if (overtimePayableHours.value !== null) {
+        params.append('overtime_payable_hours', String(overtimePayableHours.value));
     }
     return '?' + params.toString();
 }
@@ -311,6 +359,9 @@ function recalculate() {
             pay_overtime: payOvertime.value ? 1 : 0,
             ...(dominicalPayableCount.value !== null
                 ? { dominical_payable_count: dominicalPayableCount.value }
+                : {}),
+            ...(overtimePayableHours.value !== null
+                ? { overtime_payable_hours: overtimePayableHours.value }
                 : {}),
         },
         {
@@ -543,6 +594,22 @@ function hourTypeLabel(type: string): string {
                 </div>
             </div>
 
+            <!-- Night settlement banner (modo deferred) -->
+            <div
+                v-if="showNightSettlement && hasReportData"
+                class="flex items-start gap-3 rounded-lg border border-indigo-300 bg-indigo-50 p-4 text-sm text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200"
+            >
+                <Clock class="mt-0.5 size-5 shrink-0" />
+                <div class="space-y-1">
+                    <p v-if="nightSettlementRange">
+                        {{ t('reports.night_settlement.range', { range: nightSettlementRange }) }}
+                    </p>
+                    <p v-if="report.night_settlement.deferred">
+                        {{ t('reports.night_settlement.deferred_notice') }}
+                    </p>
+                </div>
+            </div>
+
             <!-- Empty state -->
             <div
                 v-if="!hasReportData"
@@ -575,6 +642,28 @@ function hourTypeLabel(type: string): string {
                             class="w-20 rounded-md border bg-background px-2 py-1 text-right text-sm"
                             :value="report.cost_summary.dominical_paid_days"
                             @change="setDominicalPayableCount(Math.max(0, Math.trunc(Number(($event.target as HTMLInputElement).value)) || 0))"
+                        />
+                    </div>
+                    <!-- Overtime payable hours (only when overtime is unified: 3 premium flags off) -->
+                    <div
+                        v-if="isOvertimeUnified && payOvertime"
+                        class="flex items-center justify-between gap-3 rounded-lg border bg-card p-3 sm:min-w-[340px]"
+                    >
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium">
+                                {{ t('reports.overtime.payable_hours_label') }}
+                            </span>
+                            <span class="text-xs text-muted-foreground">
+                                {{ t('reports.overtime.worked_hint', { n: report.cost_summary.overtime_worked_hours }) }}
+                            </span>
+                        </div>
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            class="w-20 rounded-md border bg-background px-2 py-1 text-right text-sm"
+                            :value="report.cost_summary.overtime_payable_hours ?? report.cost_summary.overtime_worked_hours"
+                            @change="setOvertimePayableHours(Math.max(0, Number(($event.target as HTMLInputElement).value) || 0))"
                         />
                     </div>
                     <OvertimePaymentToggle

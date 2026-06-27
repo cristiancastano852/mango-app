@@ -167,6 +167,69 @@ class OvertimePaymentDecisionTest extends TestCase
         ]))->assertInertia(fn ($page) => $page->where('filters.pay_overtime', false));
     }
 
+    public function test_exporting_employee_report_saves_the_overtime_payable_hours(): void
+    {
+        [$start, $end] = $this->period();
+
+        $this->actingAs($this->adminUser)->get(route('reports.employee.pdf', [
+            'date_range' => 'month',
+            'employee_id' => $this->employee->id,
+            'overtime_payable_hours' => 3,
+        ]))->assertOk();
+
+        $this->assertDatabaseHas('overtime_payment_decisions', [
+            'company_id' => $this->company->id,
+            'employee_id' => $this->employee->id,
+            'start_date' => $start,
+            'end_date' => $end,
+            'overtime_payable_hours' => 3,
+        ]);
+    }
+
+    public function test_viewing_the_report_does_not_persist_overtime_payable_hours(): void
+    {
+        $this->actingAs($this->adminUser)->get(route('reports.employee', [
+            'date_range' => 'month',
+            'employee_id' => $this->employee->id,
+            'overtime_payable_hours' => 3,
+        ]))->assertOk();
+
+        $this->assertDatabaseCount('overtime_payment_decisions', 0);
+    }
+
+    public function test_view_preloads_the_saved_overtime_payable_hours(): void
+    {
+        [$start, $end] = $this->period();
+
+        OvertimePaymentDecision::withoutGlobalScopes()->create([
+            'company_id' => $this->company->id,
+            'employee_id' => $this->employee->id,
+            'start_date' => $start,
+            'end_date' => $end,
+            'pay_overtime' => true,
+            'overtime_payable_hours' => 5,
+        ]);
+
+        $this->actingAs($this->adminUser)->get(route('reports.employee', [
+            'date_range' => 'month',
+            'employee_id' => $this->employee->id,
+        ]))->assertInertia(fn ($page) => $page
+            ->where('filters.overtime_payable_hours', fn ($v) => (float) $v === 5.0)
+        );
+    }
+
+    public function test_employee_cannot_access_reports(): void
+    {
+        $employeeUser = User::factory()->create(['company_id' => $this->company->id]);
+        $employeeUser->assignRole('employee');
+
+        $this->actingAs($employeeUser)->get(route('reports.employee', [
+            'date_range' => 'month',
+            'employee_id' => $this->employee->id,
+            'overtime_payable_hours' => 3,
+        ]))->assertForbidden();
+    }
+
     public function test_decisions_are_isolated_per_company(): void
     {
         [$start, $end] = $this->period();

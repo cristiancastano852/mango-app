@@ -157,6 +157,7 @@ export type DailyWorkDay = {
     overtime_day_holiday_hours: number | null;
     overtime_night_holiday_hours: number | null;
     overtime_deferred?: boolean;
+    night_deferred?: boolean;
     breaks: DailyBreak[];
 };
 

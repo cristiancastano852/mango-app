@@ -19,6 +19,7 @@ class OvertimePaymentDecision extends Model
         'start_date',
         'end_date',
         'pay_overtime',
+        'overtime_payable_hours',
         'exported_by',
         'exported_at',
     ];
@@ -27,6 +28,7 @@ class OvertimePaymentDecision extends Model
     {
         return [
             'pay_overtime' => 'boolean',
+            'overtime_payable_hours' => 'decimal:2',
             'exported_at' => 'datetime',
         ];
     }

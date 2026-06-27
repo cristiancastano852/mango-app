@@ -17,6 +17,7 @@ class GenerateEmployeeReport
         private CalculateReportCosts $costCalculator,
         private CalculatePeriodBaseSalary $baseSalaryCalculator,
         private ResolveOvertimeSettlementWindow $settlementWindow,
+        private ResolveNightSettlementWindow $nightSettlementWindow,
     ) {}
 
     /**
@@ -34,7 +35,7 @@ class GenerateEmployeeReport
      *     period: array{start: string, end: string}
      * }
      */
-    public function execute(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true, bool $includeDailyBreakdown = true, bool $includeBreaksByType = true, ?int $dominicalPayableCount = null): array
+    public function execute(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true, bool $includeDailyBreakdown = true, bool $includeBreaksByType = true, ?int $dominicalPayableCount = null, ?float $overtimePayableHours = null): array
     {
         $employee = Employee::withoutGlobalScopes()
             ->with('user', 'department', 'position')
@@ -52,6 +53,15 @@ class GenerateEmployeeReport
         $overtimeWindow = $this->settlementWindow->execute($startDate, $endDate, $accrualMode);
         $this->overrideOvertimeTotals($totals, $employeeId, $overtimeWindow);
 
+        // En modo `deferred` el recargo nocturno del día de corte se difiere al periodo siguiente:
+        // el componente nocturno se liquida sobre la ventana corrida un día. Solo se consulta la BD
+        // cuando aplica el diferimiento (en `immediate` se reutilizan los totales del periodo).
+        $nightMode = $rules->night_settlement_mode ?? 'immediate';
+        $nightWindow = $this->nightSettlementWindow->execute($startDate, $endDate, $nightMode);
+        $nightWindowHours = $nightWindow['deferred']
+            ? $this->aggregateNightWindowHours($employeeId, $nightWindow)
+            : null;
+
         $workedDominicalDays = (int) ($totals->dominical_worked_days ?? 0);
         $workedHolidayDays = (int) ($totals->holiday_worked_days ?? 0);
         $adjustments = $this->getAdjustments($employeeId, $startDate, $endDate);
@@ -61,7 +71,7 @@ class GenerateEmployeeReport
             ? $this->aggregateBreaksByType($employeeId, $startDate, $endDate)
             : [];
         $dailyBreakdown = $includeDailyBreakdown
-            ? $this->getDailyBreakdown($employeeId, $startDate, $endDate, $accrualMode, $overtimeWindow)
+            ? $this->getDailyBreakdown($employeeId, $startDate, $endDate, $accrualMode, $overtimeWindow, $nightWindow)
             : [];
 
         $salaryType = $employee->salary_type ?? 'hourly';
@@ -116,6 +126,8 @@ class GenerateEmployeeReport
                 'bonus_total' => (float) $bonusTotal,
                 'deduction_total' => (float) $deductionTotal,
             ],
+            $overtimePayableHours,
+            $nightWindowHours,
         );
 
         return [
@@ -163,6 +175,39 @@ class GenerateEmployeeReport
                 'end' => $overtimeWindow['end'],
                 'deferred' => $overtimeWindow['deferred'],
             ],
+            'night_settlement' => [
+                'mode' => $nightMode,
+                'start' => $nightWindow['start'],
+                'end' => $nightWindow['end'],
+                'deferred' => $nightWindow['deferred'],
+            ],
+        ];
+    }
+
+    /**
+     * Suma las horas de los 3 buckets nocturnos sobre la ventana de liquidación nocturna corrida.
+     * Una sola query; solo se invoca en modo `deferred` (en `immediate` se reutilizan los totales).
+     *
+     * @param  array{start: string, end: string, deferred: bool}  $window
+     * @return array{night_hours: float, night_dominical_hours: float, night_holiday_hours: float}
+     */
+    private function aggregateNightWindowHours(int $employeeId, array $window): array
+    {
+        $row = TimeEntry::withoutGlobalScopes([CompanyScope::class])
+            ->where('employee_id', $employeeId)
+            ->whereBetween('date', [$window['start'], $window['end']])
+            ->whereNotNull('clock_out')
+            ->selectRaw('
+                COALESCE(SUM(night_hours), 0) as night_hours,
+                COALESCE(SUM(night_dominical_hours), 0) as night_dominical_hours,
+                COALESCE(SUM(night_holiday_hours), 0) as night_holiday_hours
+            ')
+            ->first();
+
+        return [
+            'night_hours' => (float) $row->night_hours,
+            'night_dominical_hours' => (float) $row->night_dominical_hours,
+            'night_holiday_hours' => (float) $row->night_holiday_hours,
         ];
     }
 
@@ -311,7 +356,7 @@ class GenerateEmployeeReport
      *
      * @return array<array{date: string, clock_in: ?string, clock_out: ?string, status: string, gross_hours: ?float, break_hours: ?float, paid_break_hours: ?float, paid_break_overage_hours: ?float, net_hours: ?float, regular_hours: ?float, night_hours: ?float, dominical_hours: ?float, night_dominical_hours: ?float, holiday_hours: ?float, night_holiday_hours: ?float, overtime_day_hours: ?float, overtime_night_hours: ?float, overtime_day_dominical_hours: ?float, overtime_night_dominical_hours: ?float, overtime_day_holiday_hours: ?float, overtime_night_holiday_hours: ?float, breaks: array}>
      */
-    private function getDailyBreakdown(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate, string $accrualMode = 'daily', array $overtimeWindow = []): array
+    private function getDailyBreakdown(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate, string $accrualMode = 'daily', array $overtimeWindow = [], array $nightWindow = []): array
     {
         return TimeEntry::withoutGlobalScopes([CompanyScope::class])
             ->with([
@@ -322,7 +367,7 @@ class GenerateEmployeeReport
             ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
             ->orderBy('date')
             ->get()
-            ->map(fn (TimeEntry $entry) => $this->mapDay($entry, $accrualMode, $overtimeWindow))
+            ->map(fn (TimeEntry $entry) => $this->mapDay($entry, $accrualMode, $overtimeWindow, $nightWindow))
             ->toArray();
     }
 
@@ -345,10 +390,26 @@ class GenerateEmployeeReport
     }
 
     /**
+     * Indica si el recargo nocturno del día se difiere al próximo periodo: solo en modo `deferred`,
+     * para el día de corte (posterior al fin de la ventana nocturna corrida).
+     *
+     * @param  array{start: string, end: string, deferred: bool}  $nightWindow
+     */
+    private function isNightDeferred(TimeEntry $entry, array $nightWindow): bool
+    {
+        if (($nightWindow['deferred'] ?? false) !== true) {
+            return false;
+        }
+
+        return substr((string) $entry->date, 0, 10) > $nightWindow['end'];
+    }
+
+    /**
      * @param  array{start: ?string, end: ?string, deferred: bool}  $overtimeWindow
+     * @param  array{start: string, end: string, deferred: bool}  $nightWindow
      * @return array<string, mixed>
      */
-    private function mapDay(TimeEntry $entry, string $accrualMode = 'daily', array $overtimeWindow = []): array
+    private function mapDay(TimeEntry $entry, string $accrualMode = 'daily', array $overtimeWindow = [], array $nightWindow = []): array
     {
         $inProgress = $entry->clock_out === null;
 
@@ -366,6 +427,7 @@ class GenerateEmployeeReport
             'status' => $inProgress ? 'in_progress' : $entry->status,
             'paid_break_hours' => $inProgress ? null : $entry->paidBreakHours(),
             'overtime_deferred' => $inProgress ? false : $this->isOvertimeDeferred($entry, $accrualMode, $overtimeWindow),
+            'night_deferred' => $inProgress ? false : $this->isNightDeferred($entry, $nightWindow),
             'breaks' => $entry->breaks->map(fn (BreakEntry $break) => $break->toDisplayArray())->all(),
         ];
 
