@@ -263,7 +263,8 @@ class GenerateEmployeeReport
     {
         return EmployeeAdjustment::withoutGlobalScopes([CompanyScope::class])
             ->where('employee_id', $employeeId)
-            ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->whereDate('date', '>=', $startDate->toDateString())
+            ->whereDate('date', '<=', $endDate->toDateString())
             ->orderBy('date')
             ->get()
             ->map(fn (EmployeeAdjustment $adjustment) => [
