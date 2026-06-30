@@ -1080,4 +1080,55 @@ class CalculateReportCostsTest extends TestCase
         $this->assertEquals(47000.0, $result['night']);
         $this->assertEquals(0.0, $result['night_dominical']);
     }
+
+    public function test_monthly_deferral_displays_settled_window_hours_so_hours_times_pct_match(): void
+    {
+        // Mensual + diferido: la fila nocturna muestra las horas de la ventana liquidada (6h),
+        // no las del periodo (4h), de modo que horas × 35% = subtotal.
+        $result = $this->calculator->execute(10000, [
+            'night_hours' => 4.0,
+        ], $this->rules, salaryType: 'monthly', nightWindowHours: ['night_hours' => 6.0]);
+
+        $night = collect($result['details'])->firstWhere('type', 'night');
+
+        $this->assertEquals(6.0, $night['hours']);
+        $this->assertEquals(21000.0, $result['night']); // 6 × 10000 × 0.35
+        $this->assertEquals(round($night['hours'] * 10000 * 0.35, 2), $result['night']);
+    }
+
+    public function test_monthly_deferral_folds_collapsed_window_buckets_into_night_hours(): void
+    {
+        // pay_night_dominical/holiday off → sus horas de ventana se suman a la fila nocturna mostrada.
+        $rules = clone $this->rules;
+        $rules->pay_night_dominical = false;
+        $rules->pay_night_holiday = false;
+
+        $result = $this->calculator->execute(10000, [
+            'night_hours' => 3.0,
+            'night_dominical_hours' => 1.0,
+            'night_holiday_hours' => 0.0,
+        ], $rules, salaryType: 'monthly', nightWindowHours: [
+            'night_hours' => 3.0,
+            'night_dominical_hours' => 1.0,
+            'night_holiday_hours' => 2.0,
+        ]);
+
+        $night = collect($result['details'])->firstWhere('type', 'night');
+
+        $this->assertEquals(6.0, $night['hours']); // 3 + 1 + 2 (festivo diferido del corte anterior)
+        $this->assertEquals(round(6.0 * 10000 * 0.35, 2), $result['night']);
+    }
+
+    public function test_hourly_deferral_keeps_period_hours_in_display(): void
+    {
+        // En hourly la base se paga por fecha del periodo: se conservan las horas del periodo (4h),
+        // no las de la ventana (2h).
+        $result = $this->calculator->execute(10000, [
+            'night_hours' => 4.0,
+        ], $this->rules, nightWindowHours: ['night_hours' => 2.0]);
+
+        $night = collect($result['details'])->firstWhere('type', 'night');
+
+        $this->assertEquals(4.0, $night['hours']);
+    }
 }
