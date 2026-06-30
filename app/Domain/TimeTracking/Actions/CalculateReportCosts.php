@@ -246,9 +246,20 @@ class CalculateReportCosts
         }
 
         // Horas a mostrar: el premium colapsado se funde en su base y su renglón queda en 0h.
-        $nightDisplayHours = $effectiveNightHours;
-        $nightDominicalDisplayHours = $collapseNightDominical ? 0.0 : $nightDominicalHours;
-        $nightHolidayDisplayHours = $collapseNightHoliday ? 0.0 : $nightHolidayHours;
+        // En modo diferido + salario mensual la fila nocturna paga solo el recargo (la base ya está
+        // en el salario), así que se muestran las horas de la ventana liquidada para que
+        // `horas × %` cuadre con el subtotal. En hourly la base se paga por fecha del periodo, por
+        // lo que se conservan las horas del periodo (la ventana solo afecta el componente nocturno).
+        $useWindowDisplay = $isMonthly && $nightWindowHours !== null;
+        $displayHours = fn (string $key, float $periodHours): float => $useWindowDisplay
+            ? (float) ($nightWindowHours[$key] ?? $periodHours)
+            : $periodHours;
+
+        $nightDisplayHours = $displayHours('night_hours', $nightHours)
+            + ($collapseNightDominical ? $displayHours('night_dominical_hours', $nightDominicalHours) : 0.0)
+            + ($collapseNightHoliday ? $displayHours('night_holiday_hours', $nightHolidayHours) : 0.0);
+        $nightDominicalDisplayHours = $collapseNightDominical ? 0.0 : $displayHours('night_dominical_hours', $nightDominicalHours);
+        $nightHolidayDisplayHours = $collapseNightHoliday ? 0.0 : $displayHours('night_holiday_hours', $nightHolidayHours);
         $overtimeDayDisplayHours = $effectiveOvertimeDayHours;
         $overtimeNightDisplayHours = $effectiveOvertimeNightHours;
         $overtimeDayDominicalDisplayHours = $collapseOvertimeDominical ? 0.0 : $effectiveOvertimeDayDominicalHours;
