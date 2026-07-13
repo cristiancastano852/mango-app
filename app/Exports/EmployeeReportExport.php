@@ -203,7 +203,14 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
             }
             $rows[] = [$label, '', '', $isBonus ? $adjustment['amount'] : -$adjustment['amount']];
         }
-        if (! empty($adjustments)) {
+
+        $deductedDays = (int) ($costs['deducted_days'] ?? 0);
+        $dayDeduction = (float) ($costs['day_deduction'] ?? 0);
+        if ($deductedDays > 0) {
+            $rows[] = ['Descuento por días ('.$deductedDays.' × '.$costs['day_deduction_value'].')', '', '', -$dayDeduction];
+        }
+
+        if (! empty($adjustments) || $deductedDays > 0) {
             $rows[] = ['TOTAL A PAGAR', '', '', $costs['final_pay']];
         }
 

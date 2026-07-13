@@ -471,7 +471,8 @@
             "days_count": "{n} día | {n} días",
             "bonus": "Bonificación",
             "deduction": "Deducción",
-            "final_pay": "Total a pagar"
+            "final_pay": "Total a pagar",
+            "day_deduction": "Descuento por días"
         },
         "overtime_payment": {
             "label": "Pagar horas extra",
@@ -506,6 +507,12 @@
             "amount": "Monto",
             "concept": "Concepto",
             "note": "Nota"
+        },
+        "day_deduction": {
+            "label": "Descontar días",
+            "hint": "Descuenta {amount}",
+            "empty_hint": "Valor por día: {value}",
+            "negative_warning": "El descuento supera el neto: el total a pagar quedó en cero o negativo."
         }
     },
     "settings": {

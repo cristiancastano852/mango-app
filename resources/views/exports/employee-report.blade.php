@@ -281,7 +281,9 @@
                         <td colspan="3">Pensión ({{ $report['cost_summary']['pension_rate'] }}%)</td>
                         <td class="text-right">-${{ number_format($report['cost_summary']['pension_deduction'], 0, ',', '.') }}</td>
                     </tr>
-                    <tr class="@if(empty($report['adjustments'])) total-row @endif">
+                    @php($deductedDays = (int) ($report['cost_summary']['deducted_days'] ?? 0))
+                    @php($hasFinalAdjustments = ! empty($report['adjustments']) || $deductedDays > 0)
+                    <tr class="@unless($hasFinalAdjustments) total-row @endunless">
                         <td colspan="3">NETO A PAGAR</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['net_pay'], 0, ',', '.') }}</td>
                     </tr>
@@ -292,12 +294,18 @@
                     </tr>
                     @empty
                     @endforelse
-                    @unless(empty($report['adjustments']))
+                    @if($deductedDays > 0)
+                    <tr>
+                        <td colspan="3">Descuento por días ({{ $deductedDays }} × ${{ number_format($report['cost_summary']['day_deduction_value'], 0, ',', '.') }})</td>
+                        <td class="text-right">-${{ number_format($report['cost_summary']['day_deduction'], 0, ',', '.') }}</td>
+                    </tr>
+                    @endif
+                    @if($hasFinalAdjustments)
                     <tr class="total-row">
                         <td colspan="3">TOTAL A PAGAR</td>
                         <td class="text-right">${{ number_format($report['cost_summary']['final_pay'], 0, ',', '.') }}</td>
                     </tr>
-                    @endunless
+                    @endif
                 </tbody>
             </table>
         </div>
