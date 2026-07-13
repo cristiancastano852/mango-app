@@ -48,7 +48,7 @@ class CalculateReportCosts
      *                                                                            DESPUÉS del neto: `final_pay = net_pay +
      *                                                                            bonus_total − deduction_total`. No afectan el IBC.
      */
-    public function execute(float $hourlyRate, array $hourTotals, SurchargeRule $rules, bool $payOvertime = true, string $salaryType = 'hourly', float $baseSalary = 0.0, float $transportAllowance = 0.0, array $dominical = [], array $holiday = [], array $socialSecurity = [], array $adjustments = [], ?float $overtimePayableHours = null, ?array $nightWindowHours = null): array
+    public function execute(float $hourlyRate, array $hourTotals, SurchargeRule $rules, bool $payOvertime = true, string $salaryType = 'hourly', float $baseSalary = 0.0, float $transportAllowance = 0.0, array $dominical = [], array $holiday = [], array $socialSecurity = [], array $adjustments = [], ?float $overtimePayableHours = null, ?array $nightWindowHours = null, int $deductedDays = 0, float $deductionDayValue = 0.0): array
     {
         $h = fn (string $key): float => (float) ($hourTotals[$key] ?? 0);
 
@@ -288,7 +288,13 @@ class CalculateReportCosts
         // --- Ajustes de nómina (bonos/deducciones) aplicados después del neto, sin tocar el IBC ---
         $bonusTotal = round((float) ($adjustments['bonus_total'] ?? 0), 2);
         $deductionTotal = round((float) ($adjustments['deduction_total'] ?? 0), 2);
-        $finalPay = round($netPay + $bonusTotal - $deductionTotal, 2);
+
+        // --- Descuento por días de ausencia: resta plana post-neto (no toca el IBC). El valor por
+        // día es `normal_day_value` del empleado. Los días negativos se normalizan a 0. ---
+        $deductedDays = max(0, $deductedDays);
+        $dayDeduction = round($deductedDays * $deductionDayValue, 2);
+
+        $finalPay = round($netPay + $bonusTotal - $deductionTotal - $dayDeduction, 2);
 
         $otCompensated = ! $payOvertime;
 
@@ -325,6 +331,9 @@ class CalculateReportCosts
             'net_pay' => $netPay,
             'bonus_total' => $bonusTotal,
             'deduction_total' => $deductionTotal,
+            'deducted_days' => $deductedDays,
+            'day_deduction_value' => round($deductionDayValue, 2),
+            'day_deduction' => $dayDeduction,
             'final_pay' => $finalPay,
             'salary_type' => $salaryType,
             'pay_overtime' => $payOvertime,

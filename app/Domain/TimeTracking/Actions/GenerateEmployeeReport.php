@@ -35,7 +35,7 @@ class GenerateEmployeeReport
      *     period: array{start: string, end: string}
      * }
      */
-    public function execute(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true, bool $includeDailyBreakdown = true, bool $includeBreaksByType = true, ?int $dominicalPayableCount = null, ?float $overtimePayableHours = null): array
+    public function execute(int $employeeId, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true, bool $includeDailyBreakdown = true, bool $includeBreaksByType = true, ?int $dominicalPayableCount = null, ?float $overtimePayableHours = null, int $deductedDays = 0): array
     {
         $employee = Employee::withoutGlobalScopes()
             ->with('user', 'department', 'position')
@@ -128,6 +128,8 @@ class GenerateEmployeeReport
             ],
             $overtimePayableHours,
             $nightWindowHours,
+            $deductedDays,
+            (float) $employee->normal_day_value,
         );
 
         return [
