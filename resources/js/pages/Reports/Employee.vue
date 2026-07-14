@@ -280,7 +280,7 @@ function setPayOvertime(value: boolean) {
             pay_overtime: value ? 1 : 0,
             ...(dominicalPayableCount.value !== null ? { dominical_payable_count: dominicalPayableCount.value } : {}),
             ...(overtimePayableHours.value !== null ? { overtime_payable_hours: overtimePayableHours.value } : {}),
-            ...(deductedDays.value > 0 ? { deducted_days: deductedDays.value } : {}),
+            deducted_days: deductedDays.value,
         },
         { preserveScroll: true },
     );
@@ -297,7 +297,7 @@ function setDominicalPayableCount(value: number) {
             employee_id: props.filters.employee_id,
             pay_overtime: payOvertime.value ? 1 : 0,
             dominical_payable_count: value,
-            ...(deductedDays.value > 0 ? { deducted_days: deductedDays.value } : {}),
+            deducted_days: deductedDays.value,
         },
         { preserveScroll: true },
     );
@@ -315,7 +315,7 @@ function setOvertimePayableHours(value: number) {
             pay_overtime: payOvertime.value ? 1 : 0,
             overtime_payable_hours: value,
             ...(dominicalPayableCount.value !== null ? { dominical_payable_count: dominicalPayableCount.value } : {}),
-            ...(deductedDays.value > 0 ? { deducted_days: deductedDays.value } : {}),
+            deducted_days: deductedDays.value,
         },
         { preserveScroll: true },
     );
@@ -353,9 +353,7 @@ function exportQueryParams(): string {
     if (overtimePayableHours.value !== null) {
         params.append('overtime_payable_hours', String(overtimePayableHours.value));
     }
-    if (deductedDays.value > 0) {
-        params.append('deducted_days', String(deductedDays.value));
-    }
+    params.append('deducted_days', String(deductedDays.value));
     return '?' + params.toString();
 }
 
@@ -392,9 +390,7 @@ function recalculate() {
             ...(overtimePayableHours.value !== null
                 ? { overtime_payable_hours: overtimePayableHours.value }
                 : {}),
-            ...(deductedDays.value > 0
-                ? { deducted_days: deductedDays.value }
-                : {}),
+            deducted_days: deductedDays.value,
         },
         {
             preserveScroll: true,
