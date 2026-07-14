@@ -471,7 +471,8 @@
             "days_count": "{n} day | {n} days",
             "bonus": "Bonus",
             "deduction": "Deduction",
-            "final_pay": "Total to pay"
+            "final_pay": "Total to pay",
+            "day_deduction": "Day deduction"
         },
         "overtime_payment": {
             "label": "Pay overtime",
@@ -506,6 +507,12 @@
             "amount": "Amount",
             "concept": "Concept",
             "note": "Note"
+        },
+        "day_deduction": {
+            "label": "Deduct days",
+            "hint": "Deducts {amount}",
+            "empty_hint": "Value per day: {value}",
+            "negative_warning": "The deduction exceeds net pay: the total to pay is zero or negative."
         }
     },
     "settings": {

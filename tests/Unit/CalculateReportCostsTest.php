@@ -902,6 +902,60 @@ class CalculateReportCostsTest extends TestCase
     }
 
     // ──────────────────────────────────────────────────────────────────────────
+    // Descuento por días: resta plana post-neto, no toca el IBC.
+    // ──────────────────────────────────────────────────────────────────────────
+
+    public function test_day_deduction_reduces_final_pay_without_touching_ibc(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'regular_hours' => 10.0,
+        ], $this->rules, socialSecurity: self::SS, deductedDays: 2, deductionDayValue: 33333.0);
+
+        // total 100.000; neto = 100.000 − 4.000 − 4.000 = 92.000.
+        $this->assertEquals(92000.0, $result['net_pay']);
+        $this->assertEquals(2, $result['deducted_days']);
+        $this->assertEquals(33333.0, $result['day_deduction_value']);
+        $this->assertEquals(66666.0, $result['day_deduction']); // 2 × 33.333
+        // final = neto − descuento = 92.000 − 66.666 = 25.334.
+        $this->assertEquals(25334.0, $result['final_pay']);
+        // El descuento no toca el IBC ni las deducciones de seguridad social.
+        $this->assertEquals(100000.0, $result['social_security_base']);
+        $this->assertEquals(4000.0, $result['health_deduction']);
+        $this->assertEquals(4000.0, $result['pension_deduction']);
+    }
+
+    public function test_zero_days_has_no_deduction(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'regular_hours' => 10.0,
+        ], $this->rules, socialSecurity: self::SS, deductedDays: 0, deductionDayValue: 33333.0);
+
+        $this->assertEquals(0.0, $result['day_deduction']);
+        $this->assertEquals($result['net_pay'], $result['final_pay']);
+    }
+
+    public function test_zero_day_value_has_no_deduction(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'regular_hours' => 10.0,
+        ], $this->rules, socialSecurity: self::SS, deductedDays: 3, deductionDayValue: 0.0);
+
+        $this->assertEquals(0.0, $result['day_deduction']);
+        $this->assertEquals($result['net_pay'], $result['final_pay']);
+    }
+
+    public function test_negative_days_normalized_to_zero(): void
+    {
+        $result = $this->calculator->execute(10000, [
+            'regular_hours' => 10.0,
+        ], $this->rules, socialSecurity: self::SS, deductedDays: -2, deductionDayValue: 33333.0);
+
+        $this->assertEquals(0, $result['deducted_days']);
+        $this->assertEquals(0.0, $result['day_deduction']);
+        $this->assertEquals($result['net_pay'], $result['final_pay']);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
     // overtime_payable_hours — cap sobre bolsa única (3 flags premium en off)
     // ──────────────────────────────────────────────────────────────────────────
 

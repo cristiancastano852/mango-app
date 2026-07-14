@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Company\Models\DayDeductionDecision;
 use App\Domain\Company\Models\DominicalPaymentDecision;
 use App\Domain\Company\Models\OvertimePaymentDecision;
 use App\Domain\Employee\Models\Employee;
@@ -10,6 +11,7 @@ use App\Domain\Employee\Models\Employee;
 use App\Domain\TimeTracking\Actions\GenerateCompanyReport;
 use App\Domain\TimeTracking\Actions\GenerateEmployeeReport;
 use App\Domain\TimeTracking\Actions\RecalculateEmployeeHours;
+use App\Domain\TimeTracking\Actions\ResolveDayDeductionDecision;
 use App\Domain\TimeTracking\Actions\ResolveDominicalPaymentDecision;
 use App\Domain\TimeTracking\Actions\ResolveOvertimePayableHours;
 use App\Domain\TimeTracking\Actions\ResolveOvertimePaymentDecision;
@@ -34,6 +36,7 @@ class ReportController extends Controller
         private ResolveOvertimePaymentDecision $resolveOvertimeDecision,
         private ResolveDominicalPaymentDecision $resolveDominicalDecision,
         private ResolveOvertimePayableHours $resolveOvertimePayableHours,
+        private ResolveDayDeductionDecision $resolveDayDeductionDecision,
         private RecalculateEmployeeHours $recalculateEmployeeHours,
     ) {}
 
@@ -83,6 +86,13 @@ class ReportController extends Controller
             $endDate,
             $this->requestOvertimePayableHours($request),
         );
+        $deductedDays = $this->resolveDayDeductionDecision->execute(
+            $companyId,
+            $employeeId,
+            $startDate,
+            $endDate,
+            $this->requestDeductedDays($request),
+        );
 
         $report = $this->buildEmployeeReport(
             $request,
@@ -93,6 +103,7 @@ class ReportController extends Controller
             includeBreaksByType: false,
             dominicalPayableCount: $dominicalCount,
             overtimePayableHours: $overtimePayableHours,
+            deductedDays: $deductedDays,
         );
 
         return Inertia::render('Reports/Employee', [
@@ -105,6 +116,7 @@ class ReportController extends Controller
                 'pay_overtime' => $payOvertime,
                 'dominical_payable_count' => $dominicalCount,
                 'overtime_payable_hours' => $overtimePayableHours,
+                'deducted_days' => $deductedDays,
             ],
             'employees' => Employee::with('user')->get()->map(fn ($e) => [
                 'id' => $e->id,
@@ -178,7 +190,8 @@ class ReportController extends Controller
         $payOvertime = $this->persistEmployeeDecision($request, $startDate, $endDate);
         $dominicalCount = $this->persistEmployeeDominicalDecision($request, $startDate, $endDate);
         $overtimePayableHours = $this->persistEmployeeOvertimePayableDecision($request, $startDate, $endDate);
-        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime, dominicalPayableCount: $dominicalCount, overtimePayableHours: $overtimePayableHours);
+        $deductedDays = $this->persistEmployeeDayDeduction($request, $startDate, $endDate);
+        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime, dominicalPayableCount: $dominicalCount, overtimePayableHours: $overtimePayableHours, deductedDays: $deductedDays);
         $name = 'reporte-'.str($report['employee']['name'])->slug().'.xlsx';
 
         return Excel::download(new EmployeeReportExport($report), $name);
@@ -194,7 +207,8 @@ class ReportController extends Controller
         $payOvertime = $this->persistEmployeeDecision($request, $startDate, $endDate);
         $dominicalCount = $this->persistEmployeeDominicalDecision($request, $startDate, $endDate);
         $overtimePayableHours = $this->persistEmployeeOvertimePayableDecision($request, $startDate, $endDate);
-        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime, dominicalPayableCount: $dominicalCount, overtimePayableHours: $overtimePayableHours);
+        $deductedDays = $this->persistEmployeeDayDeduction($request, $startDate, $endDate);
+        $report = $this->buildEmployeeReport($request, $startDate, $endDate, $payOvertime, dominicalPayableCount: $dominicalCount, overtimePayableHours: $overtimePayableHours, deductedDays: $deductedDays);
         $name = 'reporte-'.str($report['employee']['name'])->slug().'.pdf';
 
         return Pdf::loadView('exports.employee-report', compact('report'))
@@ -233,7 +247,7 @@ class ReportController extends Controller
     /**
      * Genera los datos del reporte de empleado (reutilizado por vista y exports).
      */
-    private function buildEmployeeReport(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true, bool $includeDailyBreakdown = true, bool $includeBreaksByType = true, ?int $dominicalPayableCount = null, ?float $overtimePayableHours = null): array
+    private function buildEmployeeReport(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate, bool $payOvertime = true, bool $includeDailyBreakdown = true, bool $includeBreaksByType = true, ?int $dominicalPayableCount = null, ?float $overtimePayableHours = null, int $deductedDays = 0): array
     {
         $validated = $request->validated();
 
@@ -246,6 +260,7 @@ class ReportController extends Controller
             $includeBreaksByType,
             $dominicalPayableCount,
             $overtimePayableHours,
+            $deductedDays,
         );
     }
 
@@ -300,6 +315,17 @@ class ReportController extends Controller
         $value = $request->input('overtime_payable_hours');
 
         return $value === null || $value === '' ? null : (float) $value;
+    }
+
+    /**
+     * Lee el override explícito de días a descontar desde el request (null si no viene).
+     * Acepta 0 como valor válido (no descontar).
+     */
+    private function requestDeductedDays(ReportFilterRequest $request): ?int
+    {
+        $value = $request->input('deducted_days');
+
+        return $value === null || $value === '' ? null : (int) $value;
     }
 
     /**
@@ -376,6 +402,51 @@ class ReportController extends Controller
         ]));
 
         return $count;
+    }
+
+    /**
+     * Resuelve y persiste (upsert) los días descontados de un empleado al exportar; retorna el valor efectivo.
+     */
+    private function persistEmployeeDayDeduction(ReportFilterRequest $request, CarbonInterface $startDate, CarbonInterface $endDate): int
+    {
+        $employeeId = (int) $request->validated()['employee_id'];
+        $companyId = $this->employeeCompanyId($employeeId);
+
+        $deductedDays = $this->resolveDayDeductionDecision->execute(
+            $companyId,
+            $employeeId,
+            $startDate,
+            $endDate,
+            $this->requestDeductedDays($request),
+        );
+
+        $existing = DayDeductionDecision::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('employee_id', $employeeId)
+            ->where('start_date', $startDate->toDateString())
+            ->where('end_date', $endDate->toDateString())
+            ->first();
+
+        $payload = [
+            'deducted_days' => $deductedDays,
+            'exported_by' => $request->user()?->id,
+            'exported_at' => now(),
+        ];
+
+        if ($existing !== null) {
+            $existing->update($payload);
+
+            return $deductedDays;
+        }
+
+        DayDeductionDecision::withoutGlobalScopes()->create(array_merge($payload, [
+            'company_id' => $companyId,
+            'employee_id' => $employeeId,
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+        ]));
+
+        return $deductedDays;
     }
 
     /**
