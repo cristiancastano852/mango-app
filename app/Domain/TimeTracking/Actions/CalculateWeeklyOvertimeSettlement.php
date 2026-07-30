@@ -7,15 +7,6 @@ use Illuminate\Support\Facades\DB;
 
 class CalculateWeeklyOvertimeSettlement
 {
-    private const OVERTIME_FIELDS = [
-        'overtime_day_hours',
-        'overtime_night_hours',
-        'overtime_day_dominical_hours',
-        'overtime_night_dominical_hours',
-        'overtime_day_holiday_hours',
-        'overtime_night_holiday_hours',
-    ];
-
     /**
      * @param  array<int, int>  $employeeIds
      * @param  array{start: ?string, end: ?string, deferred: bool}  $window
@@ -45,7 +36,6 @@ class CalculateWeeklyOvertimeSettlement
 
         $weekTemplate = $this->buildWeekTemplate($window['start'], $window['end']);
         $workedHoursByEmployee = [];
-        $overtimeHoursByEmployee = array_fill_keys($employeeIds, 0.0);
 
         foreach ($employeeIds as $employeeId) {
             $workedHoursByEmployee[$employeeId] = array_fill_keys(array_keys($weekTemplate), 0.0);
@@ -57,7 +47,7 @@ class CalculateWeeklyOvertimeSettlement
             ->whereBetween('date', [$window['start'], $window['end']])
             ->whereNull('deleted_at')
             ->whereNotNull('clock_out')
-            ->get(['employee_id', 'date', 'net_hours', ...self::OVERTIME_FIELDS]);
+            ->get(['employee_id', 'date', 'net_hours']);
 
         foreach ($rows as $row) {
             $employeeId = (int) $row->employee_id;
@@ -66,10 +56,6 @@ class CalculateWeeklyOvertimeSettlement
             if (isset($workedHoursByEmployee[$employeeId][$weekStart])) {
                 $workedHoursByEmployee[$employeeId][$weekStart] += (float) $row->net_hours;
             }
-
-            foreach (self::OVERTIME_FIELDS as $field) {
-                $overtimeHoursByEmployee[$employeeId] += (float) $row->{$field};
-            }
         }
 
         $settlements = [];
@@ -77,11 +63,13 @@ class CalculateWeeklyOvertimeSettlement
         foreach ($employeeIds as $employeeId) {
             $weeks = [];
             $balanceMinutes = 0;
+            $workedOvertimeMinutes = 0;
 
             foreach ($weekTemplate as $weekStart => $week) {
                 $workedMinutes = (int) round($workedHoursByEmployee[$employeeId][$weekStart] * 60);
                 $weekBalanceMinutes = $workedMinutes - $maxWeeklyMinutes;
                 $balanceMinutes += $weekBalanceMinutes;
+                $workedOvertimeMinutes += max(0, $weekBalanceMinutes);
                 $weeks[] = [
                     'start' => $week['start'],
                     'end' => $week['end'],
@@ -90,8 +78,7 @@ class CalculateWeeklyOvertimeSettlement
                 ];
             }
 
-            $workedOvertimeMinutes = max(0, (int) round($overtimeHoursByEmployee[$employeeId] * 60));
-            $payableOvertimeMinutes = min($workedOvertimeMinutes, max(0, $balanceMinutes));
+            $payableOvertimeMinutes = max(0, $balanceMinutes);
 
             $settlements[$employeeId] = [
                 'worked_overtime_minutes' => $workedOvertimeMinutes,
