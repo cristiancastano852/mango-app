@@ -69,9 +69,7 @@ class GenerateCompanyReport
                 : $this->makeImmediateOvertimeBalance($employee);
 
             if ($accrualMode === 'weekly') {
-                foreach ($this->overtimeTotalFields() as $field) {
-                    $employee->{$field} = (float) $employee->{$field} * $balance['payable_factor'];
-                }
+                $this->applyWeeklyOvertimeSettlement($employee, $balance['payable_overtime_minutes']);
             }
 
             $employee->overtime_settlement = $balance;
@@ -299,6 +297,31 @@ class GenerateCompanyReport
             'payable_factor' => $workedMinutes > 0 ? 1.0 : 0.0,
             'weeks' => [],
         ];
+    }
+
+    private function applyWeeklyOvertimeSettlement(object $employee, int $payableOvertimeMinutes): void
+    {
+        $fields = $this->overtimeTotalFields();
+        $classifiedOvertimeHours = array_sum(array_map(
+            fn (string $field): float => (float) ($employee->{$field} ?? 0),
+            $fields,
+        ));
+
+        if ($classifiedOvertimeHours <= 0) {
+            foreach ($fields as $field) {
+                $employee->{$field} = 0.0;
+            }
+
+            $employee->total_overtime_day = $payableOvertimeMinutes / 60;
+
+            return;
+        }
+
+        $factor = ($payableOvertimeMinutes / 60) / $classifiedOvertimeHours;
+
+        foreach ($fields as $field) {
+            $employee->{$field} = (float) $employee->{$field} * $factor;
+        }
     }
 
     /**

@@ -75,7 +75,9 @@ En modo `weekly`, los reportes de empleado y de empresa SHALL liquidar las horas
 **Business Rules:**
 - Solo participan semanas completas cuyo domingo pertenece al periodo.
 - Una semana por debajo del límite aporta un saldo negativo y compensa excedentes positivos de otras semanas de la misma ventana.
-- El overtime liquidable SHALL limitarse al overtime realmente clasificado en los buckets de la ventana.
+- El overtime trabajado SHALL ser la suma de los saldos semanales positivos, incluso si los buckets persistidos quedaron desactualizados.
+- El overtime liquidable SHALL ser el saldo combinado positivo después de compensar semanas deficitarias.
+- Las categorías de overtime del reporte SHALL normalizarse al total liquidable; si no existe ningún bucket clasificado, SHALL usarse extra diurna como respaldo.
 - Los buckets persistidos y el detalle diario SHALL conservar el overtime trabajado antes de la compensación.
 - Si el saldo combinado es negativo, el overtime liquidable SHALL ser cero.
 - Solo se difiere el **recargo extra** de la semana abierta; el salario ordinario de sus días se paga por fecha en su periodo.
@@ -135,7 +137,7 @@ En modo `weekly`, los reportes de empleado y de empresa SHALL liquidar las horas
 En modo `weekly`, los reportes de empleado y empresa, PDF y Excel SHALL informar de forma consistente el overtime trabajado, el tiempo compensado entre semanas, el overtime liquidado y el déficit informativo. El reporte de empleado SHALL exponer además el rango, los minutos trabajados y el saldo de cada semana completa incluida.
 
 **Business Rules:**
-- El overtime trabajado corresponde a los buckets positivos ya clasificados en la ventana.
+- El overtime trabajado corresponde a la suma de los excedentes positivos de las semanas completas de la ventana.
 - La compensación corresponde a la diferencia entre overtime trabajado y overtime liquidado.
 - El déficit informativo se muestra únicamente cuando el balance combinado es negativo.
 - Los valores del resumen SHALL usar minutos enteros para evitar presentar centésimas de hora como minutos de reloj.
@@ -146,6 +148,12 @@ En modo `weekly`, los reportes de empleado y empresa, PDF y Excel SHALL informar
 #### Scenario: Reporte muestra la conciliación positiva
 - **WHEN** una ventana tiene `63m` de overtime trabajado, `24m` compensados y `39m` liquidables
 - **THEN** pantalla, PDF y Excel muestran los tres valores de forma consistente
+
+#### Scenario: Buckets persistidos no limitan el balance semanal
+- **WHEN** una semana excede el límite en `4h38m`, otra tiene un déficit de `21m` y los buckets persistidos solo contienen `1m` de overtime
+- **THEN** el reporte muestra `4h38m` de overtime trabajado
+- **THEN** muestra `21m` compensados y `4h17m` liquidados
+- **THEN** las categorías de overtime mostradas totalizan `4h17m`
 
 #### Scenario: Reporte muestra déficit informativo
 - **WHEN** el balance de la ventana es `-3h`

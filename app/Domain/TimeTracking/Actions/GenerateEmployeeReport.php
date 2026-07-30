@@ -63,7 +63,7 @@ class GenerateEmployeeReport
             : $this->makeImmediateOvertimeBalance($totals);
 
         if ($accrualMode === 'weekly') {
-            $this->applyOvertimePayableFactor($totals, $overtimeBalance['payable_factor']);
+            $this->applyWeeklyOvertimeSettlement($totals, $overtimeBalance['payable_overtime_minutes']);
         }
 
         // En modo `deferred` el recargo nocturno del día de corte se difiere al periodo siguiente:
@@ -205,9 +205,27 @@ class GenerateEmployeeReport
         ];
     }
 
-    private function applyOvertimePayableFactor(object $totals, float $factor): void
+    private function applyWeeklyOvertimeSettlement(object $totals, int $payableOvertimeMinutes): void
     {
-        foreach ($this->overtimeTotalFields() as $field) {
+        $fields = $this->overtimeTotalFields();
+        $classifiedOvertimeHours = array_sum(array_map(
+            fn (string $field): float => (float) ($totals->{$field} ?? 0),
+            $fields,
+        ));
+
+        if ($classifiedOvertimeHours <= 0) {
+            foreach ($fields as $field) {
+                $totals->{$field} = 0.0;
+            }
+
+            $totals->total_overtime_day = $payableOvertimeMinutes / 60;
+
+            return;
+        }
+
+        $factor = ($payableOvertimeMinutes / 60) / $classifiedOvertimeHours;
+
+        foreach ($fields as $field) {
             $totals->{$field} = (float) $totals->{$field} * $factor;
         }
     }

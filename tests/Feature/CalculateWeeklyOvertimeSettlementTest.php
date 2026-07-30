@@ -48,6 +48,21 @@ class CalculateWeeklyOvertimeSettlementTest extends TestCase
         $this->assertEqualsWithDelta(39 / 63, $result['payable_factor'], 0.0001);
     }
 
+    public function test_uses_weekly_excess_when_persisted_overtime_buckets_are_stale(): void
+    {
+        $this->createEntry($this->employee, '2026-07-13', 46.63, 0.02);
+        $this->createEntry($this->employee, '2026-07-20', 41.65);
+
+        $result = $this->settle([$this->employee->id])[$this->employee->id];
+
+        $this->assertSame(278, $result['weeks'][0]['balance_minutes']);
+        $this->assertSame(-21, $result['weeks'][1]['balance_minutes']);
+        $this->assertSame(278, $result['worked_overtime_minutes']);
+        $this->assertSame(21, $result['offset_minutes']);
+        $this->assertSame(257, $result['payable_overtime_minutes']);
+        $this->assertEqualsWithDelta(257 / 278, $result['payable_factor'], 0.0001);
+    }
+
     public function test_reports_combined_deficit_without_payable_overtime(): void
     {
         $this->createEntry($this->employee, '2026-07-13', 40.0);

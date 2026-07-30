@@ -278,6 +278,31 @@ class GenerateCompanyReportTest extends TestCase
         $this->assertEqualsWithDelta(8125.0, $result['cost_summary']['overtime_day'], 0.01);
     }
 
+    public function test_weekly_company_report_normalizes_stale_buckets_to_the_payable_balance(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['overtime_accrual_mode' => 'weekly']);
+
+        $this->createEntryForEmployee($this->employee1, $this->company->id, '2026-07-13', 46.63, 46.61, 0.0, 0.02);
+        $this->createEntryForEmployee($this->employee1, $this->company->id, '2026-07-20', 41.65, 41.65, 0.0);
+
+        $result = $this->action->execute(
+            $this->company->id,
+            Carbon::parse('2026-07-16'),
+            Carbon::parse('2026-07-31'),
+        );
+
+        $employee = collect($result['employees'])->firstWhere('employee_id', $this->employee1->id);
+
+        $this->assertSame(278, $employee['overtime_settlement']['worked_overtime_minutes']);
+        $this->assertSame(21, $employee['overtime_settlement']['offset_minutes']);
+        $this->assertSame(257, $employee['overtime_settlement']['payable_overtime_minutes']);
+        $this->assertEqualsWithDelta(257 / 60, $employee['overtime_day_hours'], 0.01);
+        $this->assertSame(278, $result['overtime_settlement']['worked_overtime_minutes']);
+        $this->assertSame(257, $result['overtime_settlement']['payable_overtime_minutes']);
+    }
+
     public function test_company_report_mixes_monthly_and_hourly_employees(): void
     {
         // employee1 es por horas (rate 10.000): 8h ordinarias = 80.000.
