@@ -845,7 +845,7 @@ class ReportExportTest extends TestCase
 
         $rows = collect((new \App\Exports\EmployeeReportSummarySheet($report))->array())->keyBy(fn ($row) => $row[0] ?? '');
         $this->assertSame('1h 3m', $rows['Horas extra trabajadas'][1]);
-        $this->assertSame('0h 24m', $rows['Compensadas entre semanas'][1]);
+        $this->assertSame('-0h 24m', $rows['Compensadas entre semanas'][1]);
         $this->assertSame('0h 39m', $rows['Horas extra liquidadas'][1]);
         $this->assertSame('-0h 24m', $rows['Semana 2026-06-01 a 2026-06-07'][2]);
     }
@@ -894,6 +894,7 @@ class ReportExportTest extends TestCase
         $this->assertStringContainsString('2026-06-14', $note);
 
         $rows = collect((new \App\Exports\CompanyReportSummarySheet($report))->array())->keyBy(fn ($row) => $row[0] ?? '');
+        $this->assertSame('-0h 24m', $rows['Compensadas entre semanas'][1]);
         $this->assertSame('0h 39m', $rows['Horas extra liquidadas'][1]);
         $this->assertSame('3h 0m', $rows['Tiempo faltante (informativo, sin descuento)'][1]);
     }

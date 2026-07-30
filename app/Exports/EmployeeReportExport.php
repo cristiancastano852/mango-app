@@ -244,7 +244,7 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
         $rows = [
             ['--- Balance semanal de horas extra ---', '', '', ''],
             ['Horas extra trabajadas', $this->formatMinutes((int) ($settlement['worked_overtime_minutes'] ?? 0)), '', ''],
-            ['Compensadas entre semanas', $this->formatMinutes((int) ($settlement['offset_minutes'] ?? 0)), '', ''],
+            ['Compensadas entre semanas', '-'.$this->formatMinutes((int) ($settlement['offset_minutes'] ?? 0)), '', ''],
             ['Horas extra liquidadas', $this->formatMinutes((int) ($settlement['payable_overtime_minutes'] ?? 0)), '', ''],
             ['Tiempo faltante (informativo, sin descuento)', $this->formatMinutes((int) ($settlement['deficit_minutes'] ?? 0)), '', ''],
         ];
