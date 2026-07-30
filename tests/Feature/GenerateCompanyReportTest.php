@@ -248,6 +248,36 @@ class GenerateCompanyReportTest extends TestCase
         $this->assertEquals(92000.0, $result['cost_summary']['total']);
     }
 
+    public function test_weekly_balance_is_calculated_per_employee_before_company_totals(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['overtime_accrual_mode' => 'weekly']);
+
+        $this->createEntryForEmployee($this->employee1, $this->company->id, '2026-07-13', 41.60, 41.60, 0.0);
+        $this->createEntryForEmployee($this->employee1, $this->company->id, '2026-07-20', 43.05, 42.0, 0.0, 1.05);
+        $this->createEntryForEmployee($this->employee2, $this->company->id, '2026-07-13', 40.0, 40.0, 0.0);
+        $this->createEntryForEmployee($this->employee2, $this->company->id, '2026-07-20', 41.0, 41.0, 0.0);
+
+        $result = $this->action->execute(
+            $this->company->id,
+            Carbon::parse('2026-07-16'),
+            Carbon::parse('2026-07-31'),
+        );
+
+        $byId = collect($result['employees'])->keyBy('employee_id');
+        $this->assertEqualsWithDelta(0.65, $byId[$this->employee1->id]['overtime_day_hours'], 0.01);
+        $this->assertSame(39, $byId[$this->employee1->id]['overtime_settlement']['payable_overtime_minutes']);
+        $this->assertSame(180, $byId[$this->employee2->id]['overtime_settlement']['deficit_minutes']);
+
+        $this->assertSame(63, $result['overtime_settlement']['worked_overtime_minutes']);
+        $this->assertSame(24, $result['overtime_settlement']['offset_minutes']);
+        $this->assertSame(39, $result['overtime_settlement']['payable_overtime_minutes']);
+        $this->assertSame(180, $result['overtime_settlement']['deficit_minutes']);
+        $this->assertEqualsWithDelta(0.65, $result['totals']['overtime_day_hours'], 0.01);
+        $this->assertEqualsWithDelta(8125.0, $result['cost_summary']['overtime_day'], 0.01);
+    }
+
     public function test_company_report_mixes_monthly_and_hourly_employees(): void
     {
         // employee1 es por horas (rate 10.000): 8h ordinarias = 80.000.
@@ -462,7 +492,7 @@ class GenerateCompanyReportTest extends TestCase
         $this->createEntryForEmployee($employee, $this->company->id, $date, $netHours, $regularHours, $nightHours);
     }
 
-    private function createEntryForEmployee(Employee $employee, int $companyId, string $date, float $netHours, float $regularHours, float $nightHours): void
+    private function createEntryForEmployee(Employee $employee, int $companyId, string $date, float $netHours, float $regularHours, float $nightHours, float $overtimeDayHours = 0.0): void
     {
         TimeEntry::withoutGlobalScopes()->create([
             'employee_id' => $employee->id,
@@ -475,7 +505,7 @@ class GenerateCompanyReportTest extends TestCase
             'net_hours' => $netHours,
             'regular_hours' => $regularHours,
             'night_hours' => $nightHours,
-            'overtime_day_hours' => 0,
+            'overtime_day_hours' => $overtimeDayHours,
             'dominical_hours' => 0,
             'status' => 'calculated',
         ]);

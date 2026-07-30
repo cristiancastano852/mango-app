@@ -137,6 +137,7 @@ class CompanyReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadin
             ['Horas brutas', $t['gross_hours']],
             ['Horas en pausas', $t['break_hours']],
             ['Horas netas', $t['net_hours']],
+        ], $this->weeklySettlementRows(), [
             [],
             ['--- Desglose de horas ---', ''],
             ['Ordinarias', $hours('regular', $t['regular_hours'])],
@@ -154,6 +155,30 @@ class CompanyReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadin
             [],
             ['--- Costos ---', $payOvertime ? '' : 'Horas extra compensadas con tiempo (pago $0)'],
         ], $costRows);
+    }
+
+    /**
+     * @return array<int, array<int, string>>
+     */
+    private function weeklySettlementRows(): array
+    {
+        $settlement = $this->report['overtime_settlement'] ?? null;
+        if (($settlement['mode'] ?? 'daily') !== 'weekly') {
+            return [];
+        }
+
+        return [
+            ['--- Balance semanal de horas extra ---', ''],
+            ['Horas extra trabajadas', $this->formatMinutes((int) ($settlement['worked_overtime_minutes'] ?? 0))],
+            ['Compensadas entre semanas', $this->formatMinutes((int) ($settlement['offset_minutes'] ?? 0))],
+            ['Horas extra liquidadas', $this->formatMinutes((int) ($settlement['payable_overtime_minutes'] ?? 0))],
+            ['Tiempo faltante (informativo, sin descuento)', $this->formatMinutes((int) ($settlement['deficit_minutes'] ?? 0))],
+        ];
+    }
+
+    private function formatMinutes(int $minutes): string
+    {
+        return intdiv($minutes, 60).'h '.($minutes % 60).'m';
     }
 
     public function styles(Worksheet $sheet): array

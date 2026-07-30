@@ -445,6 +445,16 @@
             "range": "Night surcharge settled for the range {range} (the cutoff day is deferred to the next period).",
             "deferred_notice": "The night surcharge of the cutoff day will be paid in the next pay period."
         },
+        "overtime_settlement": {
+            "range": "Overtime settled for weeks {range} (complete weeks whose Sunday falls within the period).",
+            "empty": "This period does not close a complete week, so overtime will be settled in the next period.",
+            "deferred_notice": "The open week at cutoff will be settled in the next period.",
+            "worked": "Overtime worked",
+            "offset": "Offset between weeks",
+            "payable": "Overtime settled",
+            "deficit": "Time deficit",
+            "deficit_hint": "The time deficit is informational and does not reduce salary."
+        },
         "breaks": {
             "title": "Breaks Breakdown",
             "type": "Type",
