@@ -1,15 +1,26 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { ArrowLeft, Calendar, Clock, DollarSign, Download, TrendingUp, Users } from 'lucide-vue-next';
+import {
+    ArrowLeft,
+    Calendar,
+    Clock,
+    DollarSign,
+    Download,
+    TrendingUp,
+    Users,
+} from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { exportCompanyExcel, exportCompanyPdf } from '@/actions/App/Http/Controllers/ReportController';
+import {
+    exportCompanyExcel,
+    exportCompanyPdf,
+} from '@/actions/App/Http/Controllers/ReportController';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 // DEPARTMENTS & POSITIONS FEATURE DISABLED — restore Select imports when re-enabling department selector.
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { formatDecimalHours } from '@/lib/utils';
+import { formatDecimalHours, formatMinutes } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/types';
 import DateRangeFilter from './partials/DateRangeFilter.vue';
 import OvertimePaymentToggle from './partials/OvertimePaymentToggle.vue';
@@ -92,6 +103,11 @@ type Report = {
         start: string | null;
         end: string | null;
         deferred: boolean;
+        worked_overtime_minutes: number;
+        balance_minutes: number;
+        offset_minutes: number;
+        payable_overtime_minutes: number;
+        deficit_minutes: number;
     };
     night_settlement: {
         mode: string;
@@ -149,7 +165,12 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const dateFilter = ref({
-    date_range: props.filters.date_range as 'day' | 'week' | 'biweekly' | 'month' | 'custom',
+    date_range: props.filters.date_range as
+        | 'day'
+        | 'week'
+        | 'biweekly'
+        | 'month'
+        | 'custom',
     start_date: props.filters.start_date,
     end_date: props.filters.end_date,
 });
@@ -207,7 +228,11 @@ function downloadPdf() {
 }
 
 function formatCurrency(value: number): string {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
+    return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 0,
+    }).format(value);
 }
 
 // --- Charts ---
@@ -222,15 +247,42 @@ onMounted(async () => {
     // Daily attendance trend
     if (attendanceChartEl.value && props.report.daily_attendance.length > 0) {
         new ApexCharts(attendanceChartEl.value, {
-            chart: { type: 'bar', height: 280, toolbar: { show: false }, fontFamily: 'inherit' },
+            chart: {
+                type: 'bar',
+                height: 280,
+                toolbar: { show: false },
+                fontFamily: 'inherit',
+            },
             series: [
-                { name: t('reports.charts.attendance_trend'), data: props.report.daily_attendance.map(d => d.employees_present), type: 'bar' },
-                { name: t('reports.kpi.net_hours'), data: props.report.daily_attendance.map(d => d.total_net_hours), type: 'line' },
+                {
+                    name: t('reports.charts.attendance_trend'),
+                    data: props.report.daily_attendance.map(
+                        (d) => d.employees_present,
+                    ),
+                    type: 'bar',
+                },
+                {
+                    name: t('reports.kpi.net_hours'),
+                    data: props.report.daily_attendance.map(
+                        (d) => d.total_net_hours,
+                    ),
+                    type: 'line',
+                },
             ],
-            xaxis: { categories: props.report.daily_attendance.map(d => d.date), labels: { style: { fontSize: '11px' } } },
+            xaxis: {
+                categories: props.report.daily_attendance.map((d) => d.date),
+                labels: { style: { fontSize: '11px' } },
+            },
             yaxis: [
-                { title: { text: t('reports.kpi.total_employees') }, labels: { formatter: (v: number) => `${Math.round(v)}` } },
-                { opposite: true, title: { text: 'h' }, labels: { formatter: (v: number) => `${v}h` } },
+                {
+                    title: { text: t('reports.kpi.total_employees') },
+                    labels: { formatter: (v: number) => `${Math.round(v)}` },
+                },
+                {
+                    opposite: true,
+                    title: { text: 'h' },
+                    labels: { formatter: (v: number) => `${v}h` },
+                },
             ],
             colors: ['#3b82f6', '#10b981'],
             plotOptions: { bar: { borderRadius: 3, columnWidth: '50%' } },
@@ -244,30 +296,86 @@ onMounted(async () => {
     if (costChartEl.value) {
         const cs = props.report.cost_summary;
         const allCosts = [
-            { value: cs.base, label: t('reports.costs.base_salary'), color: '#10b981' },
-            { value: cs.transport_allowance, label: t('reports.costs.transport_allowance'), color: '#14b8a6' },
-            { value: cs.regular, label: t('reports.hours.regular'), color: '#3b82f6' },
-            { value: cs.night, label: t('reports.hours.night'), color: '#6366f1' },
-            { value: cs.dominical, label: t('reports.hours.dominical'), color: '#ef4444' },
-            { value: cs.night_dominical, label: t('reports.hours.night_dominical'), color: '#a855f7' },
-            { value: cs.holiday, label: t('reports.hours.holiday'), color: '#b91c1c' },
-            { value: cs.night_holiday, label: t('reports.hours.night_holiday'), color: '#9333ea' },
-            { value: cs.overtime_day, label: t('reports.hours.overtime_day'), color: '#f59e0b' },
-            { value: cs.overtime_night, label: t('reports.hours.overtime_night'), color: '#f97316' },
-            { value: cs.overtime_day_dominical, label: t('reports.hours.overtime_day_dominical'), color: '#ec4899' },
-            { value: cs.overtime_night_dominical, label: t('reports.hours.overtime_night_dominical'), color: '#dc2626' },
-            { value: cs.overtime_day_holiday, label: t('reports.hours.overtime_day_holiday'), color: '#db2777' },
-            { value: cs.overtime_night_holiday, label: t('reports.hours.overtime_night_holiday'), color: '#b91c1c' },
-        ].filter(e => e.value > 0);
-        const costValues = allCosts.map(e => e.value);
-        const costLabels = allCosts.map(e => e.label);
+            {
+                value: cs.base,
+                label: t('reports.costs.base_salary'),
+                color: '#10b981',
+            },
+            {
+                value: cs.transport_allowance,
+                label: t('reports.costs.transport_allowance'),
+                color: '#14b8a6',
+            },
+            {
+                value: cs.regular,
+                label: t('reports.hours.regular'),
+                color: '#3b82f6',
+            },
+            {
+                value: cs.night,
+                label: t('reports.hours.night'),
+                color: '#6366f1',
+            },
+            {
+                value: cs.dominical,
+                label: t('reports.hours.dominical'),
+                color: '#ef4444',
+            },
+            {
+                value: cs.night_dominical,
+                label: t('reports.hours.night_dominical'),
+                color: '#a855f7',
+            },
+            {
+                value: cs.holiday,
+                label: t('reports.hours.holiday'),
+                color: '#b91c1c',
+            },
+            {
+                value: cs.night_holiday,
+                label: t('reports.hours.night_holiday'),
+                color: '#9333ea',
+            },
+            {
+                value: cs.overtime_day,
+                label: t('reports.hours.overtime_day'),
+                color: '#f59e0b',
+            },
+            {
+                value: cs.overtime_night,
+                label: t('reports.hours.overtime_night'),
+                color: '#f97316',
+            },
+            {
+                value: cs.overtime_day_dominical,
+                label: t('reports.hours.overtime_day_dominical'),
+                color: '#ec4899',
+            },
+            {
+                value: cs.overtime_night_dominical,
+                label: t('reports.hours.overtime_night_dominical'),
+                color: '#dc2626',
+            },
+            {
+                value: cs.overtime_day_holiday,
+                label: t('reports.hours.overtime_day_holiday'),
+                color: '#db2777',
+            },
+            {
+                value: cs.overtime_night_holiday,
+                label: t('reports.hours.overtime_night_holiday'),
+                color: '#b91c1c',
+            },
+        ].filter((e) => e.value > 0);
+        const costValues = allCosts.map((e) => e.value);
+        const costLabels = allCosts.map((e) => e.label);
 
         if (costValues.length > 0) {
             new ApexCharts(costChartEl.value, {
                 chart: { type: 'donut', height: 280, fontFamily: 'inherit' },
                 series: costValues,
                 labels: costLabels,
-                colors: allCosts.map(e => e.color),
+                colors: allCosts.map((e) => e.color),
                 legend: { position: 'bottom', fontSize: '12px' },
                 tooltip: { y: { formatter: (v: number) => formatCurrency(v) } },
                 plotOptions: { pie: { donut: { size: '55%' } } },
@@ -283,19 +391,31 @@ onMounted(async () => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-4 md:p-6">
             <!-- Header -->
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div
+                class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            >
                 <div class="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" @click="router.get('/reports')">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        @click="router.get('/reports')"
+                    >
                         <ArrowLeft class="size-4" />
                     </Button>
                     <div>
-                        <h1 class="text-xl font-bold">{{ t('reports.company_report') }}</h1>
-                        <p class="text-muted-foreground text-sm">
-                            {{ report.period.start }} &rarr; {{ report.period.end }}
+                        <h1 class="text-xl font-bold">
+                            {{ t('reports.company_report') }}
+                        </h1>
+                        <p class="text-sm text-muted-foreground">
+                            {{ report.period.start }} &rarr;
+                            {{ report.period.end }}
                         </p>
                     </div>
                 </div>
-                <div v-if="report.totals.total_employees > 0" class="flex items-center gap-2">
+                <div
+                    v-if="report.totals.total_employees > 0"
+                    class="flex items-center gap-2"
+                >
                     <Button variant="outline" size="sm" @click="downloadExcel">
                         <Download class="mr-1 size-3.5" />
                         {{ t('reports.export_excel') }}
@@ -309,7 +429,9 @@ onMounted(async () => {
 
             <!-- Filters -->
             <Card>
-                <CardContent class="flex flex-col gap-4 pt-6 sm:flex-row sm:items-end">
+                <CardContent
+                    class="flex flex-col gap-4 pt-6 sm:flex-row sm:items-end"
+                >
                     <div class="flex-1">
                         <DateRangeFilter v-model="dateFilter" />
                     </div>
@@ -323,28 +445,114 @@ onMounted(async () => {
                             </SelectContent>
                         </Select>
                     </div> -->
-                    <Button @click="applyFilter">{{ t('reports.filter') }}</Button>
+                    <Button @click="applyFilter">{{
+                        t('reports.filter')
+                    }}</Button>
                 </CardContent>
             </Card>
 
             <!-- Liquidación semanal de horas extra -->
             <div
-                v-if="showOvertimeSettlement && report.totals.total_employees > 0"
+                v-if="
+                    showOvertimeSettlement && report.totals.total_employees > 0
+                "
                 class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
             >
                 <Clock class="mt-0.5 size-5 shrink-0" />
-                <div class="space-y-1">
+                <div class="min-w-0 flex-1 space-y-3">
                     <p v-if="overtimeSettlementRange">
-                        Horas extra liquidadas de las semanas
-                        <strong>{{ overtimeSettlementRange }}</strong>
-                        (semanas completas con domingo dentro del periodo).
+                        {{
+                            t('reports.overtime_settlement.range', {
+                                range: overtimeSettlementRange,
+                            })
+                        }}
                     </p>
                     <p v-else>
-                        Este periodo no cierra ninguna semana completa, así que no se liquidan
-                        horas extra; se pagarán en el próximo periodo.
+                        {{ t('reports.overtime_settlement.empty') }}
                     </p>
                     <p v-if="report.overtime_settlement.deferred">
-                        La semana en curso al cierre se liquidará en el próximo periodo.
+                        {{ t('reports.overtime_settlement.deferred_notice') }}
+                    </p>
+
+                    <div
+                        v-if="overtimeSettlementRange"
+                        class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+                    >
+                        <div
+                            class="rounded-md border border-amber-200 bg-white/60 p-2 dark:border-amber-800 dark:bg-amber-950/30"
+                        >
+                            <div
+                                class="text-[11px] text-amber-700 dark:text-amber-300"
+                            >
+                                {{ t('reports.overtime_settlement.worked') }}
+                            </div>
+                            <div class="font-semibold tabular-nums">
+                                {{
+                                    formatMinutes(
+                                        report.overtime_settlement
+                                            .worked_overtime_minutes,
+                                    )
+                                }}
+                            </div>
+                        </div>
+                        <div
+                            class="rounded-md border border-amber-200 bg-white/60 p-2 dark:border-amber-800 dark:bg-amber-950/30"
+                        >
+                            <div
+                                class="text-[11px] text-amber-700 dark:text-amber-300"
+                            >
+                                {{ t('reports.overtime_settlement.offset') }}
+                            </div>
+                            <div class="font-semibold tabular-nums">
+                                −{{
+                                    formatMinutes(
+                                        report.overtime_settlement
+                                            .offset_minutes,
+                                    )
+                                }}
+                            </div>
+                        </div>
+                        <div
+                            class="rounded-md border border-amber-200 bg-white/60 p-2 dark:border-amber-800 dark:bg-amber-950/30"
+                        >
+                            <div
+                                class="text-[11px] text-amber-700 dark:text-amber-300"
+                            >
+                                {{ t('reports.overtime_settlement.payable') }}
+                            </div>
+                            <div class="font-semibold tabular-nums">
+                                {{
+                                    formatMinutes(
+                                        report.overtime_settlement
+                                            .payable_overtime_minutes,
+                                    )
+                                }}
+                            </div>
+                        </div>
+                        <div
+                            class="rounded-md border border-amber-200 bg-white/60 p-2 dark:border-amber-800 dark:bg-amber-950/30"
+                        >
+                            <div
+                                class="text-[11px] text-amber-700 dark:text-amber-300"
+                            >
+                                {{ t('reports.overtime_settlement.deficit') }}
+                            </div>
+                            <div class="font-semibold tabular-nums">
+                                {{
+                                    formatMinutes(
+                                        report.overtime_settlement
+                                            .deficit_minutes,
+                                    )
+                                }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <p
+                        v-if="report.overtime_settlement.deficit_minutes > 0"
+                        class="text-xs"
+                    >
+                        {{ t('reports.overtime_settlement.deficit_hint') }}
                     </p>
                 </div>
             </div>
@@ -357,7 +565,11 @@ onMounted(async () => {
                 <Clock class="mt-0.5 size-5 shrink-0" />
                 <div class="space-y-1">
                     <p v-if="nightSettlementRange">
-                        {{ t('reports.night_settlement.range', { range: nightSettlementRange }) }}
+                        {{
+                            t('reports.night_settlement.range', {
+                                range: nightSettlementRange,
+                            })
+                        }}
                     </p>
                     <p v-if="report.night_settlement.deferred">
                         {{ t('reports.night_settlement.deferred_notice') }}
@@ -366,7 +578,10 @@ onMounted(async () => {
             </div>
 
             <!-- Empty state -->
-            <div v-if="report.totals.total_employees === 0" class="text-muted-foreground py-16 text-center">
+            <div
+                v-if="report.totals.total_employees === 0"
+                class="py-16 text-center text-muted-foreground"
+            >
                 <Calendar class="mx-auto mb-3 size-12 opacity-30" />
                 <p class="text-lg font-medium">{{ t('reports.no_data') }}</p>
             </div>
@@ -376,8 +591,10 @@ onMounted(async () => {
                 <div class="flex flex-wrap items-center justify-end gap-3">
                     <!-- Overtime unified indicator -->
                     <div
-                        v-if="report.cost_summary.overtime_unified && payOvertime"
-                        class="text-muted-foreground rounded-lg border bg-card px-3 py-2 text-xs"
+                        v-if="
+                            report.cost_summary.overtime_unified && payOvertime
+                        "
+                        class="rounded-lg border bg-card px-3 py-2 text-xs text-muted-foreground"
                     >
                         {{ t('reports.overtime.unified_hint') }}
                     </div>
@@ -391,39 +608,65 @@ onMounted(async () => {
                 <!-- KPI Cards -->
                 <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
                     <Card>
-                        <CardHeader class="flex flex-row items-center justify-between pb-2">
-                            <CardTitle class="text-sm font-medium">{{ t('reports.kpi.total_employees') }}</CardTitle>
-                            <Users class="text-muted-foreground size-4" />
+                        <CardHeader
+                            class="flex flex-row items-center justify-between pb-2"
+                        >
+                            <CardTitle class="text-sm font-medium">{{
+                                t('reports.kpi.total_employees')
+                            }}</CardTitle>
+                            <Users class="size-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div class="text-3xl font-bold">{{ report.totals.total_employees }}</div>
+                            <div class="text-3xl font-bold">
+                                {{ report.totals.total_employees }}
+                            </div>
                         </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader class="flex flex-row items-center justify-between pb-2">
-                            <CardTitle class="text-sm font-medium">{{ t('reports.kpi.net_hours') }}</CardTitle>
-                            <Clock class="text-muted-foreground size-4" />
+                        <CardHeader
+                            class="flex flex-row items-center justify-between pb-2"
+                        >
+                            <CardTitle class="text-sm font-medium">{{
+                                t('reports.kpi.net_hours')
+                            }}</CardTitle>
+                            <Clock class="size-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div class="text-3xl font-bold">{{ formatDecimalHours(report.totals.net_hours) }}</div>
+                            <div class="text-3xl font-bold">
+                                {{
+                                    formatDecimalHours(report.totals.net_hours)
+                                }}
+                            </div>
                         </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader class="flex flex-row items-center justify-between pb-2">
-                            <CardTitle class="text-sm font-medium">{{ t('reports.kpi.days_worked') }}</CardTitle>
-                            <TrendingUp class="text-muted-foreground size-4" />
+                        <CardHeader
+                            class="flex flex-row items-center justify-between pb-2"
+                        >
+                            <CardTitle class="text-sm font-medium">{{
+                                t('reports.kpi.days_worked')
+                            }}</CardTitle>
+                            <TrendingUp class="size-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div class="text-3xl font-bold">{{ report.totals.total_days_worked }}</div>
+                            <div class="text-3xl font-bold">
+                                {{ report.totals.total_days_worked }}
+                            </div>
                         </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader class="flex flex-row items-center justify-between pb-2">
-                            <CardTitle class="text-sm font-medium">{{ t('reports.kpi.total_cost') }}</CardTitle>
-                            <DollarSign class="text-muted-foreground size-4" />
+                        <CardHeader
+                            class="flex flex-row items-center justify-between pb-2"
+                        >
+                            <CardTitle class="text-sm font-medium">{{
+                                t('reports.kpi.total_cost')
+                            }}</CardTitle>
+                            <DollarSign class="size-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div class="text-3xl font-bold">{{ formatCurrency(report.cost_summary.total) }}</div>
+                            <div class="text-3xl font-bold">
+                                {{ formatCurrency(report.cost_summary.total) }}
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -432,7 +675,9 @@ onMounted(async () => {
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <Card>
                         <CardHeader class="pb-2">
-                            <CardTitle class="text-sm font-medium">{{ t('reports.charts.attendance_trend') }}</CardTitle>
+                            <CardTitle class="text-sm font-medium">{{
+                                t('reports.charts.attendance_trend')
+                            }}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div ref="attendanceChartEl" />
@@ -441,7 +686,9 @@ onMounted(async () => {
 
                     <Card>
                         <CardHeader class="pb-2">
-                            <CardTitle class="text-sm font-medium">{{ t('reports.charts.cost_distribution') }}</CardTitle>
+                            <CardTitle class="text-sm font-medium">{{
+                                t('reports.charts.cost_distribution')
+                            }}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div ref="costChartEl" />
@@ -452,41 +699,94 @@ onMounted(async () => {
                 <!-- Employee Ranking Table -->
                 <Card>
                     <CardHeader class="pb-2">
-                        <CardTitle class="text-sm font-medium">{{ t('reports.employee_ranking') }}</CardTitle>
+                        <CardTitle class="text-sm font-medium">{{
+                            t('reports.employee_ranking')
+                        }}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm">
                                 <thead>
-                                    <tr class="text-muted-foreground border-b text-left text-xs">
+                                    <tr
+                                        class="border-b text-left text-xs text-muted-foreground"
+                                    >
                                         <th class="pb-2">#</th>
-                                        <th class="pb-2">{{ t('reports.table.employee') }}</th>
-                                        <th class="hidden pb-2 sm:table-cell">{{ t('reports.table.department') }}</th>
-                                        <th class="pb-2 text-right">{{ t('reports.table.days') }}</th>
-                                        <th class="pb-2 text-right">{{ t('reports.table.net_hours') }}</th>
-                                        <th class="pb-2 text-right">{{ t('reports.table.cost') }}</th>
+                                        <th class="pb-2">
+                                            {{ t('reports.table.employee') }}
+                                        </th>
+                                        <th class="hidden pb-2 sm:table-cell">
+                                            {{ t('reports.table.department') }}
+                                        </th>
+                                        <th class="pb-2 text-right">
+                                            {{ t('reports.table.days') }}
+                                        </th>
+                                        <th class="pb-2 text-right">
+                                            {{ t('reports.table.net_hours') }}
+                                        </th>
+                                        <th class="pb-2 text-right">
+                                            {{ t('reports.table.cost') }}
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y">
-                                    <tr v-for="(emp, idx) in report.employees" :key="emp.employee_id">
-                                        <td class="text-muted-foreground py-2.5 text-xs">{{ idx + 1 }}</td>
+                                    <tr
+                                        v-for="(emp, idx) in report.employees"
+                                        :key="emp.employee_id"
+                                    >
+                                        <td
+                                            class="py-2.5 text-xs text-muted-foreground"
+                                        >
+                                            {{ idx + 1 }}
+                                        </td>
                                         <td class="py-2.5 font-medium">
                                             {{ emp.name }}
                                         </td>
-                                        <td class="text-muted-foreground hidden py-2.5 sm:table-cell">
+                                        <td
+                                            class="hidden py-2.5 text-muted-foreground sm:table-cell"
+                                        >
                                             {{ emp.department || '-' }}
                                         </td>
-                                        <td class="py-2.5 text-right">{{ emp.days_worked }}</td>
-                                        <td class="py-2.5 text-right font-medium">{{ formatDecimalHours(emp.net_hours) }}</td>
-                                        <td class="py-2.5 text-right">{{ formatCurrency(emp.cost) }}</td>
+                                        <td class="py-2.5 text-right">
+                                            {{ emp.days_worked }}
+                                        </td>
+                                        <td
+                                            class="py-2.5 text-right font-medium"
+                                        >
+                                            {{
+                                                formatDecimalHours(
+                                                    emp.net_hours,
+                                                )
+                                            }}
+                                        </td>
+                                        <td class="py-2.5 text-right">
+                                            {{ formatCurrency(emp.cost) }}
+                                        </td>
                                     </tr>
                                 </tbody>
                                 <tfoot>
                                     <tr class="border-t font-semibold">
-                                        <td class="pt-2" colspan="3">{{ t('reports.costs.total') }}</td>
-                                        <td class="pt-2 text-right">{{ report.totals.total_days_worked }}</td>
-                                        <td class="pt-2 text-right">{{ formatDecimalHours(report.totals.net_hours) }}</td>
-                                        <td class="pt-2 text-right">{{ formatCurrency(report.cost_summary.total) }}</td>
+                                        <td class="pt-2" colspan="3">
+                                            {{ t('reports.costs.total') }}
+                                        </td>
+                                        <td class="pt-2 text-right">
+                                            {{
+                                                report.totals.total_days_worked
+                                            }}
+                                        </td>
+                                        <td class="pt-2 text-right">
+                                            {{
+                                                formatDecimalHours(
+                                                    report.totals.net_hours,
+                                                )
+                                            }}
+                                        </td>
+                                        <td class="pt-2 text-right">
+                                            {{
+                                                formatCurrency(
+                                                    report.cost_summary.total,
+                                                )
+                                            }}
+                                        </td>
                                     </tr>
                                 </tfoot>
                             </table>

@@ -445,6 +445,16 @@
             "range": "Recargo nocturno liquidado del rango {range} (el día de corte se difiere al próximo periodo).",
             "deferred_notice": "El recargo nocturno del día de corte se pagará en la siguiente quincena."
         },
+        "overtime_settlement": {
+            "range": "Horas extra liquidadas de las semanas {range} (semanas completas con domingo dentro del periodo).",
+            "empty": "Este periodo no cierra ninguna semana completa, así que no se liquidan horas extra; se pagarán en el próximo periodo.",
+            "deferred_notice": "La semana en curso al cierre se liquidará en el próximo periodo.",
+            "worked": "Extra trabajada",
+            "offset": "Compensada entre semanas",
+            "payable": "Extra liquidada",
+            "deficit": "Tiempo faltante",
+            "deficit_hint": "El tiempo faltante es informativo y no genera descuento salarial."
+        },
         "breaks": {
             "title": "Desglose de Pausas",
             "type": "Tipo",

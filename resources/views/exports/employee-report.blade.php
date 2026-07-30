@@ -58,7 +58,10 @@
         </table>
 
         @if (($report['overtime_settlement']['mode'] ?? 'daily') === 'weekly')
-            <p style="font-size: 10px; color: #92400e; background: #fffbeb; border: 1px solid #fcd34d; padding: 8px; border-radius: 4px; margin-bottom: 16px;">
+            @php
+                $formatSettlementMinutes = fn (int $minutes) => intdiv($minutes, 60).'h '.($minutes % 60).'m';
+            @endphp
+            <div style="font-size: 10px; color: #92400e; background: #fffbeb; border: 1px solid #fcd34d; padding: 8px; border-radius: 4px; margin-bottom: 16px;">
                 @if (($report['overtime_settlement']['start'] ?? null) && ($report['overtime_settlement']['end'] ?? null))
                     Horas extra liquidadas de las semanas {{ $report['overtime_settlement']['start'] }} a {{ $report['overtime_settlement']['end'] }} (semanas con domingo dentro del periodo).
                 @else
@@ -67,7 +70,32 @@
                 @if ($report['overtime_settlement']['deferred'] ?? false)
                     La semana en curso al cierre se liquidará en el próximo periodo.
                 @endif
-            </p>
+                <table style="width: 100%; margin-top: 8px; border-collapse: collapse;">
+                    <tr>
+                        <td><strong>Extra trabajada</strong><br>{{ $formatSettlementMinutes((int) ($report['overtime_settlement']['worked_overtime_minutes'] ?? 0)) }}</td>
+                        <td><strong>Compensada entre semanas</strong><br>-{{ $formatSettlementMinutes((int) ($report['overtime_settlement']['offset_minutes'] ?? 0)) }}</td>
+                        <td><strong>Extra liquidada</strong><br>{{ $formatSettlementMinutes((int) ($report['overtime_settlement']['payable_overtime_minutes'] ?? 0)) }}</td>
+                        <td><strong>Tiempo faltante</strong><br>{{ $formatSettlementMinutes((int) ($report['overtime_settlement']['deficit_minutes'] ?? 0)) }}</td>
+                    </tr>
+                </table>
+                @if (($report['overtime_settlement']['deficit_minutes'] ?? 0) > 0)
+                    <div style="margin-top: 6px;">El tiempo faltante es informativo y no genera descuento salarial.</div>
+                @endif
+                @if (! empty($report['overtime_settlement']['weeks']))
+                    <table class="data" style="margin-top: 8px;">
+                        <thead><tr><th>Semana</th><th>Trabajado</th><th>Saldo</th></tr></thead>
+                        <tbody>
+                            @foreach ($report['overtime_settlement']['weeks'] as $week)
+                                <tr>
+                                    <td>{{ $week['start'] }} a {{ $week['end'] }}</td>
+                                    <td>{{ $formatSettlementMinutes((int) $week['worked_minutes']) }}</td>
+                                    <td>{{ $week['balance_minutes'] > 0 ? '+' : ($week['balance_minutes'] < 0 ? '-' : '') }}{{ $formatSettlementMinutes(abs((int) $week['balance_minutes'])) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            </div>
         @endif
 
         @if (($report['night_settlement']['mode'] ?? 'immediate') === 'deferred')

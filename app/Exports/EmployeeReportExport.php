@@ -115,8 +115,9 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
             ['Horas en pausas', $totals['break_hours'], '', ''],
             ['Exceso pausas pagadas (descontado)', $totals['paid_break_overage_hours'] ?? 0, '', ''],
             ['Horas netas', $totals['net_hours'], '', ''],
-            [],
         ];
+
+        $rows = array_merge($rows, $this->weeklySettlementRows(), [[]]);
 
         if ($isMonthly) {
             $rows[] = ['Salario base del periodo', '', '', $costs['base'] ?? 0];
@@ -228,6 +229,42 @@ class EmployeeReportSummarySheet implements FromArray, ShouldAutoSize, WithHeadi
         }
 
         return $rows;
+    }
+
+    /**
+     * @return array<int, array<int, string>>
+     */
+    private function weeklySettlementRows(): array
+    {
+        $settlement = $this->report['overtime_settlement'] ?? null;
+        if (($settlement['mode'] ?? 'daily') !== 'weekly') {
+            return [];
+        }
+
+        $rows = [
+            ['--- Balance semanal de horas extra ---', '', '', ''],
+            ['Horas extra trabajadas', $this->formatMinutes((int) ($settlement['worked_overtime_minutes'] ?? 0)), '', ''],
+            ['Compensadas entre semanas', '-'.$this->formatMinutes((int) ($settlement['offset_minutes'] ?? 0)), '', ''],
+            ['Horas extra liquidadas', $this->formatMinutes((int) ($settlement['payable_overtime_minutes'] ?? 0)), '', ''],
+            ['Tiempo faltante (informativo, sin descuento)', $this->formatMinutes((int) ($settlement['deficit_minutes'] ?? 0)), '', ''],
+        ];
+
+        foreach ($settlement['weeks'] ?? [] as $week) {
+            $balance = (int) $week['balance_minutes'];
+            $rows[] = [
+                'Semana '.$week['start'].' a '.$week['end'],
+                $this->formatMinutes((int) $week['worked_minutes']),
+                ($balance > 0 ? '+' : ($balance < 0 ? '-' : '')).$this->formatMinutes(abs($balance)),
+                '',
+            ];
+        }
+
+        return $rows;
+    }
+
+    private function formatMinutes(int $minutes): string
+    {
+        return intdiv($minutes, 60).'h '.($minutes % 60).'m';
     }
 
     public function styles(Worksheet $sheet): array

@@ -18,6 +18,7 @@ class GenerateEmployeeReport
         private CalculatePeriodBaseSalary $baseSalaryCalculator,
         private ResolveOvertimeSettlementWindow $settlementWindow,
         private ResolveNightSettlementWindow $nightSettlementWindow,
+        private CalculateWeeklyOvertimeSettlement $weeklyOvertimeSettlement,
     ) {}
 
     /**
@@ -52,6 +53,18 @@ class GenerateEmployeeReport
         $accrualMode = $rules->overtime_accrual_mode ?? 'daily';
         $overtimeWindow = $this->settlementWindow->execute($startDate, $endDate, $accrualMode);
         $this->overrideOvertimeTotals($totals, $employeeId, $overtimeWindow);
+        $overtimeBalance = $accrualMode === 'weekly'
+            ? $this->weeklyOvertimeSettlement->execute(
+                $employee->company_id,
+                [$employeeId],
+                $overtimeWindow,
+                (int) $rules->max_weekly_minutes,
+            )[$employeeId]
+            : $this->makeImmediateOvertimeBalance($totals);
+
+        if ($accrualMode === 'weekly') {
+            $this->applyOvertimePayableFactor($totals, $overtimeBalance['payable_factor']);
+        }
 
         // En modo `deferred` el recargo nocturno del día de corte se difiere al periodo siguiente:
         // el componente nocturno se liquida sobre la ventana corrida un día. Solo se consulta la BD
@@ -176,6 +189,12 @@ class GenerateEmployeeReport
                 'start' => $overtimeWindow['start'],
                 'end' => $overtimeWindow['end'],
                 'deferred' => $overtimeWindow['deferred'],
+                'worked_overtime_minutes' => $overtimeBalance['worked_overtime_minutes'],
+                'balance_minutes' => $overtimeBalance['balance_minutes'],
+                'offset_minutes' => $overtimeBalance['offset_minutes'],
+                'payable_overtime_minutes' => $overtimeBalance['payable_overtime_minutes'],
+                'deficit_minutes' => $overtimeBalance['deficit_minutes'],
+                'weeks' => $overtimeBalance['weeks'],
             ],
             'night_settlement' => [
                 'mode' => $nightMode,
@@ -183,6 +202,49 @@ class GenerateEmployeeReport
                 'end' => $nightWindow['end'],
                 'deferred' => $nightWindow['deferred'],
             ],
+        ];
+    }
+
+    private function applyOvertimePayableFactor(object $totals, float $factor): void
+    {
+        foreach ($this->overtimeTotalFields() as $field) {
+            $totals->{$field} = (float) $totals->{$field} * $factor;
+        }
+    }
+
+    /**
+     * @return array{worked_overtime_minutes: int, balance_minutes: int, offset_minutes: int, payable_overtime_minutes: int, deficit_minutes: int, payable_factor: float, weeks: array}
+     */
+    private function makeImmediateOvertimeBalance(object $totals): array
+    {
+        $workedMinutes = (int) round(array_sum(array_map(
+            fn (string $field): float => (float) ($totals->{$field} ?? 0),
+            $this->overtimeTotalFields(),
+        )) * 60);
+
+        return [
+            'worked_overtime_minutes' => $workedMinutes,
+            'balance_minutes' => $workedMinutes,
+            'offset_minutes' => 0,
+            'payable_overtime_minutes' => $workedMinutes,
+            'deficit_minutes' => 0,
+            'payable_factor' => $workedMinutes > 0 ? 1.0 : 0.0,
+            'weeks' => [],
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function overtimeTotalFields(): array
+    {
+        return [
+            'total_overtime_day',
+            'total_overtime_night',
+            'total_overtime_day_dominical',
+            'total_overtime_night_dominical',
+            'total_overtime_day_holiday',
+            'total_overtime_night_holiday',
         ];
     }
 
@@ -222,11 +284,7 @@ class GenerateEmployeeReport
      */
     private function overrideOvertimeTotals(object $totals, int $employeeId, array $window): void
     {
-        $overtimeFields = [
-            'total_overtime_day', 'total_overtime_night',
-            'total_overtime_day_dominical', 'total_overtime_night_dominical',
-            'total_overtime_day_holiday', 'total_overtime_night_holiday',
-        ];
+        $overtimeFields = $this->overtimeTotalFields();
 
         if ($window['start'] === null || $window['end'] === null) {
             foreach ($overtimeFields as $field) {

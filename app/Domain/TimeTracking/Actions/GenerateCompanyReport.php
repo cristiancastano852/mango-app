@@ -14,6 +14,7 @@ class GenerateCompanyReport
         private CalculatePeriodBaseSalary $baseSalaryCalculator,
         private ResolveOvertimeSettlementWindow $settlementWindow,
         private ResolveNightSettlementWindow $nightSettlementWindow,
+        private CalculateWeeklyOvertimeSettlement $weeklyOvertimeSettlement,
     ) {}
 
     /**
@@ -52,6 +53,39 @@ class GenerateCompanyReport
         if ($accrualMode === 'weekly') {
             $employeeBreakdown = $this->applyOvertimeSettlementWindow($employeeBreakdown, $companyId, $departmentId, $overtimeWindow);
         }
+
+        $overtimeBalances = $accrualMode === 'weekly'
+            ? $this->weeklyOvertimeSettlement->execute(
+                $companyId,
+                $employeeBreakdown->pluck('employee_id')->map(fn ($id): int => (int) $id)->all(),
+                $overtimeWindow,
+                (int) $rules->max_weekly_minutes,
+            )
+            : [];
+
+        $employeeBreakdown = $employeeBreakdown->map(function ($employee) use ($accrualMode, $overtimeBalances) {
+            $balance = $accrualMode === 'weekly'
+                ? $overtimeBalances[(int) $employee->employee_id]
+                : $this->makeImmediateOvertimeBalance($employee);
+
+            if ($accrualMode === 'weekly') {
+                foreach ($this->overtimeTotalFields() as $field) {
+                    $employee->{$field} = (float) $employee->{$field} * $balance['payable_factor'];
+                }
+            }
+
+            $employee->overtime_settlement = $balance;
+
+            return $employee;
+        });
+
+        $overtimeBalanceSummary = [
+            'worked_overtime_minutes' => (int) $employeeBreakdown->sum(fn ($employee) => $employee->overtime_settlement['worked_overtime_minutes']),
+            'balance_minutes' => (int) $employeeBreakdown->sum(fn ($employee) => $employee->overtime_settlement['balance_minutes']),
+            'offset_minutes' => (int) $employeeBreakdown->sum(fn ($employee) => $employee->overtime_settlement['offset_minutes']),
+            'payable_overtime_minutes' => (int) $employeeBreakdown->sum(fn ($employee) => $employee->overtime_settlement['payable_overtime_minutes']),
+            'deficit_minutes' => (int) $employeeBreakdown->sum(fn ($employee) => $employee->overtime_settlement['deficit_minutes']),
+        ];
 
         // En modo `deferred` el recargo nocturno del día de corte se difiere al periodo siguiente.
         // Se suman las horas nocturnas por empleado sobre la ventana corrida (una query, sin N+1);
@@ -203,6 +237,12 @@ class GenerateCompanyReport
                 'overtime_day_holiday_hours' => round((float) $emp->total_overtime_day_holiday, 2),
                 'overtime_night_holiday_hours' => round((float) $emp->total_overtime_night_holiday, 2),
                 'dominical_worked_days' => (int) ($emp->dominical_worked_days ?? 0),
+                'overtime_settlement' => [
+                    'worked_overtime_minutes' => $emp->overtime_settlement['worked_overtime_minutes'],
+                    'offset_minutes' => $emp->overtime_settlement['offset_minutes'],
+                    'payable_overtime_minutes' => $emp->overtime_settlement['payable_overtime_minutes'],
+                    'deficit_minutes' => $emp->overtime_settlement['deficit_minutes'],
+                ],
                 'cost' => $cost['total'],
             ];
         })->toArray();
@@ -229,6 +269,7 @@ class GenerateCompanyReport
                 'start' => $overtimeWindow['start'],
                 'end' => $overtimeWindow['end'],
                 'deferred' => $overtimeWindow['deferred'],
+                ...$overtimeBalanceSummary,
             ],
             'night_settlement' => [
                 'mode' => $nightMode,
@@ -236,6 +277,42 @@ class GenerateCompanyReport
                 'end' => $nightWindow['end'],
                 'deferred' => $nightWindow['deferred'],
             ],
+        ];
+    }
+
+    /**
+     * @return array{worked_overtime_minutes: int, balance_minutes: int, offset_minutes: int, payable_overtime_minutes: int, deficit_minutes: int, payable_factor: float, weeks: array}
+     */
+    private function makeImmediateOvertimeBalance(object $employee): array
+    {
+        $workedMinutes = (int) round(array_sum(array_map(
+            fn (string $field): float => (float) ($employee->{$field} ?? 0),
+            $this->overtimeTotalFields(),
+        )) * 60);
+
+        return [
+            'worked_overtime_minutes' => $workedMinutes,
+            'balance_minutes' => $workedMinutes,
+            'offset_minutes' => 0,
+            'payable_overtime_minutes' => $workedMinutes,
+            'deficit_minutes' => 0,
+            'payable_factor' => $workedMinutes > 0 ? 1.0 : 0.0,
+            'weeks' => [],
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function overtimeTotalFields(): array
+    {
+        return [
+            'total_overtime_day',
+            'total_overtime_night',
+            'total_overtime_day_dominical',
+            'total_overtime_night_dominical',
+            'total_overtime_day_holiday',
+            'total_overtime_night_holiday',
         ];
     }
 
@@ -291,11 +368,7 @@ class GenerateCompanyReport
         ?int $departmentId,
         array $window,
     ): \Illuminate\Support\Collection {
-        $overtimeFields = [
-            'total_overtime_day', 'total_overtime_night',
-            'total_overtime_day_dominical', 'total_overtime_night_dominical',
-            'total_overtime_day_holiday', 'total_overtime_night_holiday',
-        ];
+        $overtimeFields = $this->overtimeTotalFields();
 
         // Se parte de cero: las horas extra del periodo solo provienen de la ventana de liquidación.
         $breakdown = $breakdown->map(function ($emp) use ($overtimeFields) {

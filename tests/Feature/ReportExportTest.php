@@ -824,6 +824,14 @@ class ReportExportTest extends TestCase
                 'start' => '2026-06-01',
                 'end' => '2026-06-14',
                 'deferred' => true,
+                'worked_overtime_minutes' => 63,
+                'offset_minutes' => 24,
+                'payable_overtime_minutes' => 39,
+                'deficit_minutes' => 0,
+                'weeks' => [
+                    ['start' => '2026-06-01', 'end' => '2026-06-07', 'worked_minutes' => 2496, 'balance_minutes' => -24],
+                    ['start' => '2026-06-08', 'end' => '2026-06-14', 'worked_minutes' => 2583, 'balance_minutes' => 63],
+                ],
             ],
         ];
 
@@ -834,6 +842,12 @@ class ReportExportTest extends TestCase
         $this->assertNotNull($note);
         $this->assertStringContainsString('2026-06-14', $note);
         $this->assertStringContainsString('próximo periodo', $note);
+
+        $rows = collect((new \App\Exports\EmployeeReportSummarySheet($report))->array())->keyBy(fn ($row) => $row[0] ?? '');
+        $this->assertSame('1h 3m', $rows['Horas extra trabajadas'][1]);
+        $this->assertSame('-0h 24m', $rows['Compensadas entre semanas'][1]);
+        $this->assertSame('0h 39m', $rows['Horas extra liquidadas'][1]);
+        $this->assertSame('-0h 24m', $rows['Semana 2026-06-01 a 2026-06-07'][2]);
     }
 
     public function test_employee_excel_omits_settlement_note_in_daily_mode(): void
@@ -865,6 +879,10 @@ class ReportExportTest extends TestCase
                 'start' => '2026-06-01',
                 'end' => '2026-06-14',
                 'deferred' => true,
+                'worked_overtime_minutes' => 63,
+                'offset_minutes' => 24,
+                'payable_overtime_minutes' => 39,
+                'deficit_minutes' => 180,
             ],
         ];
 
@@ -874,6 +892,52 @@ class ReportExportTest extends TestCase
 
         $this->assertNotNull($note);
         $this->assertStringContainsString('2026-06-14', $note);
+
+        $rows = collect((new \App\Exports\CompanyReportSummarySheet($report))->array())->keyBy(fn ($row) => $row[0] ?? '');
+        $this->assertSame('-0h 24m', $rows['Compensadas entre semanas'][1]);
+        $this->assertSame('0h 39m', $rows['Horas extra liquidadas'][1]);
+        $this->assertSame('3h 0m', $rows['Tiempo faltante (informativo, sin descuento)'][1]);
+    }
+
+    public function test_weekly_balance_is_rendered_in_employee_and_company_pdfs(): void
+    {
+        SurchargeRule::withoutGlobalScopes()
+            ->where('company_id', $this->company->id)
+            ->update(['overtime_accrual_mode' => 'weekly']);
+
+        TimeEntry::withoutGlobalScopes()->forceDelete();
+        foreach ([
+            ['date' => '2026-07-13', 'net' => 41.60, 'regular' => 41.60, 'overtime' => 0.0],
+            ['date' => '2026-07-20', 'net' => 43.05, 'regular' => 42.0, 'overtime' => 1.05],
+        ] as $entry) {
+            TimeEntry::withoutGlobalScopes()->create([
+                'employee_id' => $this->employee->id,
+                'company_id' => $this->company->id,
+                'date' => $entry['date'],
+                'clock_in' => $entry['date'].' 08:00:00',
+                'clock_out' => $entry['date'].' 17:00:00',
+                'gross_hours' => $entry['net'],
+                'break_hours' => 0,
+                'net_hours' => $entry['net'],
+                'regular_hours' => $entry['regular'],
+                'overtime_day_hours' => $entry['overtime'],
+                'status' => 'calculated',
+            ]);
+        }
+
+        $start = \Carbon\Carbon::parse('2026-07-16');
+        $end = \Carbon\Carbon::parse('2026-07-31');
+        $employeeReport = app(GenerateEmployeeReport::class)->execute($this->employee->id, $start, $end);
+        $companyReport = app(\App\Domain\TimeTracking\Actions\GenerateCompanyReport::class)->execute($this->company->id, $start, $end);
+
+        $employeeHtml = view('exports.employee-report', ['report' => $employeeReport])->render();
+        $companyHtml = view('exports.company-report', ['report' => $companyReport])->render();
+
+        $this->assertStringContainsString('Compensada entre semanas', $employeeHtml);
+        $this->assertStringContainsString('0h 39m', $employeeHtml);
+        $this->assertStringContainsString('Semana', $employeeHtml);
+        $this->assertStringContainsString('Compensada entre semanas', $companyHtml);
+        $this->assertStringContainsString('0h 39m', $companyHtml);
     }
 
     /**

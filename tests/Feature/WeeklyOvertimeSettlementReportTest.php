@@ -50,7 +50,7 @@ class WeeklyOvertimeSettlementReportTest extends TestCase
             ->update(['overtime_accrual_mode' => $mode]);
     }
 
-    private function makeEntry(string $date, float $regular, float $overtimeDay): void
+    private function makeEntry(string $date, float $regular, float $overtimeDay, float $overtimeNight = 0.0): void
     {
         TimeEntry::withoutGlobalScopes()->create([
             'employee_id' => $this->employee->id,
@@ -58,11 +58,12 @@ class WeeklyOvertimeSettlementReportTest extends TestCase
             'date' => $date,
             'clock_in' => "$date 08:00:00",
             'clock_out' => "$date 18:00:00",
-            'gross_hours' => $regular + $overtimeDay,
+            'gross_hours' => $regular + $overtimeDay + $overtimeNight,
             'break_hours' => 0,
-            'net_hours' => $regular + $overtimeDay,
+            'net_hours' => $regular + $overtimeDay + $overtimeNight,
             'regular_hours' => $regular,
             'overtime_day_hours' => $overtimeDay,
+            'overtime_night_hours' => $overtimeNight,
             'status' => 'calculated',
         ]);
     }
@@ -71,7 +72,8 @@ class WeeklyOvertimeSettlementReportTest extends TestCase
     {
         $this->setMode('weekly');
         // Jun 14 = domingo, Jun 15 = lunes (semana en curso al cierre).
-        $this->makeEntry('2026-06-08', 6.0, 2.0); // semana cierra dom 14 → liquida en Q1
+        $this->makeEntry('2026-06-01', 42.0, 0.0);
+        $this->makeEntry('2026-06-08', 42.0, 2.0); // semana cierra dom 14 → liquida en Q1
         $this->makeEntry('2026-06-15', 5.0, 3.0); // semana cierra dom 21 → se difiere
 
         $result = $this->action->execute(
@@ -83,17 +85,19 @@ class WeeklyOvertimeSettlementReportTest extends TestCase
         // El overtime de la semana en curso (Jun 15) se difiere.
         $this->assertEqualsWithDelta(2.0, $result['totals']['overtime_day_hours'], 0.01);
         // Las horas base se cuentan por fecha en el periodo (no se difieren).
-        $this->assertEqualsWithDelta(11.0, $result['totals']['regular_hours'], 0.01);
+        $this->assertEqualsWithDelta(89.0, $result['totals']['regular_hours'], 0.01);
 
         $this->assertSame('weekly', $result['overtime_settlement']['mode']);
         $this->assertSame('2026-06-14', $result['overtime_settlement']['end']);
         $this->assertTrue($result['overtime_settlement']['deferred']);
+        $this->assertSame(120, $result['overtime_settlement']['payable_overtime_minutes']);
     }
 
     public function test_next_period_settles_the_deferred_overtime(): void
     {
         $this->setMode('weekly');
-        $this->makeEntry('2026-06-15', 5.0, 3.0); // diferida desde Q1; domingo 21 ∈ Q2
+        $this->makeEntry('2026-06-15', 42.0, 3.0); // diferida desde Q1; domingo 21 ∈ Q2
+        $this->makeEntry('2026-06-22', 42.0, 0.0);
 
         $result = $this->action->execute(
             $this->employee->id,
@@ -104,7 +108,7 @@ class WeeklyOvertimeSettlementReportTest extends TestCase
         // El overtime del lunes 15 se liquida en Q2 (la ventana arranca el lunes 15).
         $this->assertEqualsWithDelta(3.0, $result['totals']['overtime_day_hours'], 0.01);
         // Su base ya se pagó en Q1 (Jun 15 está fuera del rango [16,30]).
-        $this->assertEqualsWithDelta(0.0, $result['totals']['regular_hours'], 0.01);
+        $this->assertEqualsWithDelta(42.0, $result['totals']['regular_hours'], 0.01);
         $this->assertSame('2026-06-15', $result['overtime_settlement']['start']);
     }
 
@@ -155,5 +159,83 @@ class WeeklyOvertimeSettlementReportTest extends TestCase
         // Modo diario: el overtime se suma por rango del periodo, sin ventana semanal.
         $this->assertEqualsWithDelta(5.0, $result['totals']['overtime_day_hours'], 0.01);
         $this->assertFalse($result['overtime_settlement']['deferred']);
+        $this->assertSame(300, $result['overtime_settlement']['payable_overtime_minutes']);
+    }
+
+    public function test_weekly_report_nets_deficit_against_overtime(): void
+    {
+        $this->setMode('weekly');
+        $this->makeEntry('2026-07-13', 41.60, 0.0);
+        $this->makeEntry('2026-07-20', 42.0, 1.05);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-07-16'),
+            Carbon::parse('2026-07-31'),
+        );
+
+        $this->assertEqualsWithDelta(0.65, $result['totals']['overtime_day_hours'], 0.01);
+        $this->assertSame(63, $result['overtime_settlement']['worked_overtime_minutes']);
+        $this->assertSame(24, $result['overtime_settlement']['offset_minutes']);
+        $this->assertSame(39, $result['overtime_settlement']['payable_overtime_minutes']);
+        $this->assertSame(0, $result['overtime_settlement']['deficit_minutes']);
+        $this->assertEqualsWithDelta(8125.0, $result['cost_summary']['overtime_day'], 0.01);
+    }
+
+    public function test_weekly_deficit_is_informational_and_does_not_reduce_cost(): void
+    {
+        $this->setMode('weekly');
+        $this->makeEntry('2026-07-13', 40.0, 0.0);
+        $this->makeEntry('2026-07-20', 41.0, 0.0);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-07-16'),
+            Carbon::parse('2026-07-31'),
+        );
+
+        $this->assertSame(180, $result['overtime_settlement']['deficit_minutes']);
+        $this->assertSame(0, $result['overtime_settlement']['payable_overtime_minutes']);
+        $this->assertEqualsWithDelta(410000.0, $result['cost_summary']['total'], 0.01);
+    }
+
+    public function test_weekly_balance_scales_multiple_overtime_categories_proportionally(): void
+    {
+        $this->setMode('weekly');
+        $this->makeEntry('2026-07-13', 41.60, 0.0);
+        $this->makeEntry('2026-07-20', 42.0, 0.35, 0.70);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-07-16'),
+            Carbon::parse('2026-07-31'),
+        );
+
+        $factor = 39 / 63;
+        $this->assertEqualsWithDelta(0.35 * $factor, $result['totals']['overtime_day_hours'], 0.01);
+        $this->assertEqualsWithDelta(0.70 * $factor, $result['totals']['overtime_night_hours'], 0.01);
+        $this->assertSame(39, $result['overtime_settlement']['payable_overtime_minutes']);
+    }
+
+    public function test_weekly_deficit_does_not_reduce_monthly_base_salary(): void
+    {
+        $this->setMode('weekly');
+        $this->employee->update([
+            'salary_type' => 'monthly',
+            'monthly_base_salary' => 2000000,
+            'receives_transport_allowance' => false,
+        ]);
+        $this->makeEntry('2026-07-13', 40.0, 0.0);
+        $this->makeEntry('2026-07-20', 41.0, 0.0);
+
+        $result = $this->action->execute(
+            $this->employee->id,
+            Carbon::parse('2026-07-16'),
+            Carbon::parse('2026-07-31'),
+        );
+
+        $this->assertSame(180, $result['overtime_settlement']['deficit_minutes']);
+        $this->assertEqualsWithDelta(1000000.0, $result['cost_summary']['base'], 0.01);
+        $this->assertEqualsWithDelta(1000000.0, $result['cost_summary']['total'], 0.01);
     }
 }

@@ -39,7 +39,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { formatDecimalHours } from '@/lib/utils';
+import { formatDecimalHours, formatMinutes } from '@/lib/utils';
 import type { BreadcrumbItem, DailyWorkDay } from '@/types';
 import DateRangeFilter from './partials/DateRangeFilter.vue';
 import OvertimePaymentToggle from './partials/OvertimePaymentToggle.vue';
@@ -61,6 +61,13 @@ type Adjustment = {
     amount: number;
     concept: string;
     note: string | null;
+};
+
+type WeeklyOvertimeWeek = {
+    start: string;
+    end: string;
+    worked_minutes: number;
+    balance_minutes: number;
 };
 
 type Report = {
@@ -147,6 +154,12 @@ type Report = {
         start: string | null;
         end: string | null;
         deferred: boolean;
+        worked_overtime_minutes: number;
+        balance_minutes: number;
+        offset_minutes: number;
+        payable_overtime_minutes: number;
+        deficit_minutes: number;
+        weeks: WeeklyOvertimeWeek[];
     };
     night_settlement: {
         mode: string;
@@ -174,11 +187,19 @@ const props = defineProps<{
 const { t, locale } = useI18n();
 
 const payOvertime = ref(props.filters.pay_overtime);
-const dominicalPayableCount = ref<number | null>(props.filters.dominical_payable_count);
-const overtimePayableHours = ref<number | null>(props.filters.overtime_payable_hours);
+const dominicalPayableCount = ref<number | null>(
+    props.filters.dominical_payable_count,
+);
+const overtimePayableHours = ref<number | null>(
+    props.filters.overtime_payable_hours,
+);
 const deductedDays = ref<number>(props.filters.deducted_days ?? 0);
-const isDominicalByDay = computed(() => props.report.cost_summary.dominical_mode === 'day');
-const isOvertimeUnified = computed(() => props.report.cost_summary.overtime_unified === true);
+const isDominicalByDay = computed(
+    () => props.report.cost_summary.dominical_mode === 'day',
+);
+const isOvertimeUnified = computed(
+    () => props.report.cost_summary.overtime_unified === true,
+);
 
 const isMonthly = computed(
     () => props.report.cost_summary.salary_type === 'monthly',
@@ -230,6 +251,11 @@ const overtimeSettlementRange = computed(() => {
     return `${start} → ${end} ${year}`;
 });
 
+function formatSignedMinutes(minutes: number): string {
+    const sign = minutes > 0 ? '+' : minutes < 0 ? '−' : '';
+    return `${sign}${formatMinutes(Math.abs(minutes))}`;
+}
+
 const showNightSettlement = computed(
     () => props.report.night_settlement?.mode === 'deferred',
 );
@@ -278,8 +304,12 @@ function setPayOvertime(value: boolean) {
             end_date: props.filters.end_date,
             employee_id: props.filters.employee_id,
             pay_overtime: value ? 1 : 0,
-            ...(dominicalPayableCount.value !== null ? { dominical_payable_count: dominicalPayableCount.value } : {}),
-            ...(overtimePayableHours.value !== null ? { overtime_payable_hours: overtimePayableHours.value } : {}),
+            ...(dominicalPayableCount.value !== null
+                ? { dominical_payable_count: dominicalPayableCount.value }
+                : {}),
+            ...(overtimePayableHours.value !== null
+                ? { overtime_payable_hours: overtimePayableHours.value }
+                : {}),
             deducted_days: deductedDays.value,
         },
         { preserveScroll: true },
@@ -314,7 +344,9 @@ function setOvertimePayableHours(value: number) {
             employee_id: props.filters.employee_id,
             pay_overtime: payOvertime.value ? 1 : 0,
             overtime_payable_hours: value,
-            ...(dominicalPayableCount.value !== null ? { dominical_payable_count: dominicalPayableCount.value } : {}),
+            ...(dominicalPayableCount.value !== null
+                ? { dominical_payable_count: dominicalPayableCount.value }
+                : {}),
             deducted_days: deductedDays.value,
         },
         { preserveScroll: true },
@@ -332,8 +364,12 @@ function setDeductedDays(value: number) {
             employee_id: props.filters.employee_id,
             pay_overtime: payOvertime.value ? 1 : 0,
             deducted_days: deductedDays.value,
-            ...(dominicalPayableCount.value !== null ? { dominical_payable_count: dominicalPayableCount.value } : {}),
-            ...(overtimePayableHours.value !== null ? { overtime_payable_hours: overtimePayableHours.value } : {}),
+            ...(dominicalPayableCount.value !== null
+                ? { dominical_payable_count: dominicalPayableCount.value }
+                : {}),
+            ...(overtimePayableHours.value !== null
+                ? { overtime_payable_hours: overtimePayableHours.value }
+                : {}),
         },
         { preserveScroll: true },
     );
@@ -348,10 +384,16 @@ function exportQueryParams(): string {
         pay_overtime: payOvertime.value ? '1' : '0',
     });
     if (dominicalPayableCount.value !== null) {
-        params.append('dominical_payable_count', String(dominicalPayableCount.value));
+        params.append(
+            'dominical_payable_count',
+            String(dominicalPayableCount.value),
+        );
     }
     if (overtimePayableHours.value !== null) {
-        params.append('overtime_payable_hours', String(overtimePayableHours.value));
+        params.append(
+            'overtime_payable_hours',
+            String(overtimePayableHours.value),
+        );
     }
     params.append('deducted_days', String(deductedDays.value));
     return '?' + params.toString();
@@ -448,13 +490,19 @@ const visibleDetails = computed(() =>
 // Para dominical/festivo en modo por día se muestran los días pagados en lugar de las horas.
 function detailHoursDisplay(detail: CostDetail): string {
     if (detail.type === 'dominical' && isDominicalByDay.value) {
-        return t('reports.costs.days_count', props.report.cost_summary.dominical_paid_days);
+        return t(
+            'reports.costs.days_count',
+            props.report.cost_summary.dominical_paid_days,
+        );
     }
     if (
         detail.type === 'holiday' &&
         props.report.cost_summary.holiday_mode === 'day'
     ) {
-        return t('reports.costs.days_count', props.report.cost_summary.holiday_worked_days);
+        return t(
+            'reports.costs.days_count',
+            props.report.cost_summary.holiday_worked_days,
+        );
     }
     return formatDecimalHours(detail.hours);
 }
@@ -606,18 +654,120 @@ function hourTypeLabel(type: string): string {
                 class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
             >
                 <Clock class="mt-0.5 size-5 shrink-0" />
-                <div class="space-y-1">
+                <div class="min-w-0 flex-1 space-y-3">
                     <p v-if="overtimeSettlementRange">
-                        Horas extra liquidadas de las semanas
-                        <strong>{{ overtimeSettlementRange }}</strong>
-                        (semanas completas con domingo dentro del periodo).
+                        {{
+                            t('reports.overtime_settlement.range', {
+                                range: overtimeSettlementRange,
+                            })
+                        }}
                     </p>
                     <p v-else>
-                        Este periodo no cierra ninguna semana completa, así que no se liquidan
-                        horas extra; se pagarán en el próximo periodo.
+                        {{ t('reports.overtime_settlement.empty') }}
                     </p>
                     <p v-if="report.overtime_settlement.deferred">
-                        La semana en curso al cierre se liquidará en el próximo periodo.
+                        {{ t('reports.overtime_settlement.deferred_notice') }}
+                    </p>
+
+                    <div
+                        v-if="overtimeSettlementRange"
+                        class="grid grid-cols-2 gap-2 sm:grid-cols-4"
+                    >
+                        <div
+                            class="rounded-md border border-amber-200 bg-white/60 p-2 dark:border-amber-800 dark:bg-amber-950/30"
+                        >
+                            <div
+                                class="text-[11px] text-amber-700 dark:text-amber-300"
+                            >
+                                {{ t('reports.overtime_settlement.worked') }}
+                            </div>
+                            <div class="font-semibold tabular-nums">
+                                {{
+                                    formatMinutes(
+                                        report.overtime_settlement
+                                            .worked_overtime_minutes,
+                                    )
+                                }}
+                            </div>
+                        </div>
+                        <div
+                            class="rounded-md border border-amber-200 bg-white/60 p-2 dark:border-amber-800 dark:bg-amber-950/30"
+                        >
+                            <div
+                                class="text-[11px] text-amber-700 dark:text-amber-300"
+                            >
+                                {{ t('reports.overtime_settlement.offset') }}
+                            </div>
+                            <div class="font-semibold tabular-nums">
+                                −{{
+                                    formatMinutes(
+                                        report.overtime_settlement
+                                            .offset_minutes,
+                                    )
+                                }}
+                            </div>
+                        </div>
+                        <div
+                            class="rounded-md border border-amber-200 bg-white/60 p-2 dark:border-amber-800 dark:bg-amber-950/30"
+                        >
+                            <div
+                                class="text-[11px] text-amber-700 dark:text-amber-300"
+                            >
+                                {{ t('reports.overtime_settlement.payable') }}
+                            </div>
+                            <div class="font-semibold tabular-nums">
+                                {{
+                                    formatMinutes(
+                                        report.overtime_settlement
+                                            .payable_overtime_minutes,
+                                    )
+                                }}
+                            </div>
+                        </div>
+                        <div
+                            class="rounded-md border border-amber-200 bg-white/60 p-2 dark:border-amber-800 dark:bg-amber-950/30"
+                        >
+                            <div
+                                class="text-[11px] text-amber-700 dark:text-amber-300"
+                            >
+                                {{ t('reports.overtime_settlement.deficit') }}
+                            </div>
+                            <div class="font-semibold tabular-nums">
+                                {{
+                                    formatMinutes(
+                                        report.overtime_settlement
+                                            .deficit_minutes,
+                                    )
+                                }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="report.overtime_settlement.weeks.length"
+                        class="flex flex-wrap gap-2 text-xs"
+                    >
+                        <span
+                            v-for="week in report.overtime_settlement.weeks"
+                            :key="week.start"
+                            class="rounded-md border border-amber-200 bg-white/50 px-2 py-1 tabular-nums dark:border-amber-800 dark:bg-amber-950/30"
+                        >
+                            {{ formatPeriodDate(week.start) }}–{{
+                                formatPeriodDate(week.end)
+                            }}:
+                            {{ formatMinutes(week.worked_minutes) }}
+                            (<strong>{{
+                                formatSignedMinutes(week.balance_minutes)
+                            }}</strong
+                            >)
+                        </span>
+                    </div>
+
+                    <p
+                        v-if="report.overtime_settlement.deficit_minutes > 0"
+                        class="text-xs"
+                    >
+                        {{ t('reports.overtime_settlement.deficit_hint') }}
                     </p>
                 </div>
             </div>
@@ -630,7 +780,11 @@ function hourTypeLabel(type: string): string {
                 <Clock class="mt-0.5 size-5 shrink-0" />
                 <div class="space-y-1">
                     <p v-if="nightSettlementRange">
-                        {{ t('reports.night_settlement.range', { range: nightSettlementRange }) }}
+                        {{
+                            t('reports.night_settlement.range', {
+                                range: nightSettlementRange,
+                            })
+                        }}
                     </p>
                     <p v-if="report.night_settlement.deferred">
                         {{ t('reports.night_settlement.deferred_notice') }}
@@ -649,10 +803,15 @@ function hourTypeLabel(type: string): string {
 
             <template v-else>
                 <!-- Overtime payment toggle -->
-                <div class="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-end">
+                <div
+                    class="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-end"
+                >
                     <!-- Dominical payable count (only in by-day mode) -->
                     <div
-                        v-if="isDominicalByDay && report.cost_summary.dominical_worked_days > 0"
+                        v-if="
+                            isDominicalByDay &&
+                            report.cost_summary.dominical_worked_days > 0
+                        "
                         class="flex items-center justify-between gap-3 rounded-lg border bg-card p-3 sm:min-w-[340px]"
                     >
                         <div class="flex flex-col">
@@ -660,7 +819,12 @@ function hourTypeLabel(type: string): string {
                                 {{ t('reports.dominical.payable_count_label') }}
                             </span>
                             <span class="text-xs text-muted-foreground">
-                                {{ t('reports.dominical.worked_hint', { n: report.cost_summary.dominical_worked_days }) }}
+                                {{
+                                    t('reports.dominical.worked_hint', {
+                                        n: report.cost_summary
+                                            .dominical_worked_days,
+                                    })
+                                }}
                             </span>
                         </div>
                         <input
@@ -669,7 +833,20 @@ function hourTypeLabel(type: string): string {
                             step="1"
                             class="w-20 rounded-md border bg-background px-2 py-1 text-right text-sm"
                             :value="report.cost_summary.dominical_paid_days"
-                            @change="setDominicalPayableCount(Math.max(0, Math.trunc(Number(($event.target as HTMLInputElement).value)) || 0))"
+                            @change="
+                                setDominicalPayableCount(
+                                    Math.max(
+                                        0,
+                                        Math.trunc(
+                                            Number(
+                                                (
+                                                    $event.target as HTMLInputElement
+                                                ).value,
+                                            ),
+                                        ) || 0,
+                                    ),
+                                )
+                            "
                         />
                     </div>
                     <!-- Overtime payable hours (only when overtime is unified: 3 premium flags off) -->
@@ -682,7 +859,12 @@ function hourTypeLabel(type: string): string {
                                 {{ t('reports.overtime.payable_hours_label') }}
                             </span>
                             <span class="text-xs text-muted-foreground">
-                                {{ t('reports.overtime.worked_hint', { n: report.cost_summary.overtime_worked_hours }) }}
+                                {{
+                                    t('reports.overtime.worked_hint', {
+                                        n: report.cost_summary
+                                            .overtime_worked_hours,
+                                    })
+                                }}
                             </span>
                         </div>
                         <input
@@ -690,8 +872,21 @@ function hourTypeLabel(type: string): string {
                             min="0"
                             step="0.5"
                             class="w-20 rounded-md border bg-background px-2 py-1 text-right text-sm"
-                            :value="report.cost_summary.overtime_payable_hours ?? report.cost_summary.overtime_worked_hours"
-                            @change="setOvertimePayableHours(Math.max(0, Number(($event.target as HTMLInputElement).value) || 0))"
+                            :value="
+                                report.cost_summary.overtime_payable_hours ??
+                                report.cost_summary.overtime_worked_hours
+                            "
+                            @change="
+                                setOvertimePayableHours(
+                                    Math.max(
+                                        0,
+                                        Number(
+                                            ($event.target as HTMLInputElement)
+                                                .value,
+                                        ) || 0,
+                                    ),
+                                )
+                            "
                         />
                     </div>
                     <div
@@ -706,15 +901,20 @@ function hourTypeLabel(type: string): string {
                                     report.cost_summary.deducted_days > 0
                                         ? t('reports.day_deduction.hint', {
                                               amount: formatCurrency(
-                                                  report.cost_summary.day_deduction,
-                                              ),
-                                          })
-                                        : t('reports.day_deduction.empty_hint', {
-                                              value: formatCurrency(
                                                   report.cost_summary
-                                                      .day_deduction_value || 0,
+                                                      .day_deduction,
                                               ),
                                           })
+                                        : t(
+                                              'reports.day_deduction.empty_hint',
+                                              {
+                                                  value: formatCurrency(
+                                                      report.cost_summary
+                                                          .day_deduction_value ||
+                                                          0,
+                                                  ),
+                                              },
+                                          )
                                 }}
                             </span>
                         </div>
@@ -727,7 +927,8 @@ function hourTypeLabel(type: string): string {
                             @change="
                                 setDeductedDays(
                                     Number(
-                                        ($event.target as HTMLInputElement).value,
+                                        ($event.target as HTMLInputElement)
+                                            .value,
                                     ),
                                 )
                             "
@@ -968,7 +1169,8 @@ function hourTypeLabel(type: string): string {
                             <div class="text-lg font-semibold">
                                 {{
                                     formatDecimalHours(
-                                        report.totals.overtime_day_dominical_hours,
+                                        report.totals
+                                            .overtime_day_dominical_hours,
                                     )
                                 }}
                             </div>
@@ -991,7 +1193,9 @@ function hourTypeLabel(type: string): string {
                                 }}
                             </div>
                             <div class="text-xs text-muted-foreground">
-                                {{ t('reports.hours.overtime_night_dominical') }}
+                                {{
+                                    t('reports.hours.overtime_night_dominical')
+                                }}
                             </div>
                         </div>
                     </div>
@@ -1003,7 +1207,8 @@ function hourTypeLabel(type: string): string {
                             <div class="text-lg font-semibold">
                                 {{
                                     formatDecimalHours(
-                                        report.totals.overtime_day_holiday_hours,
+                                        report.totals
+                                            .overtime_day_holiday_hours,
                                     )
                                 }}
                             </div>
@@ -1211,7 +1416,9 @@ function hourTypeLabel(type: string): string {
                                 <tfoot>
                                     <tr class="border-t font-semibold">
                                         <td class="pt-2">
-                                            {{ t('reports.costs.total_earned') }}
+                                            {{
+                                                t('reports.costs.total_earned')
+                                            }}
                                         </td>
                                         <td class="pt-2 text-right">
                                             {{
@@ -1289,8 +1496,12 @@ function hourTypeLabel(type: string): string {
                                                     : t(
                                                           'reports.costs.deduction',
                                                       )
-                                            }}<template v-if="adjustment.concept"
-                                                >: {{ adjustment.concept }}</template
+                                            }}<template
+                                                v-if="adjustment.concept"
+                                                >:
+                                                {{
+                                                    adjustment.concept
+                                                }}</template
                                             >
                                         </td>
                                         <td
@@ -1305,16 +1516,27 @@ function hourTypeLabel(type: string): string {
                                                 adjustment.type === 'Bonus'
                                                     ? '+'
                                                     : '-'
-                                            }}{{ formatCurrency(adjustment.amount) }}
+                                            }}{{
+                                                formatCurrency(
+                                                    adjustment.amount,
+                                                )
+                                            }}
                                         </td>
                                     </tr>
                                     <tr
-                                        v-if="report.cost_summary.deducted_days > 0"
+                                        v-if="
+                                            report.cost_summary.deducted_days >
+                                            0
+                                        "
                                         class="text-red-600"
                                     >
                                         <td colspan="3">
-                                            {{ t('reports.costs.day_deduction') }} ({{
-                                                report.cost_summary.deducted_days
+                                            {{
+                                                t('reports.costs.day_deduction')
+                                            }}
+                                            ({{
+                                                report.cost_summary
+                                                    .deducted_days
                                             }}
                                             ×
                                             {{
@@ -1336,12 +1558,14 @@ function hourTypeLabel(type: string): string {
                                     <tr
                                         v-if="
                                             report.adjustments.length > 0 ||
-                                            report.cost_summary.deducted_days > 0
+                                            report.cost_summary.deducted_days >
+                                                0
                                         "
                                         class="border-t text-base font-bold"
                                         :class="{
                                             'text-red-600':
-                                                report.cost_summary.final_pay <= 0,
+                                                report.cost_summary.final_pay <=
+                                                0,
                                         }"
                                     >
                                         <td class="pt-2" colspan="3">
@@ -1357,13 +1581,19 @@ function hourTypeLabel(type: string): string {
                                         </td>
                                     </tr>
                                     <tr
-                                        v-if="report.cost_summary.final_pay <= 0"
+                                        v-if="
+                                            report.cost_summary.final_pay <= 0
+                                        "
                                     >
                                         <td
                                             colspan="4"
                                             class="pt-1 text-right text-xs text-red-600"
                                         >
-                                            {{ t('reports.day_deduction.negative_warning') }}
+                                            {{
+                                                t(
+                                                    'reports.day_deduction.negative_warning',
+                                                )
+                                            }}
                                         </td>
                                     </tr>
                                 </tfoot>
